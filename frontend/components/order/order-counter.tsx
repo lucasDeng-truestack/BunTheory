@@ -5,9 +5,16 @@ interface OrderCounterProps {
   current: number;
   max: number;
   canOrder?: boolean;
+  /** e.g. "Thu 27 Mar" or batch label */
+  batchLabel?: string | null;
 }
 
-export function OrderCounter({ current, max, canOrder = true }: OrderCounterProps) {
+export function OrderCounter({
+  current,
+  max,
+  canOrder = true,
+  batchLabel,
+}: OrderCounterProps) {
   const safeMax = max > 0 ? max : 1;
   const pct = Math.min(100, Math.round((current / safeMax) * 100));
 
@@ -24,8 +31,8 @@ export function OrderCounter({ current, max, canOrder = true }: OrderCounterProp
             <Flame className="h-5 w-5" aria-hidden />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-charcoal/60">
-              Kitchen load today
+            <p className="text-sm font-medium uppercase tracking-wide text-charcoal/60">
+              Kitchen load{batchLabel ? ` · ${batchLabel}` : ""}
             </p>
             <p className="text-xl font-bold tabular-nums text-charcoal">
               {current}
@@ -34,7 +41,7 @@ export function OrderCounter({ current, max, canOrder = true }: OrderCounterProp
           </div>
         </div>
         {!canOrder && (
-          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
+          <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
             Closed
           </span>
         )}

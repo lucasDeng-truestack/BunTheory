@@ -1,23 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   UtensilsCrossed,
   ShoppingBag,
   LogOut,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AdminNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleExit = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("admin_token");
+    }
+    router.replace("/admin/login");
+    router.refresh();
+  };
 
   if (pathname === "/admin/login") return null;
 
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/batches", label: "Batches", icon: CalendarClock },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
     { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   ];
@@ -47,11 +58,15 @@ export function AdminNav() {
           </Button>
         );
       })}
-      <Button variant="ghost" size="sm" className="rounded-xl px-2.5 sm:px-3" asChild>
-        <Link href="/">
-          <LogOut className="mr-1.5 h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline">Exit</span>
-        </Link>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="rounded-xl px-2.5 sm:px-3"
+        onClick={handleExit}
+      >
+        <LogOut className="mr-1.5 h-4 w-4 shrink-0" />
+        <span className="hidden sm:inline">Exit</span>
       </Button>
     </nav>
   );

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderBatchStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -22,7 +22,6 @@ async function main() {
     });
   }
 
-  // Create sample menu items (slug is stable across DB resets)
   const menuItems = [
     {
       slug: 'signature-roast-bun',
@@ -62,6 +61,56 @@ async function main() {
         description: item.description,
         price: item.price,
         available: item.available,
+      },
+    });
+  }
+
+  const existingBatch = await prisma.orderBatch.findFirst({
+    where: { label: 'Development seed batch' },
+  });
+  if (!existingBatch) {
+    const menus = await prisma.menu.findMany();
+    const now = new Date();
+    const opensAt = new Date(now);
+    opensAt.setDate(opensAt.getDate() - 1);
+    const closesAt = new Date(now);
+    closesAt.setDate(closesAt.getDate() + 14);
+    const fulfillmentDate = new Date(now);
+    fulfillmentDate.setDate(fulfillmentDate.getDate() + 7);
+
+    const batch = await prisma.orderBatch.create({
+      data: {
+        label: 'Development seed batch',
+        fulfillmentDate,
+        opensAt,
+        closesAt,
+        maxItems: 50,
+        status: OrderBatchStatus.DRAFT,
+      },
+    });
+
+    await prisma.menuSnapshot.create({
+      data: {
+        batchId: batch.id,
+        items: {
+          create: menus.map((m) => ({
+            sourceMenuId: m.id,
+            slug: m.slug,
+            name: m.name,
+            description: m.description,
+            price: m.price,
+            image: m.image,
+            available: m.available,
+          })),
+        },
+      },
+    });
+
+    await prisma.orderBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: OrderBatchStatus.PUBLISHED,
+        publishedAt: new Date(),
       },
     });
   }

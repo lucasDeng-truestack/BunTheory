@@ -6,6 +6,7 @@ Single-restaurant ordering (GrabFood-style flow) for **Bun Theory by Bakar & Roa
 
 - **No login or signup.** Customers identify at checkout with **name** and **phone number** (and any fields the order flow already collects).
 - Browse menu, cart, and place orders for **pickup or delivery** (per backend capabilities).
+- **Track in-progress orders** by phone on `/track`: shows only **active** statuses (received / preparing / ready), not completed deliveries, and only recent orders (see `docs/cart-and-menu.md` / API). No account required.
 - **Mobile-first** web app: optimize for phones; **desktop layouts** should remain usable and responsive (wider grids, comfortable spacing).
 
 ## Admin experience

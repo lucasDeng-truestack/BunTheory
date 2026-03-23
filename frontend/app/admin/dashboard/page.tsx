@@ -9,7 +9,8 @@ import { OrderTable } from "@/components/admin/order-table";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { getSettings } from "@/services/admin.service";
-import { getOrders, getTodayOrderCount } from "@/services/orders.service";
+import { getOrders, getCanOrder } from "@/services/orders.service";
+import { formatBatchLabel } from "@/lib/batch-display";
 import type { Order } from "@/types/order";
 import { Loader2 } from "lucide-react";
 
@@ -21,7 +22,9 @@ export default function AdminDashboardPage() {
     maxOrdersPerDay: 15,
     orderingEnabled: true,
   });
-  const [orderCount, setOrderCount] = useState(0);
+  const [batchCtx, setBatchCtx] = useState<Awaited<
+    ReturnType<typeof getCanOrder>
+  > | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,15 +34,12 @@ export default function AdminDashboardPage() {
       return;
     }
     setToken(t);
-    Promise.all([
-      getOrders(t, { date: "today" }),
-      getSettings(t),
-      getTodayOrderCount(),
-    ])
-      .then(([o, s, c]) => {
-        setOrders(o);
+    Promise.all([getCanOrder(), getSettings(t)])
+      .then(async ([co, s]) => {
+        setBatchCtx(co);
         setSettings(s);
-        setOrderCount(c);
+        const o = await getOrders(t, co.batchId ? { batchId: co.batchId } : { date: "week" });
+        setOrders(o);
       })
       .catch(() => router.replace("/admin/login"))
       .finally(() => setLoading(false));
@@ -47,17 +47,14 @@ export default function AdminDashboardPage() {
 
   const refresh = async () => {
     if (!token) return;
-    const [o, s, c] = await Promise.all([
-      getOrders(token, { date: "today" }),
-      getSettings(token),
-      getTodayOrderCount(),
-    ]);
-    setOrders(o);
+    const [co, s] = await Promise.all([getCanOrder(), getSettings(token)]);
+    setBatchCtx(co);
     setSettings(s);
-    setOrderCount(c);
+    const o = await getOrders(token, co.batchId ? { batchId: co.batchId } : { date: "week" });
+    setOrders(o);
   };
 
-  if (loading) {
+  if (loading || !batchCtx) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-8 w-8 animate-spin text-roast-red" />
@@ -69,23 +66,28 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Dashboard"
-        description="Today’s orders, capacity, and storefront controls."
+        description="Current batch capacity, emergency controls, and recent orders."
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin/orders">View all orders</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/batches">Manage batches</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/orders">View all orders</Link>
+            </Button>
+          </div>
         }
       />
 
       <DashboardStats
-        orderCount={orderCount}
-        maxOrders={settings.maxOrdersPerDay}
-        orderingEnabled={settings.orderingEnabled}
+        current={batchCtx.current}
+        max={batchCtx.max}
+        canOrder={batchCtx.canOrder}
+        batchLabel={formatBatchLabel(batchCtx)}
       />
 
       <SettingsCard
         token={token!}
-        maxOrdersPerDay={settings.maxOrdersPerDay}
         orderingEnabled={settings.orderingEnabled}
         onUpdate={refresh}
       />
@@ -95,7 +97,9 @@ export default function AdminDashboardPage() {
           Recent orders
         </h2>
         <p className="mt-1 text-sm text-charcoal/65">
-          Latest activity for today (same filters as the orders page).
+          {batchCtx.batchId
+            ? "Orders for the selected active batch (or last week if none)."
+            : "Latest orders from the last 7 days."}
         </p>
       </div>
 

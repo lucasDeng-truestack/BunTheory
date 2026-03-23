@@ -11,7 +11,7 @@ export function OrderStatusDisplay({ status }: OrderStatusProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-lg">Order status</h3>
+      <h3 className="text-xl font-semibold">Order status</h3>
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-[min(100%,520px)] items-center justify-between gap-2 px-1">
         {ORDER_STATUS_STEPS.map((step, i) => {
@@ -34,7 +34,7 @@ export function OrderStatusDisplay({ status }: OrderStatusProps) {
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-xs font-medium text-center ${
+                  className={`mt-2 text-center text-sm font-medium ${
                     isCurrent ? "text-roast-red" : "text-charcoal/70"
                   }`}
                 >

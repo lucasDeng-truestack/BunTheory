@@ -20,11 +20,23 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
 }
 
 @layer components {
+  /** Reusable storefront copy scale */
+  .text-section-label {
+    @apply text-sm font-semibold uppercase tracking-wider text-roast-red;
+  }
+  .text-section-label-muted {
+    @apply text-sm font-semibold uppercase tracking-wider text-charcoal/50;
+  }
+  .text-caption {
+    @apply text-sm text-charcoal/60;
+  }
+  .text-fine-print {
+    @apply text-sm text-charcoal/45;
+  }
+
   /** Match shadcn Input: single bordered shell, flag + field inside */
   .order-form-phone.PhoneInput {
     @apply h-12 w-full min-h-12 rounded-xl border border-charcoal/20 bg-white px-3 shadow-sm;
@@ -53,5 +65,16 @@ body {
       #ffffff 42%,
       rgba(255, 247, 237, 0.92) 100%
     );
+  }
+
+  /**
+   * Subtle texture for large screens — keeps tablet/desktop from feeling flat.
+   */
+  .bg-store-dots {
+    background-image: radial-gradient(
+      rgba(31, 41, 55, 0.06) 1px,
+      transparent 1px
+    );
+    background-size: 24px 24px;
   }
 }

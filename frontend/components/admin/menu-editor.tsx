@@ -110,7 +110,7 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
         <CardHeader className="border-b border-charcoal/10 bg-cream/30">
           <CardTitle className="text-lg">Add menu item</CardTitle>
           <p className="text-sm font-normal text-charcoal/65">
-            New items appear on the public menu immediately after saving.
+            Saving updates the draft menu only. Publish a batch under Batches to expose items on the storefront.
           </p>
         </CardHeader>
         <CardContent className="pt-6">

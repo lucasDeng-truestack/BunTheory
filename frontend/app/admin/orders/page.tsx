@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getOrders, type GetOrdersParams } from "@/services/orders.service";
-import { getMenu } from "@/services/menu.service";
+import { getDraftMenu } from "@/services/menu.service";
+import { listBatches, type OrderBatchListItem } from "@/services/batches.service";
 import type { Order } from "@/types/order";
 import type { MenuItem } from "@/types/menu";
 import { Loader2, RefreshCw, Search, UtensilsCrossed } from "lucide-react";
@@ -31,7 +32,9 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [token, setToken] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<GetOrdersParams["date"]>("today");
+  const [dateFilter, setDateFilter] = useState<GetOrdersParams["date"]>("week");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
+  const [batches, setBatches] = useState<OrderBatchListItem[]>([]);
   const [customerInput, setCustomerInput] = useState("");
   const [appliedCustomer, setAppliedCustomer] = useState("");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -45,21 +48,28 @@ export default function AdminOrdersPage() {
     }
     setToken(t);
     try {
-      const params: GetOrdersParams = { date: dateFilter ?? "today" };
+      const params: GetOrdersParams = {};
+      if (batchFilter !== "all") {
+        params.batchId = batchFilter;
+      } else {
+        params.date = dateFilter ?? "week";
+      }
       if (appliedCustomer.trim()) params.customer = appliedCustomer.trim();
       if (itemFilter && itemFilter !== "all") params.menuId = itemFilter;
-      const [o, menu] = await Promise.all([
+      const [o, menu, batchList] = await Promise.all([
         getOrders(t, params),
-        getMenu(false),
+        getDraftMenu(false, t),
+        listBatches(t),
       ]);
       setOrders(o);
       setMenuItems(menu);
+      setBatches(batchList);
     } catch {
       router.replace("/admin/login");
     } finally {
       setLoading(false);
     }
-  }, [router, dateFilter, appliedCustomer, itemFilter]);
+  }, [router, dateFilter, batchFilter, appliedCustomer, itemFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -69,8 +79,9 @@ export default function AdminOrdersPage() {
   const makeList = orders.reduce<Record<string, { name: string; qty: number }>>(
     (acc, order) => {
       for (const oi of order.orderItems) {
-        const id = oi.menuId;
-        const name = oi.menu?.name ?? "Unknown";
+        const id = oi.menuSnapshotItemId ?? oi.menuId ?? oi.id;
+        const name =
+          oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Unknown";
         if (!acc[id]) acc[id] = { name, qty: 0 };
         acc[id].qty += oi.quantity;
       }
@@ -96,7 +107,7 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Orders"
-        description="Search, filter, update status, and prep your make list."
+        description="Search, filter by batch or date, update status, and prep your make list."
         actions={
           <Button variant="outline" size="sm" onClick={fetchOrders}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -106,13 +117,40 @@ export default function AdminOrdersPage() {
       />
 
       <div className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-white p-4 shadow-card sm:flex-row">
-        <div className="flex flex-col sm:flex-row gap-3 flex-1">
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-medium text-charcoal/70 mb-1 block">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-sm font-medium text-charcoal/70">
+              Batch
+            </label>
+            <Select
+              value={batchFilter}
+              onValueChange={(v) => {
+                setBatchFilter(v);
+                setLoading(true);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All batches" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All batches (use date range)</SelectItem>
+                {batches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.label?.trim() ||
+                      new Date(b.fulfillmentDate).toLocaleDateString()}{" "}
+                    ({b.status})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-sm font-medium text-charcoal/70">
               Date range
             </label>
             <Select
-              value={dateFilter ?? "today"}
+              value={dateFilter ?? "week"}
+              disabled={batchFilter !== "all"}
               onValueChange={(v) => {
                 setDateFilter(v as GetOrdersParams["date"]);
                 setLoading(true);
@@ -130,8 +168,8 @@ export default function AdminOrdersPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-medium text-charcoal/70 mb-1 block">
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-sm font-medium text-charcoal/70">
               Filter by item
             </label>
             <Select
@@ -154,18 +192,18 @@ export default function AdminOrdersPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-medium text-charcoal/70 mb-1 block">
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-sm font-medium text-charcoal/70">
               Filter by customer
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-charcoal/50" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal/50" />
               <Input
                 placeholder="Name or phone..."
                 value={customerInput}
                 onChange={(e) => setCustomerInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleApplyFilters()}
-                className="pl-9 w-full sm:w-[200px]"
+                className="w-full pl-9 sm:w-[200px]"
               />
             </div>
           </div>
@@ -204,7 +242,7 @@ export default function AdminOrdersPage() {
 
       {Object.keys(makeList).length > 0 && (
         <div className="rounded-xl border border-charcoal/10 bg-amber-50/50 p-4">
-          <h3 className="font-semibold text-charcoal flex items-center gap-2 mb-3">
+          <h3 className="mb-3 flex items-center gap-2 font-semibold text-charcoal">
             <UtensilsCrossed className="h-4 w-4 text-roast-red" />
             Make list — total quantities
           </h3>
@@ -212,7 +250,7 @@ export default function AdminOrdersPage() {
             {Object.entries(makeList).map(([id, { name, qty }]) => (
               <div
                 key={id}
-                className="rounded-lg bg-white px-4 py-2 border border-charcoal/10"
+                className="rounded-lg border border-charcoal/10 bg-white px-4 py-2"
               >
                 <span className="font-medium text-charcoal">{name}</span>
                 <span className="ml-2 font-bold text-roast-red">{qty}x</span>

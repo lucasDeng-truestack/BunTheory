@@ -7,6 +7,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { BatchesModule } from './modules/batches/batches.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     NotificationsModule,
     SettingsModule,
     UploadsModule,
+    BatchesModule,
   ],
 })
 export class AppModule {}

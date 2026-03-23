@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { TrackOrderQueryDto } from './dto/track-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -24,12 +25,18 @@ export class OrdersController {
 
   @Get('can-order')
   canPlaceOrder() {
-    return this.ordersService.canPlaceOrder();
+    return this.ordersService.getStorefrontContext();
   }
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
     return this.ordersService.create(createOrderDto);
+  }
+
+  /** Public: live orders for a phone (excludes DELIVERED; last 7 days). */
+  @Get('track')
+  track(@Query() query: TrackOrderQueryDto) {
+    return this.ordersService.findTrackableByPhone(query.phone);
   }
 
   @Get()
@@ -38,8 +45,9 @@ export class OrdersController {
     @Query('date') date?: string,
     @Query('customer') customer?: string,
     @Query('menuId') menuId?: string,
+    @Query('batchId') batchId?: string,
   ) {
-    return this.ordersService.findAll({ date, customer, menuId });
+    return this.ordersService.findAll({ date, customer, menuId, batchId });
   }
 
   @Get(':id')

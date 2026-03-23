@@ -7,16 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Draft menu (admin edits). Public storefront uses MenuSnapshotItem after publish.
 model Menu {
-  id          String      @id @default(cuid())
-  slug        String      @unique
-  name        String
-  description String?
-  price       Decimal     @db.Decimal(10, 2)
-  image       String?
-  available   Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  orderItems  OrderItem[]
+  id                 String              @id @default(cuid())
+  slug               String              @unique
+  name               String
+  description        String?
+  price              Decimal             @db.Decimal(10, 2)
+  image              String?
+  available          Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  orderItems         OrderItem[]
+  snapshotItemRefs   MenuSnapshotItem[]
 }
 
 model Order {
@@ -24,9 +26,11 @@ model Order {
   slugId       String      @unique
   customerName String
   phone        String
-  type         OrderType   // pickup or delivery
+  type         OrderType
   status       OrderStatus @default(RECEIVED)
   createdAt    DateTime    @default(now())
+  batchId      String?
+  batch        OrderBatch? @relation(fields: [batchId], references: [id])
   orderItems   OrderItem[]
 }
 
@@ -42,13 +46,16 @@ enum OrderStatus {
   DELIVERED
 }
 
+/// One line on an order. New orders use menuSnapshotItemId; legacy rows may use menuId only.
 model OrderItem {
-  id       String @id @default(cuid())
-  orderId  String
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuId   String
-  menu     Menu   @relation(fields: [menuId], references: [id])
-  quantity Int
+  id                 String            @id @default(cuid())
+  orderId            String
+  order              Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity           Int
+  menuId             String?
+  menu               Menu?             @relation(fields: [menuId], references: [id])
+  menuSnapshotItemId String?
+  menuSnapshotItem   MenuSnapshotItem? @relation(fields: [menuSnapshotItemId], references: [id])
 }
 
 model Admin {
@@ -58,9 +65,58 @@ model Admin {
   createdAt DateTime @default(now())
 }
 
+/// Legacy global defaults; batch rules take precedence when batches exist.
 model SystemSettings {
   id              String   @id @default(cuid())
   maxOrdersPerDay Int      @default(15)
   orderingEnabled Boolean  @default(true)
   updatedAt       DateTime @updatedAt
+}
+
+/// A Thursday (or other) release window. Admin creates manually; publish copies draft menu to snapshot.
+model OrderBatch {
+  id               String           @id @default(cuid())
+  label            String?
+  fulfillmentDate  DateTime         @db.Date
+  opensAt          DateTime
+  closesAt         DateTime
+  maxItems         Int
+  status           OrderBatchStatus @default(DRAFT)
+  publishedAt      DateTime?
+  menuSnapshot     MenuSnapshot?
+  orders           Order[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+enum OrderBatchStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+/// Frozen catalog for one batch (created on publish).
+model MenuSnapshot {
+  id        String             @id @default(cuid())
+  batchId   String             @unique
+  batch     OrderBatch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+  items     MenuSnapshotItem[]
+}
+
+model MenuSnapshotItem {
+  id           String       @id @default(cuid())
+  snapshotId   String
+  snapshot     MenuSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  sourceMenuId String?
+  sourceMenu   Menu?        @relation(fields: [sourceMenuId], references: [id])
+  slug         String
+  name         String
+  description  String?
+  price        Decimal      @db.Decimal(10, 2)
+  image        String?
+  available    Boolean      @default(true)
+  orderItems   OrderItem[]
+
+  @@unique([snapshotId, slug])
 }

@@ -3,12 +3,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { Prisma } from '@prisma/client';
+import { BatchesService } from '../batches/batches.service';
 
 @Injectable()
 export class MenuService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private batchesService: BatchesService,
+  ) {}
 
-  async findAll(availableOnly = false) {
+  /** Admin: full draft menu (mutable). */
+  async findAllDraft(availableOnly = false) {
     const where: Prisma.MenuWhereInput = {};
     if (availableOnly) {
       where.available = true;
@@ -17,6 +22,43 @@ export class MenuService {
       where,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Storefront: published snapshot for the batch that is open and accepting or showing capacity.
+   */
+  async findPublishedForStorefront(availableOnly = false) {
+    const ctx = await this.batchesService.getStorefrontContext();
+    if (ctx.reason !== 'OK' && ctx.reason !== 'SOLD_OUT') {
+      return [];
+    }
+    if (!ctx.batchId) {
+      return [];
+    }
+    const batch = await this.prisma.orderBatch.findUnique({
+      where: { id: ctx.batchId },
+      include: {
+        menuSnapshot: { include: { items: true } },
+      },
+    });
+    if (!batch?.menuSnapshot) {
+      return [];
+    }
+    const snap = batch.menuSnapshot;
+    let items = snap.items;
+    if (availableOnly) {
+      items = items.filter((i) => i.available);
+    }
+    return items.map((i) => ({
+      id: i.id,
+      slug: i.slug,
+      name: i.name,
+      description: i.description,
+      price: i.price,
+      image: i.image,
+      available: i.available,
+      createdAt: snap.createdAt,
+    }));
   }
 
   async findOne(id: string) {

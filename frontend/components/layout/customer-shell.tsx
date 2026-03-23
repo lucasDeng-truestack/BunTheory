@@ -7,12 +7,31 @@ import { ChevronLeft } from "lucide-react";
 type CustomerPageShellProps = {
   children: React.ReactNode;
   className?: string;
-  /** Extra wrapper for main content (max width, padding) */
+  /** Extra classes on the inner flex column (below decorative layers) */
   mainClassName?: string;
 };
 
+/** Horizontal padding for customer `main` — shell no longer applies max-width; headers are full-bleed. */
+export const customerMainPaddingClass =
+  "px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-14";
+
+/** Inner max width for header rows on ultra-wide screens */
+const customerHeaderInnerClass =
+  "mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16";
+
+/** Shared sticky bar chrome (home + inner pages) */
+const customerHeaderChromeClass =
+  "sticky top-0 z-30 w-full overflow-hidden border-b border-charcoal/15 bg-white/95 shadow-[0_6px_28px_-14px_rgba(31,41,55,0.22)] backdrop-blur-md supports-[backdrop-filter]:bg-white/88";
+
+const customerTopNavLinkClass =
+  "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-medium text-charcoal/75 transition-colors hover:bg-cream hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2";
+
+const customerTopNavPrimaryClass =
+  "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-semibold text-white shadow-sm transition-colors bg-roast-red hover:bg-roast-red/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/45 focus-visible:ring-offset-2";
+
 /**
- * Full-height customer storefront shell: consistent background and safe area.
+ * Full-height customer storefront shell: full-width background; headers span the viewport.
+ * Add `customerMainPaddingClass` + `flex flex-1 flex-col` to each page `main`.
  */
 export function CustomerPageShell({
   children,
@@ -22,13 +41,25 @@ export function CustomerPageShell({
   return (
     <div
       className={cn(
-        "min-h-screen bg-store-gradient text-charcoal pb-[env(safe-area-inset-bottom)]",
+        "relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-store-gradient text-charcoal pb-[env(safe-area-inset-bottom)]",
         className
       )}
     >
       <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-10%,rgba(185,28,28,0.07),transparent_55%)] md:bg-[radial-gradient(ellipse_70%_50%_at_80%_0%,rgba(245,158,11,0.06),transparent_50%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_45%_at_50%_105%,rgba(185,28,28,0.05),transparent_50%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 hidden md:block bg-store-dots opacity-40"
+        aria-hidden
+      />
+      <div
         className={cn(
-          "mx-auto w-full max-w-6xl px-4 pb-10 sm:px-6",
+          "relative flex min-h-0 flex-1 flex-col",
           mainClassName
         )}
       >
@@ -50,6 +81,7 @@ type CustomerTopBarProps = {
 
 /**
  * Sticky app-style header: optional back, centered title, optional trailing action.
+ * Desktop: taller bar, stronger chrome, quick links, larger logo and title.
  */
 export function CustomerTopBar({
   title,
@@ -59,13 +91,27 @@ export function CustomerTopBar({
   centerTitle = true,
 }: CustomerTopBarProps) {
   return (
-    <header className="sticky top-0 z-20 border-b border-charcoal/10 bg-white/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-3">
+    <header className={customerHeaderChromeClass}>
+      <div
+        className="h-1 w-full bg-gradient-to-r from-roast-red via-roast-red/90 to-amber-500/35"
+        aria-hidden
+      />
+      <div
+        className={cn(
+          customerHeaderInnerClass,
+          "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 py-3 sm:gap-x-3 sm:py-4 lg:gap-x-6 lg:py-5"
+        )}
+      >
         <div className="flex min-w-0 justify-start">
           {backHref ? (
-            <Button variant="ghost" size="sm" className="-ml-2 gap-1 px-2" asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 gap-1.5 px-2 text-base sm:px-3 lg:h-12 lg:rounded-full lg:border lg:border-charcoal/12 lg:bg-white/90 lg:px-5 lg:shadow-sm lg:hover:bg-cream"
+              asChild
+            >
               <Link href={backHref} aria-label={backLabel}>
-                <ChevronLeft className="h-5 w-5 shrink-0" />
+                <ChevronLeft className="h-5 w-5 shrink-0 lg:h-5 lg:w-5" />
                 <span className="hidden sm:inline">{backLabel}</span>
               </Link>
             </Button>
@@ -75,18 +121,47 @@ export function CustomerTopBar({
         </div>
         <div
           className={cn(
-            "flex min-w-0 max-w-[min(100vw-8rem,22rem)] items-center justify-center gap-2",
-            centerTitle && "text-center"
+            "flex min-w-0 max-w-[min(100vw-8rem,28rem)] items-center justify-center gap-2.5 sm:gap-3 lg:max-w-[min(100vw-12rem,36rem)] lg:gap-4",
+            centerTitle ? "text-center lg:text-left" : "text-left"
           )}
         >
-          <span className="shrink-0" aria-hidden>
-            <BrandLogo size="xs" priority />
+          <span className="shrink-0 lg:hidden" aria-hidden>
+            <BrandLogo size="sm" priority />
           </span>
-          <h1 className="min-w-0 truncate text-base font-bold tracking-tight text-charcoal">
-            {title}
-          </h1>
+          <span className="hidden shrink-0 lg:block" aria-hidden>
+            <BrandLogo size="md" priority />
+          </span>
+          <div
+            className={cn(
+              "min-w-0",
+              centerTitle ? "text-center lg:text-left" : "text-left"
+            )}
+          >
+            <p className="hidden text-eyebrow font-semibold uppercase text-roast-red lg:block">
+              Bun Theory
+            </p>
+            <h1 className="min-w-0 truncate text-lg font-bold tracking-tight text-charcoal sm:text-xl lg:mt-0.5 lg:text-2xl xl:text-3xl xl:tracking-tight">
+              {title}
+            </h1>
+          </div>
         </div>
-        <div className="flex min-w-0 justify-end">{right ?? <span className="w-px" aria-hidden />}</div>
+        <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
+          <nav
+            className="hidden items-center lg:flex"
+            aria-label="Store sections"
+          >
+            <Link href="/menu" className={customerTopNavLinkClass}>
+              Menu
+            </Link>
+            <Link href="/track" className={customerTopNavLinkClass}>
+              Track
+            </Link>
+            <Link href="/order" className={customerTopNavPrimaryClass}>
+              Checkout
+            </Link>
+          </nav>
+          {right ?? <span className="w-px" aria-hidden />}
+        </div>
       </div>
     </header>
   );
@@ -96,21 +171,50 @@ type MarketingHeaderProps = {
   className?: string;
 };
 
-/** Compact brand bar for the home / landing route (no admin link). */
+/** Home / landing bar — same chrome and nav pattern as {@link CustomerTopBar}. */
 export function MarketingHeader({ className }: MarketingHeaderProps) {
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-20 border-b border-charcoal/10 bg-white/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/80",
-        className
-      )}
-    >
-      <div className="flex items-center gap-3 py-3 sm:py-4">
-        <BrandLogo size="md" priority className="shrink-0" />
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-roast-red">Bun Theory</p>
-          <p className="text-sm text-charcoal/60">by Bakar & Roast</p>
+    <header className={cn(customerHeaderChromeClass, className)}>
+      <div
+        className="h-1 w-full bg-gradient-to-r from-roast-red via-roast-red/90 to-amber-500/35"
+        aria-hidden
+      />
+      <div
+        className={cn(
+          customerHeaderInnerClass,
+          "flex flex-col gap-4 py-3 sm:gap-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:py-5"
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3 lg:gap-4">
+          <span className="shrink-0 lg:hidden" aria-hidden>
+            <BrandLogo size="sm" priority />
+          </span>
+          <span className="hidden shrink-0 lg:block" aria-hidden>
+            <BrandLogo size="md" priority />
+          </span>
+          <div className="min-w-0">
+            <p className="text-eyebrow font-semibold uppercase text-roast-red">
+              Bun Theory
+            </p>
+            <p className="mt-0.5 text-base leading-snug text-charcoal/60">
+              by Bakar &amp; Roast
+            </p>
+          </div>
         </div>
+        <nav
+          className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-end sm:gap-2 lg:gap-3"
+          aria-label="Store"
+        >
+          <Link href="/menu" className={customerTopNavLinkClass}>
+            Menu
+          </Link>
+          <Link href="/track" className={customerTopNavLinkClass}>
+            Track
+          </Link>
+          <Link href="/order" className={customerTopNavPrimaryClass}>
+            Checkout
+          </Link>
+        </nav>
       </div>
     </header>
   );

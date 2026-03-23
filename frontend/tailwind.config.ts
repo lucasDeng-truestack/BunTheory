@@ -8,6 +8,23 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "var(--font-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif",
+        ],
+      },
+      fontSize: {
+        /** Section / brand eyebrow — 14px floor for readability */
+        eyebrow: [
+          "0.875rem",
+          { lineHeight: "1.25rem", letterSpacing: "0.08em" },
+        ],
+      },
       keyframes: {
         dialogOverlayIn: {
           from: { opacity: "0" },

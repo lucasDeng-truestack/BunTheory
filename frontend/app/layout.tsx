@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { CartSync } from "@/components/providers/cart-sync";
+import { cn } from "@/lib/utils";
 import "./globals.css";
+
+const fontSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Bun Theory by Bakar & Roast",
@@ -18,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
-      <body className="min-h-screen antialiased bg-cream text-charcoal">
+    <html lang="en" className={cn("light", fontSans.variable)}>
+      <body className="min-h-screen bg-cream font-sans text-base leading-relaxed text-charcoal antialiased">
         {children}
         <CartSync />
         <Toaster

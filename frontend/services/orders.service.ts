@@ -19,10 +19,33 @@ export async function getOrder(id: string): Promise<Order> {
   return api<Order>(`/orders/${id}`);
 }
 
+export type StorefrontReason =
+  | "OK"
+  | "NO_BATCH"
+  | "NOT_PUBLISHED"
+  | "BEFORE_OPEN"
+  | "AFTER_CLOSE"
+  | "CLOSED"
+  | "SOLD_OUT";
+
+export interface CanOrderResponse {
+  batchId: string | null;
+  label: string | null;
+  fulfillmentDate: string | null;
+  opensAt: string | null;
+  closesAt: string | null;
+  publishedAt: string | null;
+  canOrder: boolean;
+  reason: StorefrontReason;
+  current: number;
+  max: number;
+}
+
 export interface GetOrdersParams {
   date?: "today" | "week" | "month" | "all";
   customer?: string;
   menuId?: string;
+  batchId?: string;
 }
 
 export async function getOrders(
@@ -33,6 +56,7 @@ export async function getOrders(
   if (params?.date) search.set("date", params.date);
   if (params?.customer?.trim()) search.set("customer", params.customer.trim());
   if (params?.menuId?.trim()) search.set("menuId", params.menuId.trim());
+  if (params?.batchId?.trim()) search.set("batchId", params.batchId.trim());
   const qs = search.toString();
   return api<Order[]>(`/orders${qs ? `?${qs}` : ""}`, { token });
 }
@@ -49,16 +73,17 @@ export async function updateOrderStatus(
   });
 }
 
-export interface CanOrderResponse {
-  canOrder: boolean;
-  current: number;
-  max: number;
-}
-
 export async function getCanOrder(): Promise<CanOrderResponse> {
   return api<CanOrderResponse>("/orders/can-order");
 }
 
 export async function getTodayOrderCount(): Promise<number> {
   return api<number>("/orders/today-count");
+}
+
+/** Public: active orders for this phone (no DELIVERED; last 7 days on server). */
+export async function trackOrdersByPhone(phone: string): Promise<Order[]> {
+  const search = new URLSearchParams();
+  search.set("phone", phone);
+  return api<Order[]>(`/orders/track?${search.toString()}`);
 }

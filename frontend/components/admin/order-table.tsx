@@ -43,7 +43,11 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
 
   const formatItems = (order: Order) =>
     order.orderItems
-      .map((oi) => `${oi.quantity}x ${oi.menu?.name ?? "Item"}`)
+      .map((oi) => {
+        const name =
+          oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Item";
+        return `${oi.quantity}x ${name}`;
+      })
       .join(", ");
 
   const formatDate = (dateStr: string) => {

@@ -186,7 +186,7 @@ export function OrderForm() {
             autoComplete: "tel",
           }}
         />
-        <p id="phone-hint" className="text-xs text-charcoal/55">
+        <p id="phone-hint" className="text-caption">
           Pick your country, then enter your number. We&apos;ll confirm on WhatsApp.
         </p>
       </div>

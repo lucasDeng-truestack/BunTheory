@@ -8,112 +8,91 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BatchesService } from '../batches/batches.service';
+
+const orderInclude = {
+  orderItems: {
+    include: {
+      menu: true,
+      menuSnapshotItem: true,
+    },
+  },
+  batch: true,
+} satisfies Prisma.OrderInclude;
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private batchesService: BatchesService,
   ) {}
 
-  /** Total number of items (burgers) sold today across all orders */
+  /** @deprecated Use batch context; kept for admin dashboard until migrated */
   async getTodayItemCount() {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const result = await this.prisma.orderItem.aggregate({
-      _sum: { quantity: true },
-      where: {
-        order: { createdAt: { gte: startOfDay } },
-      },
-    });
-    return result._sum.quantity ?? 0;
+    const ctx = await this.batchesService.getStorefrontContext();
+    if (!ctx.batchId) return 0;
+    return ctx.current;
   }
 
-  /** Number of orders placed today (for slugId sequence) */
-  async getTodayOrderCount() {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    return this.prisma.order.count({
-      where: { createdAt: { gte: startOfDay } },
-    });
-  }
-
-  async getSettings() {
-    let settings = await this.prisma.systemSettings.findFirst({
-      orderBy: { id: 'asc' },
-    });
-    if (!settings) {
-      settings = await this.prisma.systemSettings.create({
-        data: { maxOrdersPerDay: 15, orderingEnabled: true },
-      });
-    }
-    return settings;
-  }
-
-  async canPlaceOrder(): Promise<{ canOrder: boolean; current: number; max: number }> {
-    const [itemCount, settings] = await Promise.all([
-      this.getTodayItemCount(),
-      this.getSettings(),
-    ]);
-    const max = settings.maxOrdersPerDay;
-    const canOrder = settings.orderingEnabled && itemCount < max;
-    return { canOrder, current: itemCount, max };
+  async getStorefrontContext() {
+    return this.batchesService.getStorefrontContext();
   }
 
   async create(dto: CreateOrderDto) {
+    const resolved = await this.batchesService.resolveBatchForNewOrder();
+    if (!resolved) {
+      const ctx = await this.batchesService.getStorefrontContext();
+      throw new BadRequestException(
+        `Ordering is unavailable${ctx.reason ? ` (${ctx.reason})` : ''}.`,
+      );
+    }
+    const { batch: initialBatch } = resolved;
+
     const order = await this.prisma.$transaction(
       async (tx) => {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        // Lock SystemSettings row to serialize order creation and prevent race conditions
-        const settingsRows = await tx.$queryRaw<
-          { id: string; maxOrdersPerDay: number; orderingEnabled: boolean }[]
-        >`SELECT id, "maxOrdersPerDay", "orderingEnabled" FROM "SystemSettings" ORDER BY id ASC LIMIT 1 FOR UPDATE`;
-        let settings = settingsRows[0];
-        if (!settings) {
-          await tx.systemSettings.create({
-            data: { maxOrdersPerDay: 15, orderingEnabled: true },
-          });
-          const [created] = await tx.$queryRaw<
-            { id: string; maxOrdersPerDay: number; orderingEnabled: boolean }[]
-          >`SELECT id, "maxOrdersPerDay", "orderingEnabled" FROM "SystemSettings" ORDER BY id ASC LIMIT 1 FOR UPDATE`;
-          settings = created;
+        const settingsRow = await tx.systemSettings.findFirst();
+        if (settingsRow && !settingsRow.orderingEnabled) {
+          throw new BadRequestException('Ordering is temporarily disabled.');
         }
 
-        const maxItems = Number(settings.maxOrdersPerDay) || 15;
-        const orderingEnabled = Boolean(settings.orderingEnabled);
+        await tx.$queryRaw<{ id: string }[]>`
+          SELECT id FROM "OrderBatch" WHERE id = ${initialBatch.id} FOR UPDATE
+        `;
+
+        const batch = await tx.orderBatch.findUniqueOrThrow({
+          where: { id: initialBatch.id },
+          include: {
+            menuSnapshot: { include: { items: true } },
+          },
+        });
+        if (!batch.menuSnapshot) {
+          throw new BadRequestException('Batch has no published menu.');
+        }
+        const snapshot = batch.menuSnapshot;
 
         const newOrderItemCount = dto.items.reduce((sum, i) => sum + i.quantity, 0);
-        if (newOrderItemCount > maxItems) {
-          throw new BadRequestException(
-            `Order exceeds daily capacity. You ordered ${newOrderItemCount} items but max is ${maxItems} per day.`,
-          );
-        }
-
         const currentItemCountResult = await tx.orderItem.aggregate({
           _sum: { quantity: true },
-          where: { order: { createdAt: { gte: startOfDay } } },
+          where: { order: { batchId: batch.id } },
         });
         const currentItemCount = currentItemCountResult._sum.quantity ?? 0;
         const totalAfterOrder = currentItemCount + newOrderItemCount;
 
-        if (!orderingEnabled || totalAfterOrder > maxItems) {
+        if (totalAfterOrder > batch.maxItems) {
           throw new BadRequestException(
-            `Ordering is closed. Today's capacity reached (${currentItemCount}/${maxItems} items sold). ` +
-              `Your order would add ${newOrderItemCount} more.`,
+            `This batch is full (${currentItemCount}/${batch.maxItems} items). Your order would add ${newOrderItemCount} more.`,
           );
         }
 
-        // Serialize slugId generation: advisory lock per day + lock latest order (when exists)
-        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const lockKey = parseInt(dateStr, 10);
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
+        const dateStr = batch.fulfillmentDate
+          .toISOString()
+          .slice(0, 10)
+          .replace(/-/g, '');
         const prefix = `BT-${dateStr}-`;
         const latestRows = await tx.$queryRaw<{ slugId: string }[]>`
           SELECT "slugId" FROM "Order"
-          WHERE "slugId" LIKE ${prefix + '%'}
+          WHERE "batchId" = ${batch.id}
           ORDER BY "slugId" DESC
           LIMIT 1
           FOR UPDATE
@@ -124,59 +103,49 @@ export class OrdersService {
           : 1;
         const slugId = `${prefix}${String(nextNum).padStart(3, '0')}`;
 
-        // Resolve menu lines: prefer slug (stable across DB re-seeds); menuId if no slug
-        const resolvedItems: { menuId: string; quantity: number }[] = [];
+        const resolvedItems: { menuSnapshotItemId: string; quantity: number }[] =
+          [];
         for (const item of dto.items) {
-          let menuId: string;
+          let line: (typeof snapshot.items)[0] | undefined;
           if (item.slug) {
-            const menuBySlug = await tx.menu.findUnique({
-              where: { slug: item.slug },
-            });
-            if (!menuBySlug) {
-              throw new BadRequestException(
-                `Menu item with slug "${item.slug}" not found`,
-              );
-            }
-            menuId = menuBySlug.id;
+            line = snapshot.items.find((i) => i.slug === item.slug);
           } else if (item.menuId) {
-            menuId = item.menuId;
-          } else {
-            throw new BadRequestException(
-              'Each order item must have menuId or slug',
+            line = snapshot.items.find(
+              (i) =>
+                i.id === item.menuId || i.sourceMenuId === item.menuId,
             );
           }
-          const menu = await tx.menu.findUnique({
-            where: { id: menuId },
+          if (!line) {
+            throw new BadRequestException(
+              item.slug
+                ? `Menu item "${item.slug}" is not available for this batch.`
+                : `Menu item is not available for this batch.`,
+            );
+          }
+          if (!line.available) {
+            throw new BadRequestException(`"${line.name}" is sold out.`);
+          }
+          resolvedItems.push({
+            menuSnapshotItemId: line.id,
+            quantity: item.quantity,
           });
-          if (!menu) {
-            throw new BadRequestException(`Menu item ${menuId} not found`);
-          }
-          if (!menu.available) {
-            throw new BadRequestException(
-              `Menu item "${menu.name}" is sold out`,
-            );
-          }
-          resolvedItems.push({ menuId, quantity: item.quantity });
         }
 
         return tx.order.create({
           data: {
             slugId,
+            batchId: batch.id,
             customerName: dto.customerName,
             phone: dto.phone,
             type: dto.type,
             orderItems: {
               create: resolvedItems.map((i) => ({
-                menuId: i.menuId,
+                menuSnapshotItemId: i.menuSnapshotItemId,
                 quantity: i.quantity,
               })),
             },
           },
-          include: {
-            orderItems: {
-              include: { menu: true },
-            },
-          },
+          include: orderInclude,
         });
       },
       {
@@ -190,8 +159,54 @@ export class OrdersService {
     return order;
   }
 
-  async findAll(filters?: { date?: string; customer?: string; menuId?: string }) {
+  async findTrackableByPhone(phoneRaw: string) {
+    const phone = phoneRaw.trim();
+    if (!phone) {
+      throw new BadRequestException('Phone is required');
+    }
+    const digitKey = phone.replace(/\D/g, '');
+    if (digitKey.length < 8) {
+      throw new BadRequestException('Phone number is too short');
+    }
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    const activeStatuses: OrderStatus[] = ['RECEIVED', 'PREPARING', 'READY'];
+
+    const byExact = await this.prisma.order.findMany({
+      where: {
+        phone,
+        status: { in: activeStatuses },
+        createdAt: { gte: since },
+      },
+      include: orderInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+    if (byExact.length > 0) {
+      return byExact;
+    }
+
+    const candidates = await this.prisma.order.findMany({
+      where: {
+        status: { in: activeStatuses },
+        createdAt: { gte: since },
+      },
+      include: orderInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+    return candidates.filter((o) => o.phone.replace(/\D/g, '') === digitKey);
+  }
+
+  async findAll(filters?: {
+    date?: string;
+    customer?: string;
+    menuId?: string;
+    batchId?: string;
+  }) {
     const where: Prisma.OrderWhereInput = {};
+
+    if (filters?.batchId?.trim()) {
+      where.batchId = filters.batchId.trim();
+    }
 
     if (filters?.date) {
       const now = new Date();
@@ -227,16 +242,20 @@ export class OrdersService {
     }
 
     if (filters?.menuId?.trim()) {
+      const mid = filters.menuId.trim();
       where.orderItems = {
-        some: { menuId: filters.menuId.trim() },
+        some: {
+          OR: [
+            { menuId: mid },
+            { menuSnapshotItem: { sourceMenuId: mid } },
+          ],
+        },
       };
     }
 
     return this.prisma.order.findMany({
       where,
-      include: {
-        orderItems: { include: { menu: true } },
-      },
+      include: orderInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -244,9 +263,7 @@ export class OrdersService {
   async findOne(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: {
-        orderItems: { include: { menu: true } },
-      },
+      include: orderInclude,
     });
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -258,9 +275,7 @@ export class OrdersService {
     const order = await this.prisma.order.update({
       where: { id },
       data: { status },
-      include: {
-        orderItems: { include: { menu: true } },
-      },
+      include: orderInclude,
     });
 
     switch (status) {

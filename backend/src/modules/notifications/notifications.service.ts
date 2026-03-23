@@ -5,7 +5,8 @@ import { Order } from '@prisma/client';
 type OrderWithItems = Order & {
   orderItems: Array<{
     quantity: number;
-    menu: { name: string };
+    menu: { name: string } | null;
+    menuSnapshotItem: { name: string } | null;
   }>;
 };
 
@@ -44,7 +45,11 @@ export class NotificationsService {
 
   formatItems(order: OrderWithItems): string {
     return order.orderItems
-      .map((i) => `${i.quantity}x ${i.menu.name}`)
+      .map((i) => {
+        const name =
+          i.menuSnapshotItem?.name ?? i.menu?.name ?? 'Item';
+        return `${i.quantity}x ${name}`;
+      })
       .join('\n');
   }
 

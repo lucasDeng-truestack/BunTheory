@@ -8,7 +8,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream via-white to-cream/90 text-charcoal">
+    <div className="min-h-screen bg-gradient-to-b from-cream via-white to-cream/90 text-base leading-relaxed text-charcoal">
       <header className="sticky top-0 z-20 border-b border-charcoal/10 bg-white/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/85">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link
@@ -20,7 +20,7 @@ export default function AdminLayout({
             </span>
             <span className="min-w-0">
               <span className="block truncate">Admin</span>
-              <span className="block truncate text-xs font-normal text-charcoal/55">
+              <span className="block truncate text-sm font-normal text-charcoal/55">
                 Bun Theory
               </span>
             </span>

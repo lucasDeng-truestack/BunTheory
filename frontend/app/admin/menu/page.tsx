@@ -22,7 +22,7 @@ export default function AdminMenuPage() {
     }
     setToken(t);
     try {
-      const data = await api<MenuItem[]>("/menu");
+      const data = await api<MenuItem[]>("/menu/draft", { token: t });
       setItems(
         data.map((i) => ({
           ...i,

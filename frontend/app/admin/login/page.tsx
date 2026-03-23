@@ -91,6 +91,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Enter your password"
                   autoComplete="current-password"
                   value={form.password}
                   onChange={(e) =>

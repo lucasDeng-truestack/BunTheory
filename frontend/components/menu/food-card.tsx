@@ -43,9 +43,9 @@ export function FoodCard({ item }: FoodCardProps) {
         )}
       </div>
       <CardContent className="p-4">
-        <h3 className="font-semibold text-lg text-charcoal">{item.name}</h3>
+        <h3 className="text-xl font-semibold text-charcoal">{item.name}</h3>
         {item.description && (
-          <p className="text-sm text-charcoal/70 mt-1 line-clamp-2">
+          <p className="mt-1 line-clamp-2 text-base text-charcoal/70">
             {item.description}
           </p>
         )}

@@ -18,10 +18,19 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
-  @Get()
-  findAll(@Query('available') available?: string) {
+  /** Admin: draft menu (JWT). */
+  @Get('draft')
+  @UseGuards(JwtAuthGuard)
+  findDraft(@Query('available') available?: string) {
     const availableOnly = available === 'true';
-    return this.menuService.findAll(availableOnly);
+    return this.menuService.findAllDraft(availableOnly);
+  }
+
+  /** Public: published snapshot for active batch window only. */
+  @Get()
+  findPublished(@Query('available') available?: string) {
+    const availableOnly = available === 'true';
+    return this.menuService.findPublishedForStorefront(availableOnly);
   }
 
   @Get(':id')

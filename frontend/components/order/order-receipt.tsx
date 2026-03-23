@@ -1,9 +1,14 @@
 import type { Order } from "@/types/order";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+function lineName(oi: Order["orderItems"][number]): string {
+  return oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Item";
+}
+
 function unitPrice(oi: Order["orderItems"][number]): number | null {
-  if (oi.menu?.price == null) return null;
-  const n = Number(oi.menu.price);
+  const raw = oi.menu?.price ?? oi.menuSnapshotItem?.price;
+  if (raw == null) return null;
+  const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -21,7 +26,7 @@ export function OrderReceipt({ order }: { order: Order }) {
     : null;
 
   return (
-    <Card className="mx-auto mt-8 max-w-md text-left shadow-card">
+    <Card className="mx-auto w-full max-w-md text-left shadow-card lg:mx-0 lg:max-w-none">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold tracking-tight">
           Your order
@@ -34,7 +39,7 @@ export function OrderReceipt({ order }: { order: Order }) {
       <CardContent className="space-y-3 pt-0">
         <ul className="space-y-3">
           {order.orderItems.map((oi) => {
-            const name = oi.menu?.name ?? "Item";
+            const name = lineName(oi);
             const unit = unitPrice(oi);
             const line = lineTotal(oi);
             return (
