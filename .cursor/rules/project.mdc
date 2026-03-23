@@ -1,0 +1,63 @@
+---
+alwaysApply: true
+---
+
+Project Rules
+
+Project name: Bun Theory by Bakar & Roast
+
+Architecture:
+
+Frontend
+
+* NextJS
+* shadcn UI
+
+Backend
+
+* NestJS
+* Prisma
+* PostgreSQL
+
+Rules:
+
+* Backend must expose REST APIs.
+* Frontend must call backend via services layer.
+* Admin routes require authentication.
+* Customer routes are public.
+
+Main Features:
+
+Customer
+
+* View menu
+* Place order
+* Choose pickup or delivery
+
+Admin
+
+* Manage menu
+* View orders
+* Update order status
+* Limit max orders per day
+
+Notifications
+
+* WhatsApp message to admin when order is placed
+* WhatsApp message to customer when order status changes
+
+bun-theory/
+│
+├── frontend/
+│
+├── backend/
+│
+├── docs/
+│   ├── branding.md
+│
+├── .cursor/
+│   └── rules/
+│       ├── backend-folderstructure.mdc
+│       └── frontend-folderstructure.mdc
+│
+└── README.md

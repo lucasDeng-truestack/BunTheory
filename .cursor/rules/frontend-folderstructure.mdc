@@ -1,0 +1,158 @@
+---
+alwaysApply: true
+---
+
+Frontend Folder Structure Rules for Bun Theory
+
+Stack:
+
+* NextJS App Router
+* Typescript
+* TailwindCSS
+* shadcn/ui
+
+Folder Rules:
+
+1. Routes must live in /app.
+
+2. Public ordering pages:
+
+app/
+
+* page.tsx
+* menu/page.tsx
+* order/page.tsx
+
+3. Admin pages must live under:
+
+app/admin/
+
+Example:
+
+app/admin/dashboard
+app/admin/orders
+app/admin/menu
+
+4. UI components must live in /components.
+
+Component categories:
+
+components/menu
+components/order
+components/admin
+
+5. shadcn components must stay inside:
+
+components/ui
+
+6. API calls must be inside:
+
+/services
+
+Example:
+
+services/orders.service.ts
+services/menu.service.ts
+
+7. Reusable hooks must live inside:
+
+/hooks
+
+8. Global types must live in:
+
+/types
+
+9. Global utilities must live in:
+
+/lib
+
+10. Cart state must live in:
+
+/store/cart.store.ts
+
+UX Rules:
+
+* Mobile first
+* Simple checkout
+* Large call-to-action buttons
+* Minimal form inputs
+
+Components must be reusable and typed.
+
+frontend/
+│
+├── app/
+│
+│   ├── layout.tsx
+│   ├── page.tsx
+│
+│   ├── menu/
+│   │   └── page.tsx
+│
+│   ├── order/
+│   │   ├── page.tsx
+│   │   └── success/page.tsx
+│
+│   ├── admin/
+│   │
+│   │   ├── layout.tsx
+│   │
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │
+│   │   ├── dashboard/
+│   │   │   └── page.tsx
+│   │
+│   │   ├── menu/
+│   │   │   └── page.tsx
+│   │
+│   │   └── orders/
+│   │       └── page.tsx
+│
+├── components/
+│
+│   ├── ui/                 (shadcn components)
+│   ├── menu/
+│   │   ├── food-card.tsx
+│   │   └── food-grid.tsx
+│   │
+│   ├── order/
+│   │   ├── order-form.tsx
+│   │   ├── cart.tsx
+│   │   └── order-status.tsx
+│   │
+│   └── admin/
+│       ├── order-table.tsx
+│       ├── menu-editor.tsx
+│       └── dashboard-stats.tsx
+│
+├── lib/
+│   ├── api.ts
+│   ├── utils.ts
+│   └── constants.ts
+│
+├── hooks/
+│   ├── useMenu.ts
+│   ├── useOrders.ts
+│   └── useCart.ts
+│
+├── services/
+│   ├── menu.service.ts
+│   ├── orders.service.ts
+│   └── admin.service.ts
+│
+├── store/
+│   └── cart.store.ts
+│
+├── types/
+│   ├── menu.ts
+│   └── order.ts
+│
+├── styles/
+│   └── globals.css
+│
+├── public/
+│   └── images/
+│
+├── .env.local
+└── package.json

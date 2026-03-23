@@ -1,0 +1,31 @@
+---
+alwaysApply: true
+---
+
+You are working on the frontend of Bun Theory by Bakar & Roast.
+
+Tech stack:
+- NextJS (App Router)
+- Typescript
+- TailwindCSS
+- shadcn/ui
+- React Server Components
+
+Rules:
+
+1. Always use Typescript.
+2. Use server components whenever possible.
+3. UI must use shadcn components.
+4. Avoid unnecessary client components.
+5. Use TailwindCSS utility classes.
+6. Components must be reusable.
+7. API calls must be abstracted into /lib/api.
+8. Images must use next/image.
+9. Use optimistic UI for orders.
+
+UX Rules:
+
+- Mobile first design
+- Big buttons for ordering
+- Minimal form input
+- Loading states required

@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Menu {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String?
+  price       Decimal     @db.Decimal(10, 2)
+  image       String?
+  available   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  slugId       String      @unique
+  customerName String
+  phone        String
+  type         OrderType   // pickup or delivery
+  status       OrderStatus @default(RECEIVED)
+  createdAt    DateTime    @default(now())
+  orderItems   OrderItem[]
+}
+
+enum OrderType {
+  PICKUP
+  DELIVERY
+}
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  READY
+  DELIVERED
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuId   String
+  menu     Menu   @relation(fields: [menuId], references: [id])
+  quantity Int
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model SystemSettings {
+  id              String   @id @default(cuid())
+  maxOrdersPerDay Int      @default(15)
+  orderingEnabled Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}

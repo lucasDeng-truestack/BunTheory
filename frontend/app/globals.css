@@ -1,0 +1,57 @@
+@import "react-phone-number-input/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --roast-red: #b91c1c;
+  --charcoal: #1f2937;
+  --burnt-brown: #7c2d12;
+  --mustard: #f59e0b;
+  --cream: #fff7ed;
+  --background: #fff7ed;
+  --foreground: #1f2937;
+  /* react-phone-number-input: match brand focus */
+  --PhoneInput-color--focus: #b91c1c;
+  --PhoneInputCountryFlag-height: 1.25rem;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+@layer components {
+  /** Match shadcn Input: single bordered shell, flag + field inside */
+  .order-form-phone.PhoneInput {
+    @apply h-12 w-full min-h-12 rounded-xl border border-charcoal/20 bg-white px-3 shadow-sm;
+  }
+  .order-form-phone.PhoneInput:focus-within {
+    @apply ring-2 ring-roast-red ring-offset-2 ring-offset-cream;
+  }
+  .order-form-phone .PhoneInputInput {
+    @apply border-0 bg-transparent text-base text-charcoal placeholder:text-charcoal/50;
+  }
+  .order-form-phone .PhoneInputInput:focus {
+    @apply outline-none ring-0;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /** Soft storefront backdrop (brand cream stays dominant) */
+  .bg-store-gradient {
+    background: linear-gradient(
+      180deg,
+      #fff7ed 0%,
+      #ffffff 42%,
+      rgba(255, 247, 237, 0.92) 100%
+    );
+  }
+}

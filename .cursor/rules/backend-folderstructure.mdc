@@ -1,0 +1,134 @@
+---
+alwaysApply: true
+---
+
+Backend Folder Structure Rules for Bun Theory
+
+Stack:
+
+* NestJS
+* Prisma ORM
+* PostgreSQL
+
+Folder Rules:
+
+1. All features must live inside src/modules.
+
+2. Each module must contain:
+
+* controller
+* service
+* module
+* dto folder
+
+Example:
+
+modules/orders/
+
+* orders.controller.ts
+* orders.service.ts
+* orders.module.ts
+* dto/
+
+3. Prisma must only be accessed through prisma.service.
+
+4. Shared utilities must be placed inside src/common.
+
+5. Authentication must live in modules/auth.
+
+6. Notifications must live in modules/notifications.
+
+7. File uploads must live in modules/uploads.
+
+8. Config must live in src/config.
+
+9. Database schema must be inside prisma/schema.prisma.
+
+10. Seed scripts must live in src/database/seed.ts.
+
+Architecture Rules:
+
+Controller
+
+* Handles HTTP requests
+* No business logic
+
+Service
+
+* Handles business logic
+* Calls Prisma
+
+DTO
+
+* Validates request payloads
+
+Never mix responsibilities between layers.
+
+backend/
+│
+├── src/
+│
+│   ├── main.ts
+│   ├── app.module.ts
+│
+│   ├── config/
+│   │   ├── env.config.ts
+│   │   └── configuration.ts
+│
+│   ├── prisma/
+│   │   ├── prisma.module.ts
+│   │   └── prisma.service.ts
+│
+│   ├── common/
+│   │   ├── decorators/
+│   │   ├── filters/
+│   │   ├── guards/
+│   │   ├── interceptors/
+│   │   └── utils/
+│
+│   ├── modules/
+│   │
+│   │   ├── auth/
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.module.ts
+│   │   │   ├── dto/
+│   │   │   └── strategies/
+│   │
+│   │   ├── admin/
+│   │   │   ├── admin.controller.ts
+│   │   │   ├── admin.service.ts
+│   │   │   ├── admin.module.ts
+│   │   │   └── dto/
+│   │
+│   │   ├── menu/
+│   │   │   ├── menu.controller.ts
+│   │   │   ├── menu.service.ts
+│   │   │   ├── menu.module.ts
+│   │   │   └── dto/
+│   │
+│   │   ├── orders/
+│   │   │   ├── orders.controller.ts
+│   │   │   ├── orders.service.ts
+│   │   │   ├── orders.module.ts
+│   │   │   └── dto/
+│   │
+│   │   ├── notifications/
+│   │   │   ├── whatsapp.service.ts
+│   │   │   └── notifications.module.ts
+│   │
+│   │   └── uploads/
+│   │       ├── uploads.controller.ts
+│   │       ├── uploads.service.ts
+│   │       └── uploads.module.ts
+│
+│   └── database/
+│       └── seed.ts
+│
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── .env
+├── tsconfig.json
+└── package.json

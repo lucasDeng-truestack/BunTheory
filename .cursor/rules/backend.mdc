@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+---
+
+Backend rules for Bun Theory ordering system.
+
+Stack:
+- NestJS
+- PostgreSQL
+- Prisma ORM
+
+Rules:
+
+1. Follow clean architecture.
+2. Controllers only handle request/response.
+3. Business logic must be in services.
+4. Use DTO validation with class-validator.
+5. Use Prisma for all database queries.
+6. All endpoints must return typed responses.
+7. Errors must be standardized.
+
+Security:
+
+- Admin routes require authentication.
+- Public routes only allow ordering.
+- Rate limit order creation.
+
+Features:
+
+Orders:
+- Create order
+- Update order status
+- Cancel order
+
+Admin:
+- Upload menu
+- Set max orders per day
+- Toggle ordering availability
