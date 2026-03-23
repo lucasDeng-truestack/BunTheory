@@ -17,7 +17,10 @@
     "db:seed": "cd backend && npm run db:seed",
     "db:studio": "cd backend && npx prisma studio",
     "db:generate": "cd backend && npx prisma generate",
-	"db:reset": "cd backend && npx prisma migrate reset --force",
+    "db:reset": "cd backend && npx prisma migrate reset --force",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+	"docker:down:volumes": "docker compose down -v",
     "lint": "npm run lint:frontend",
     "lint:frontend": "cd frontend && npm run lint"
   },

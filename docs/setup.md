@@ -4,32 +4,23 @@ Quick reference for starting the development environment.
 
 **Other docs:** [`product.md`](./product.md) (access model, design notes) · [`cart-and-menu.md`](./cart-and-menu.md) (cart slugs & menu API contract) · [`branding.md`](./branding.md) (colors & UI tone) · root [`README.md`](../README.md) (overview, API table, deploy).
 
-## 1. Start the Database (Docker)
+## 1. Start the Database (Docker Compose)
+
+From the repo root:
 
 ```bash
-docker run -d \
-  --name bun-theory-db \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=bun_theory \
-  -p 5434:5432 \
-  postgres:15
+npm run docker:up
 ```
 
-**If the container already exists** (from a previous run):
+This starts Postgres 15 on **localhost:5434** (same credentials as before: `postgres` / `password`, database `bun_theory`). Data is stored in a Docker volume so it survives restarts.
+
+**Stop the database** (container removed; volume kept):
 
 ```bash
-docker start bun-theory-db
+npm run docker:down
 ```
 
-**To stop and remove the container:**
-
-```bash
-docker stop bun-theory-db
-docker rm bun-theory-db
-```
-
-Or in one command:
+**If you used the old `docker run` workflow**, remove the old container once so the name `bun-theory-db` is free:
 
 ```bash
 docker rm -f bun-theory-db
