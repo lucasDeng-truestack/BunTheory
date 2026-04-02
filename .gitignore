@@ -9,6 +9,8 @@ node_modules/
 # Environment & secrets (un-ignore template files below)
 .env
 .env.*
+# Local copy of R2 / Cloudflare secrets (fill from docs/r2-credentials.TEMPLATE.md)
+docs/r2-credentials.local.md
 !.env.example
 !**/.env.example
 !.env.local.example

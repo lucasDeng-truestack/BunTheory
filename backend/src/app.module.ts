@@ -8,18 +8,17 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SettingsModule } from './modules/settings/settings.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { BatchesModule } from './modules/batches/batches.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
     MenuModule,
+    BatchesModule,
     OrdersModule,
     NotificationsModule,
     SettingsModule,
     UploadsModule,
-    BatchesModule,
   ],
 })
 export class AppModule {}

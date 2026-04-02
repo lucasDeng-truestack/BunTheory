@@ -50,4 +50,25 @@ export class SettingsService {
     }
     return settings;
   }
+
+  async updateMinimumDelivery(minimumDeliveryAmount: number | null) {
+    let settings = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    if (!settings) {
+      settings = await this.prisma.systemSettings.create({
+        data: {
+          maxOrdersPerDay: 15,
+          orderingEnabled: true,
+          minimumDeliveryAmount,
+        },
+      });
+    } else {
+      settings = await this.prisma.systemSettings.update({
+        where: { id: settings.id },
+        data: { minimumDeliveryAmount },
+      });
+    }
+    return settings;
+  }
 }

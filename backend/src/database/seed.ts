@@ -1,4 +1,4 @@
-import { PrismaClient, OrderBatchStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -18,7 +18,11 @@ async function main() {
   let settings = await prisma.systemSettings.findFirst();
   if (!settings) {
     settings = await prisma.systemSettings.create({
-      data: { maxOrdersPerDay: 15, orderingEnabled: true },
+      data: {
+        maxOrdersPerDay: 15,
+        orderingEnabled: true,
+        minimumDeliveryAmount: 15,
+      },
     });
   }
 
@@ -46,8 +50,20 @@ async function main() {
     },
   ];
 
+  /** Same drink choices for each seeded item; all +RM 0; group is required (pick one). */
+  const drinksGroup = {
+    name: 'Drinks',
+    required: true,
+    multiSelect: false,
+    options: [
+      { label: 'Sprite', priceDelta: 0 },
+      { label: 'Coke', priceDelta: 0 },
+      { label: 'Ice Lemon Tea', priceDelta: 0 },
+    ],
+  } as const;
+
   for (const item of menuItems) {
-    await prisma.menu.upsert({
+    const menu = await prisma.menu.upsert({
       where: { slug: item.slug },
       update: {
         name: item.name,
@@ -63,54 +79,23 @@ async function main() {
         available: item.available,
       },
     });
-  }
 
-  const existingBatch = await prisma.orderBatch.findFirst({
-    where: { label: 'Development seed batch' },
-  });
-  if (!existingBatch) {
-    const menus = await prisma.menu.findMany();
-    const now = new Date();
-    const opensAt = new Date(now);
-    opensAt.setDate(opensAt.getDate() - 1);
-    const closesAt = new Date(now);
-    closesAt.setDate(closesAt.getDate() + 14);
-    const fulfillmentDate = new Date(now);
-    fulfillmentDate.setDate(fulfillmentDate.getDate() + 7);
+    await prisma.menuOptionGroup.deleteMany({ where: { menuId: menu.id } });
 
-    const batch = await prisma.orderBatch.create({
+    await prisma.menuOptionGroup.create({
       data: {
-        label: 'Development seed batch',
-        fulfillmentDate,
-        opensAt,
-        closesAt,
-        maxItems: 50,
-        status: OrderBatchStatus.DRAFT,
-      },
-    });
-
-    await prisma.menuSnapshot.create({
-      data: {
-        batchId: batch.id,
-        items: {
-          create: menus.map((m) => ({
-            sourceMenuId: m.id,
-            slug: m.slug,
-            name: m.name,
-            description: m.description,
-            price: m.price,
-            image: m.image,
-            available: m.available,
+        menuId: menu.id,
+        sortOrder: 0,
+        name: drinksGroup.name,
+        required: drinksGroup.required,
+        multiSelect: drinksGroup.multiSelect,
+        options: {
+          create: drinksGroup.options.map((opt, index) => ({
+            sortOrder: index,
+            label: opt.label,
+            priceDelta: opt.priceDelta,
           })),
         },
-      },
-    });
-
-    await prisma.orderBatch.update({
-      where: { id: batch.id },
-      data: {
-        status: OrderBatchStatus.PUBLISHED,
-        publishedAt: new Date(),
       },
     });
   }

@@ -9,6 +9,15 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+export class OrderItemSelectionDto {
+  @IsString()
+  groupId: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  optionIds: string[];
+}
+
 export class OrderItemDto {
   @IsOptional()
   @IsString()
@@ -21,6 +30,16 @@ export class OrderItemDto {
 
   @Min(1)
   quantity: number;
+
+  @IsOptional()
+  @IsString()
+  remarks?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemSelectionDto)
+  selections?: OrderItemSelectionDto[];
 }
 
 export class CreateOrderDto {

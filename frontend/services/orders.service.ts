@@ -1,11 +1,22 @@
 import { api } from "@/lib/api";
 import type { Order, OrderStatus } from "@/types/order";
 
+export interface OrderItemSelectionPayload {
+  groupId: string;
+  optionIds: string[];
+}
+
 export interface CreateOrderPayload {
   customerName: string;
   phone: string;
   type: "PICKUP" | "DELIVERY";
-  items: { slug?: string; menuId?: string; quantity: number }[];
+  items: {
+    slug?: string;
+    menuId?: string;
+    quantity: number;
+    remarks?: string;
+    selections?: OrderItemSelectionPayload[];
+  }[];
 }
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
@@ -19,26 +30,24 @@ export async function getOrder(id: string): Promise<Order> {
   return api<Order>(`/orders/${id}`);
 }
 
-export type StorefrontReason =
-  | "OK"
-  | "NO_BATCH"
-  | "NOT_PUBLISHED"
-  | "BEFORE_OPEN"
-  | "AFTER_CLOSE"
-  | "CLOSED"
-  | "SOLD_OUT";
+export type StorefrontReason = "OK" | "DISABLED" | "FULL" | "NO_BATCH";
+
+export interface ActiveBatchInfo {
+  id: string;
+  label: string | null;
+  opensAt: string;
+  closesAt: string;
+  fulfillmentDate: string;
+}
 
 export interface CanOrderResponse {
-  batchId: string | null;
-  label: string | null;
-  fulfillmentDate: string | null;
-  opensAt: string | null;
-  closesAt: string | null;
-  publishedAt: string | null;
   canOrder: boolean;
   reason: StorefrontReason;
   current: number;
   max: number;
+  minimumDeliveryAmount: number | null;
+  /** Present when a published batch is currently open (ordering may still be blocked if full). */
+  activeBatch?: ActiveBatchInfo | null;
 }
 
 export interface GetOrdersParams {

@@ -1,18 +1,20 @@
 import type { CanOrderResponse } from "@/services/orders.service";
 
+/** Subtitle for the kitchen load card (active batch name + window). */
 export function formatBatchLabel(ctx: CanOrderResponse): string | null {
-  if (ctx.label?.trim()) return ctx.label.trim();
-  if (!ctx.fulfillmentDate) return null;
-  try {
-    const d = new Date(ctx.fulfillmentDate);
-    return d.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
+  const b = ctx.activeBatch;
+  if (!b) {
+    if (ctx.reason === "NO_BATCH") return "No batch open";
     return null;
   }
+  const name = b.label?.trim() || "Order batch";
+  const start = new Date(b.opensAt);
+  const end = new Date(b.closesAt);
+  const fmt: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+  };
+  return `${name} · ${start.toLocaleTimeString(undefined, fmt)}–${end.toLocaleTimeString(undefined, fmt)}`;
 }
 
 export function checkoutClosedCopy(
@@ -26,29 +28,23 @@ export function checkoutClosedCopy(
     };
   }
   switch (ctx.reason) {
-    case "SOLD_OUT":
+    case "FULL":
       return {
         title: "This batch is full",
         description:
-          "We can’t take more orders for this release. Try again when the next batch opens.",
+          "We’ve reached the item limit for the current order window. Try the next batch or contact us on WhatsApp.",
       };
-    case "BEFORE_OPEN":
+    case "DISABLED":
       return {
-        title: "Ordering isn’t open yet",
-        description: "Come back when the batch window opens.",
+        title: "Ordering is turned off",
+        description:
+          "Ordering is temporarily disabled. Please check back later.",
       };
     case "NO_BATCH":
-    case "NOT_PUBLISHED":
       return {
-        title: "No active ordering window",
+        title: "Ordering isn’t open yet",
         description:
-          "There isn’t a published batch right now. Check the menu page for updates.",
-      };
-    case "AFTER_CLOSE":
-    case "CLOSED":
-      return {
-        title: "Ordering closed for this batch",
-        description: "This release has ended. Watch for the next drop.",
+          "There’s no active order batch right now. Come back when the next window is published.",
       };
     default:
       return {

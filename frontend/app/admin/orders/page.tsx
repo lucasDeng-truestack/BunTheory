@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getOrders, type GetOrdersParams } from "@/services/orders.service";
+import { fetchBatches } from "@/services/batches.service";
 import { getDraftMenu } from "@/services/menu.service";
-import { listBatches, type OrderBatchListItem } from "@/services/batches.service";
 import type { Order } from "@/types/order";
 import type { MenuItem } from "@/types/menu";
 import { Loader2, RefreshCw, Search, UtensilsCrossed } from "lucide-react";
@@ -33,12 +33,14 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<GetOrdersParams["date"]>("week");
-  const [batchFilter, setBatchFilter] = useState<string>("all");
-  const [batches, setBatches] = useState<OrderBatchListItem[]>([]);
   const [customerInput, setCustomerInput] = useState("");
   const [appliedCustomer, setAppliedCustomer] = useState("");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [itemFilter, setItemFilter] = useState<string>("all");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
+  const [batchOptions, setBatchOptions] = useState<
+    { id: string; label: string }[]
+  >([]);
 
   const fetchOrders = useCallback(async () => {
     const t = localStorage.getItem("admin_token");
@@ -48,28 +50,31 @@ export default function AdminOrdersPage() {
     }
     setToken(t);
     try {
-      const params: GetOrdersParams = {};
-      if (batchFilter !== "all") {
-        params.batchId = batchFilter;
-      } else {
-        params.date = dateFilter ?? "week";
-      }
+      const params: GetOrdersParams = {
+        date: dateFilter ?? "week",
+      };
       if (appliedCustomer.trim()) params.customer = appliedCustomer.trim();
       if (itemFilter && itemFilter !== "all") params.menuId = itemFilter;
-      const [o, menu, batchList] = await Promise.all([
+      if (batchFilter && batchFilter !== "all") params.batchId = batchFilter;
+      const [o, menu, batches] = await Promise.all([
         getOrders(t, params),
         getDraftMenu(false, t),
-        listBatches(t),
+        fetchBatches(t),
       ]);
       setOrders(o);
       setMenuItems(menu);
-      setBatches(batchList);
+      setBatchOptions(
+        batches.map((b) => ({
+          id: b.id,
+          label: b.label?.trim() || `${b.fulfillmentDate.slice(0, 10)} · ${b.status}`,
+        }))
+      );
     } catch {
       router.replace("/admin/login");
     } finally {
       setLoading(false);
     }
-  }, [router, dateFilter, batchFilter, appliedCustomer, itemFilter]);
+  }, [router, dateFilter, appliedCustomer, itemFilter, batchFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -79,9 +84,8 @@ export default function AdminOrdersPage() {
   const makeList = orders.reduce<Record<string, { name: string; qty: number }>>(
     (acc, order) => {
       for (const oi of order.orderItems) {
-        const id = oi.menuSnapshotItemId ?? oi.menuId ?? oi.id;
-        const name =
-          oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Unknown";
+        const id = oi.menuId ?? oi.id;
+        const name = oi.menu?.name ?? "Unknown";
         if (!acc[id]) acc[id] = { name, qty: 0 };
         acc[id].qty += oi.quantity;
       }
@@ -107,7 +111,7 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Orders"
-        description="Search, filter by batch or date, update status, and prep your make list."
+        description="Filter by batch, date, menu item, or customer, and update status."
         actions={
           <Button variant="outline" size="sm" onClick={fetchOrders}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -118,6 +122,29 @@ export default function AdminOrdersPage() {
 
       <div className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-white p-4 shadow-card sm:flex-row">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-sm font-medium text-charcoal/70">
+              Date range
+            </label>
+            <Select
+              value={dateFilter ?? "week"}
+              onValueChange={(v) => {
+                setDateFilter(v as GetOrdersParams["date"]);
+                setLoading(true);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="min-w-0 flex-1">
             <label className="mb-1 block text-sm font-medium text-charcoal/70">
               Batch
@@ -133,36 +160,10 @@ export default function AdminOrdersPage() {
                 <SelectValue placeholder="All batches" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All batches (use date range)</SelectItem>
-                {batches.map((b) => (
+                <SelectItem value="all">All batches</SelectItem>
+                {batchOptions.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.label?.trim() ||
-                      new Date(b.fulfillmentDate).toLocaleDateString()}{" "}
-                    ({b.status})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="min-w-0 flex-1">
-            <label className="mb-1 block text-sm font-medium text-charcoal/70">
-              Date range
-            </label>
-            <Select
-              value={dateFilter ?? "week"}
-              disabled={batchFilter !== "all"}
-              onValueChange={(v) => {
-                setDateFilter(v as GetOrdersParams["date"]);
-                setLoading(true);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {b.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -209,6 +210,18 @@ export default function AdminOrdersPage() {
           </div>
         </div>
         <div className="flex items-end gap-2">
+          {batchFilter && batchFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setBatchFilter("all");
+                setLoading(true);
+              }}
+            >
+              Clear batch
+            </Button>
+          )}
           {itemFilter && itemFilter !== "all" && (
             <Button
               variant="ghost"

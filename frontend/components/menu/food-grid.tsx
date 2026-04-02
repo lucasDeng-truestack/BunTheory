@@ -3,15 +3,16 @@ import type { MenuItem } from "@/types/menu";
 
 interface FoodGridProps {
   items: MenuItem[];
+  onOpenItem: (item: MenuItem) => void;
 }
 
-export function FoodGrid({ items }: FoodGridProps) {
+export function FoodGrid({ items, onOpenItem }: FoodGridProps) {
   if (items.length === 0) {
     return (
       <div className="text-center py-16 text-charcoal/70">
-        <p className="text-lg">No published menu for this ordering window.</p>
+        <p className="text-lg">No menu items yet.</p>
         <p className="mt-2 text-sm">
-          When a batch is live, items will appear here — usually a couple of days before pickup.
+          When the kitchen adds items, they will show up here.
         </p>
       </div>
     );
@@ -20,7 +21,7 @@ export function FoodGrid({ items }: FoodGridProps) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3 xl:gap-8">
       {items.map((item) => (
-        <FoodCard key={item.id} item={item} />
+        <FoodCard key={item.id} item={item} onOpen={onOpenItem} />
       ))}
     </div>
   );

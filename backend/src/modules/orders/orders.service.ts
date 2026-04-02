@@ -5,143 +5,326 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { OrderStatus } from '@prisma/client';
+import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
+import { OrderStatus, OrderBatchStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BatchesService } from '../batches/batches.service';
 
+const menuForOrder = {
+  optionGroups: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: {
+      options: { orderBy: { sortOrder: 'asc' as const } },
+    },
+  },
+} satisfies Prisma.MenuInclude;
+
+type MenuForOrder = Prisma.MenuGetPayload<{ include: typeof menuForOrder }>;
+
 const orderInclude = {
+  batch: true,
   orderItems: {
     include: {
       menu: true,
-      menuSnapshotItem: true,
     },
   },
-  batch: true,
 } satisfies Prisma.OrderInclude;
+
+export type StorefrontReason = 'OK' | 'DISABLED' | 'FULL' | 'NO_BATCH';
+
+export type ActiveBatchInfo = {
+  id: string;
+  label: string | null;
+  opensAt: string;
+  closesAt: string;
+  fulfillmentDate: string;
+};
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
-    private batchesService: BatchesService,
+    private batches: BatchesService,
   ) {}
 
-  /** @deprecated Use batch context; kept for admin dashboard until migrated */
   async getTodayItemCount() {
-    const ctx = await this.batchesService.getStorefrontContext();
-    if (!ctx.batchId) return 0;
+    const ctx = await this.getStorefrontContext();
     return ctx.current;
   }
 
-  async getStorefrontContext() {
-    return this.batchesService.getStorefrontContext();
+  async getStorefrontContext(now = new Date()) {
+    const settings = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    if (!settings) {
+      return {
+        canOrder: false,
+        reason: 'DISABLED' as StorefrontReason,
+        current: 0,
+        max: 0,
+        minimumDeliveryAmount: null as number | null,
+        activeBatch: null as ActiveBatchInfo | null,
+      };
+    }
+    if (!settings.orderingEnabled) {
+      return {
+        canOrder: false,
+        reason: 'DISABLED' as StorefrontReason,
+        current: 0,
+        max: 0,
+        minimumDeliveryAmount: settings.minimumDeliveryAmount
+          ? Number(settings.minimumDeliveryAmount)
+          : null,
+        activeBatch: null as ActiveBatchInfo | null,
+      };
+    }
+
+    const active = await this.batches.findActiveAt(now);
+    if (!active) {
+      return {
+        canOrder: false,
+        reason: 'NO_BATCH' as StorefrontReason,
+        current: 0,
+        max: 0,
+        minimumDeliveryAmount: settings.minimumDeliveryAmount
+          ? Number(settings.minimumDeliveryAmount)
+          : null,
+        activeBatch: null,
+      };
+    }
+
+    const current = await this.batches.getBatchItemCount(active.id);
+    const max = active.maxItems;
+    const canOrder = current < max;
+
+    const activeBatch: ActiveBatchInfo = {
+      id: active.id,
+      label: active.label,
+      opensAt: active.opensAt.toISOString(),
+      closesAt: active.closesAt.toISOString(),
+      fulfillmentDate: active.fulfillmentDate.toISOString().slice(0, 10),
+    };
+
+    return {
+      canOrder,
+      reason: (canOrder ? 'OK' : 'FULL') as StorefrontReason,
+      current,
+      max,
+      minimumDeliveryAmount: settings.minimumDeliveryAmount
+        ? Number(settings.minimumDeliveryAmount)
+        : null,
+      activeBatch,
+    };
+  }
+
+  private buildLine(
+    menu: MenuForOrder,
+    item: OrderItemDto,
+  ): {
+    unitPrice: Prisma.Decimal;
+    selectedOptions: Prisma.InputJsonValue;
+    menuId: string;
+  } {
+    if (!menu.available) {
+      throw new BadRequestException(`"${menu.name}" is not available.`);
+    }
+
+    const byGroup = new Map<string, string[]>();
+    for (const s of item.selections ?? []) {
+      const prev = byGroup.get(s.groupId) ?? [];
+      byGroup.set(s.groupId, [...prev, ...s.optionIds]);
+    }
+
+    const groupMap = new Map(menu.optionGroups.map((g) => [g.id, g]));
+    const summary: string[] = [];
+    const detail: Array<{
+      groupName: string;
+      optionId: string;
+      label: string;
+      priceDelta: number;
+    }> = [];
+
+    let delta = new Prisma.Decimal(0);
+
+    for (const g of menu.optionGroups) {
+      const picked = (byGroup.get(g.id) ?? []).filter(Boolean);
+      const uniq = [...new Set(picked)];
+
+      if (g.required && uniq.length === 0) {
+        throw new BadRequestException(`Please select: ${g.name}`);
+      }
+      if (!g.required && uniq.length === 0) {
+        continue;
+      }
+      if (!g.multiSelect && uniq.length > 1) {
+        throw new BadRequestException(`Choose only one option for: ${g.name}`);
+      }
+
+      const optById = new Map(g.options.map((o) => [o.id, o]));
+      for (const oid of uniq) {
+        const opt = optById.get(oid);
+        if (!opt) {
+          throw new BadRequestException(`Invalid option for ${g.name}`);
+        }
+        delta = delta.add(opt.priceDelta);
+        summary.push(`${g.name}: ${opt.label}`);
+        detail.push({
+          groupName: g.name,
+          optionId: opt.id,
+          label: opt.label,
+          priceDelta: Number(opt.priceDelta),
+        });
+      }
+    }
+
+    for (const gid of byGroup.keys()) {
+      if (!groupMap.has(gid)) {
+        throw new BadRequestException('Invalid option selection');
+      }
+    }
+
+    const unitPrice = new Prisma.Decimal(menu.price).add(delta);
+    const selectedOptions: Prisma.InputJsonValue = {
+      summary,
+      detail,
+    };
+
+    return { unitPrice, selectedOptions, menuId: menu.id };
   }
 
   async create(dto: CreateOrderDto) {
-    const resolved = await this.batchesService.resolveBatchForNewOrder();
-    if (!resolved) {
-      const ctx = await this.batchesService.getStorefrontContext();
+    const settingsRow = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    if (settingsRow && !settingsRow.orderingEnabled) {
+      throw new BadRequestException('Ordering is temporarily disabled.');
+    }
+
+    const newOrderItemCount = dto.items.reduce((sum, i) => sum + i.quantity, 0);
+
+    const resolved: Array<{
+      menuId: string;
+      quantity: number;
+      remarks: string | null;
+      unitPrice: Prisma.Decimal;
+      selectedOptions: Prisma.InputJsonValue;
+    }> = [];
+
+    let subtotal = new Prisma.Decimal(0);
+
+    for (const item of dto.items) {
+      let menu: MenuForOrder | null = null;
+      if (item.slug) {
+        menu = await this.prisma.menu.findFirst({
+          where: { slug: item.slug },
+          include: menuForOrder,
+        });
+      } else if (item.menuId) {
+        menu = await this.prisma.menu.findUnique({
+          where: { id: item.menuId },
+          include: menuForOrder,
+        });
+      }
+      if (!menu) {
+        throw new BadRequestException(
+          item.slug
+            ? `Menu item "${item.slug}" was not found.`
+            : 'Menu item was not found.',
+        );
+      }
+
+      const soldAgg = await this.prisma.orderItem.aggregate({
+        _sum: { quantity: true },
+        where: { menuId: menu.id },
+      });
+      const sold = soldAgg._sum.quantity ?? 0;
+      if (menu.maxQuantity != null && sold + item.quantity > menu.maxQuantity) {
+        throw new BadRequestException(`"${menu.name}" is sold out.`);
+      }
+
+      const line = this.buildLine(menu, item);
+      subtotal = subtotal.add(line.unitPrice.mul(item.quantity));
+
+      resolved.push({
+        menuId: line.menuId,
+        quantity: item.quantity,
+        remarks: item.remarks?.trim() ? item.remarks.trim() : null,
+        unitPrice: line.unitPrice,
+        selectedOptions: line.selectedOptions,
+      });
+    }
+
+    const minDel = settingsRow?.minimumDeliveryAmount;
+    if (
+      dto.type === 'DELIVERY' &&
+      minDel != null &&
+      subtotal.lt(minDel)
+    ) {
       throw new BadRequestException(
-        `Ordering is unavailable${ctx.reason ? ` (${ctx.reason})` : ''}.`,
+        `Minimum order of RM${Number(minDel).toFixed(2)} required for delivery.`,
       );
     }
-    const { batch: initialBatch } = resolved;
 
-    const order = await this.prisma.$transaction(
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const prefix = `BT-${dateStr}-`;
+
+    const created = await this.prisma.$transaction(
       async (tx) => {
-        const settingsRow = await tx.systemSettings.findFirst();
-        if (settingsRow && !settingsRow.orderingEnabled) {
-          throw new BadRequestException('Ordering is temporarily disabled.');
-        }
-
-        await tx.$queryRaw<{ id: string }[]>`
-          SELECT id FROM "OrderBatch" WHERE id = ${initialBatch.id} FOR UPDATE
-        `;
-
-        const batch = await tx.orderBatch.findUniqueOrThrow({
-          where: { id: initialBatch.id },
-          include: {
-            menuSnapshot: { include: { items: true } },
+        const now = new Date();
+        const batch = await tx.orderBatch.findFirst({
+          where: {
+            status: OrderBatchStatus.PUBLISHED,
+            opensAt: { lte: now },
+            closesAt: { gt: now },
           },
+          orderBy: { opensAt: 'asc' },
         });
-        if (!batch.menuSnapshot) {
-          throw new BadRequestException('Batch has no published menu.');
-        }
-        const snapshot = batch.menuSnapshot;
-
-        const newOrderItemCount = dto.items.reduce((sum, i) => sum + i.quantity, 0);
-        const currentItemCountResult = await tx.orderItem.aggregate({
-          _sum: { quantity: true },
-          where: { order: { batchId: batch.id } },
-        });
-        const currentItemCount = currentItemCountResult._sum.quantity ?? 0;
-        const totalAfterOrder = currentItemCount + newOrderItemCount;
-
-        if (totalAfterOrder > batch.maxItems) {
+        if (!batch) {
           throw new BadRequestException(
-            `This batch is full (${currentItemCount}/${batch.maxItems} items). Your order would add ${newOrderItemCount} more.`,
+            'No order session is open right now. Check back when the next window starts.',
           );
         }
 
-        const dateStr = batch.fulfillmentDate
-          .toISOString()
-          .slice(0, 10)
-          .replace(/-/g, '');
-        const prefix = `BT-${dateStr}-`;
+        const agg = await tx.orderItem.aggregate({
+          _sum: { quantity: true },
+          where: { order: { batchId: batch.id } },
+        });
+        const current = agg._sum.quantity ?? 0;
+        if (current + newOrderItemCount > batch.maxItems) {
+          throw new BadRequestException(
+            `This session is full (${current}/${batch.maxItems} items). Your order would add ${newOrderItemCount} more.`,
+          );
+        }
+
         const latestRows = await tx.$queryRaw<{ slugId: string }[]>`
           SELECT "slugId" FROM "Order"
-          WHERE "batchId" = ${batch.id}
+          WHERE "slugId" LIKE ${prefix + '%'}
           ORDER BY "slugId" DESC
           LIMIT 1
           FOR UPDATE
         `;
         const lastSlugId = latestRows[0]?.slugId;
-        const nextNum = lastSlugId
-          ? parseInt(lastSlugId.replace(prefix, ''), 10) + 1
-          : 1;
+        const lastNum = lastSlugId
+          ? parseInt(lastSlugId.replace(prefix, ''), 10)
+          : 0;
+        const nextNum = lastNum + 1;
         const slugId = `${prefix}${String(nextNum).padStart(3, '0')}`;
-
-        const resolvedItems: { menuSnapshotItemId: string; quantity: number }[] =
-          [];
-        for (const item of dto.items) {
-          let line: (typeof snapshot.items)[0] | undefined;
-          if (item.slug) {
-            line = snapshot.items.find((i) => i.slug === item.slug);
-          } else if (item.menuId) {
-            line = snapshot.items.find(
-              (i) =>
-                i.id === item.menuId || i.sourceMenuId === item.menuId,
-            );
-          }
-          if (!line) {
-            throw new BadRequestException(
-              item.slug
-                ? `Menu item "${item.slug}" is not available for this batch.`
-                : `Menu item is not available for this batch.`,
-            );
-          }
-          if (!line.available) {
-            throw new BadRequestException(`"${line.name}" is sold out.`);
-          }
-          resolvedItems.push({
-            menuSnapshotItemId: line.id,
-            quantity: item.quantity,
-          });
-        }
 
         return tx.order.create({
           data: {
             slugId,
-            batchId: batch.id,
             customerName: dto.customerName,
             phone: dto.phone,
             type: dto.type,
+            batch: { connect: { id: batch.id } },
             orderItems: {
-              create: resolvedItems.map((i) => ({
-                menuSnapshotItemId: i.menuSnapshotItemId,
-                quantity: i.quantity,
+              create: resolved.map((r) => ({
+                quantity: r.quantity,
+                remarks: r.remarks,
+                unitPrice: r.unitPrice,
+                selectedOptions: r.selectedOptions,
+                menu: { connect: { id: r.menuId } },
               })),
             },
           },
@@ -152,6 +335,8 @@ export class OrdersService {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       },
     );
+
+    const order = await this.findOne(created.id);
 
     await this.notifications.notifyAdminNewOrder(order);
     await this.notifications.notifyCustomerOrderReceived(order);
@@ -217,16 +402,18 @@ export class OrdersService {
         case 'today':
           where.createdAt = { gte: startOfDay };
           break;
-        case 'week':
+        case 'week': {
           const weekAgo = new Date(now);
           weekAgo.setDate(weekAgo.getDate() - 7);
           where.createdAt = { gte: weekAgo };
           break;
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(now);
           monthAgo.setMonth(monthAgo.getMonth() - 1);
           where.createdAt = { gte: monthAgo };
           break;
+        }
         case 'all':
         default:
           break;
@@ -244,12 +431,7 @@ export class OrdersService {
     if (filters?.menuId?.trim()) {
       const mid = filters.menuId.trim();
       where.orderItems = {
-        some: {
-          OR: [
-            { menuId: mid },
-            { menuSnapshotItem: { sourceMenuId: mid } },
-          ],
-        },
+        some: { menuId: mid },
       };
     }
 

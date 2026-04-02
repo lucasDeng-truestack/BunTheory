@@ -35,7 +35,7 @@ export function AdminNav() {
 
   return (
     <nav
-      className="flex max-w-[min(100vw-10rem,42rem)] flex-wrap items-center justify-end gap-1 rounded-2xl border border-charcoal/10 bg-charcoal/[0.04] p-1 sm:max-w-none sm:flex-nowrap"
+      className="flex max-w-[min(100vw-10rem,42rem)] flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-charcoal/10 bg-charcoal/[0.04] p-1.5 sm:max-w-none sm:flex-nowrap lg:gap-2"
       aria-label="Admin"
     >
       {navItems.map(({ href, label, icon: Icon }) => {
@@ -46,7 +46,7 @@ export function AdminNav() {
             variant={active ? "default" : "ghost"}
             size="sm"
             className={cn(
-              "rounded-xl px-2.5 sm:px-3",
+              "font-display min-h-11 rounded-full px-3 text-base sm:px-4",
               active && "shadow-sm"
             )}
             asChild
@@ -62,7 +62,7 @@ export function AdminNav() {
         type="button"
         variant="ghost"
         size="sm"
-        className="rounded-xl px-2.5 sm:px-3"
+        className="font-display min-h-11 rounded-full px-3 text-base sm:px-4"
         onClick={handleExit}
       >
         <LogOut className="mr-1.5 h-4 w-4 shrink-0" />

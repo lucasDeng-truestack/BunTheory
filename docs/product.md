@@ -19,6 +19,9 @@ Single-restaurant ordering (GrabFood-style flow) for **Bun Theory by Bakar & Roa
 ## Design & UI source of truth
 
 - **Brand colors and theme** live in [`branding.md`](./branding.md).
+- **Typography standard:** display text uses the project Comic Sans fallback stack for
+  headings, nav labels, titles, and CTA copy; body copy remains in the sans body font
+  unless intentionally changed.
 - **Layout and component patterns** may follow exported references when present in the repo, for example:
   - `Icons/` — icon assets
   - `UI Design/` — frames or style notes

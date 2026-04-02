@@ -2,13 +2,13 @@ import type { Order } from "@/types/order";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function lineName(oi: Order["orderItems"][number]): string {
-  return oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Item";
+  return oi.menu?.name ?? "Item";
 }
 
 function unitPrice(oi: Order["orderItems"][number]): number | null {
-  const raw = oi.menu?.price ?? oi.menuSnapshotItem?.price;
+  const raw = oi.unitPrice ?? oi.menu?.price;
   if (raw == null) return null;
-  const n = Number(raw);
+  const n = typeof raw === "string" ? parseFloat(raw) : Number(raw);
   return Number.isFinite(n) ? n : null;
 }
 

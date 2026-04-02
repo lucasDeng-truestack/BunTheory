@@ -20,6 +20,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 export interface SystemSettings {
   maxOrdersPerDay: number;
   orderingEnabled: boolean;
+  minimumDeliveryAmount?: number | null;
 }
 
 export async function getSettings(token: string): Promise<SystemSettings> {
@@ -44,6 +45,17 @@ export async function toggleOrdering(
   return api("/settings/toggle-ordering", {
     method: "PATCH",
     body: JSON.stringify({ orderingEnabled }),
+    token,
+  });
+}
+
+export async function updateMinimumDelivery(
+  minimumDeliveryAmount: number | null,
+  token: string
+) {
+  return api("/settings/minimum-delivery", {
+    method: "PATCH",
+    body: JSON.stringify({ minimumDeliveryAmount }),
     token,
   });
 }

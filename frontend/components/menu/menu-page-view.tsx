@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { FoodGrid } from "@/components/menu/food-grid";
+import { MenuItemModal } from "@/components/menu/menu-item-modal";
 import { OrderCounter } from "@/components/order/order-counter";
 import { Cart } from "@/components/order/cart";
 import { CartDrawer } from "@/components/order/cart-drawer";
@@ -14,6 +15,7 @@ import {
 } from "@/components/layout/customer-shell";
 import { cn } from "@/lib/utils";
 import { StatusBanner } from "@/components/layout/status-banner";
+import { MenuHighlights } from "@/components/menu/menu-highlights";
 import { useCartStore } from "@/store/cart.store";
 import type { MenuItem } from "@/types/menu";
 import { getMenu } from "@/services/menu.service";
@@ -34,31 +36,22 @@ function closedBanner(ctx: CanOrderResponse): {
     };
   }
   switch (ctx.reason) {
-    case "SOLD_OUT":
+    case "FULL":
       return {
         title: "This batch is full",
         description:
-          "We’ve hit capacity for this release. The menu below is what was offered — you can’t add new orders until the next window opens.",
+          "We’ve reached the limit for the current order window. The menu below is for browsing until the next batch.",
       };
-    case "BEFORE_OPEN":
+    case "DISABLED":
       return {
-        title: "Ordering opens soon",
-        description:
-          "The menu will appear when this batch opens. Check back at the opening time.",
+        title: "Ordering is turned off",
+        description: "Please check back when we reopen ordering.",
       };
     case "NO_BATCH":
-    case "NOT_PUBLISHED":
       return {
-        title: "No menu live yet",
+        title: "No order batch is open",
         description:
-          "When the next batch is published and ordering opens, items will show here.",
-      };
-    case "AFTER_CLOSE":
-    case "CLOSED":
-      return {
-        title: "Ordering closed for this batch",
-        description:
-          "This release window has ended. Watch for the next drop.",
+          "Check back when we publish the next pickup / delivery window.",
       };
     default:
       return {
@@ -75,6 +68,8 @@ type MenuPageViewProps = {
 
 export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
   const [cartOpen, setCartOpen] = useState(false);
+  const [modalItem, setModalItem] = useState<MenuItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [liveMenuItems, setLiveMenuItems] = useState(menuItems);
   const [batchCtx, setBatchCtx] = useState(canOrder);
   const [menuRefreshError, setMenuRefreshError] = useState(false);
@@ -110,8 +105,17 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
     };
   }, []);
 
+  const openItem = (item: MenuItem) => {
+    if (item.soldOut || !item.available) return;
+    setModalItem(item);
+    setModalOpen(true);
+  };
+
   const banner = closedBanner(batchCtx);
   const batchLabel = formatBatchLabel(batchCtx);
+  const favoriteItems = liveMenuItems.filter(
+    (item) => item.available && !item.soldOut && item.image && item.isFavorite
+  );
 
   return (
     <CustomerPageShell>
@@ -179,18 +183,31 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
 
         <div className="grid gap-8 lg:grid-cols-12 lg:items-start lg:gap-10 xl:gap-12">
           <div className="lg:col-span-7 xl:col-span-8">
+            {favoriteItems.length > 0 && (
+              <div className="mb-8 lg:mb-10">
+                <MenuHighlights
+                  items={favoriteItems}
+                  limit={2}
+                  eyebrow="Crowd Favorites"
+                  title="Most loved right now"
+                  description="Quick picks from the items marked as favorites in admin."
+                  gridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
+                />
+              </div>
+            )}
+
             <div className="mb-6 lg:mb-8">
               <p className="text-section-label">Menu</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl">
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display">
                 Popular picks
               </h2>
               <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
-                Tap add to cart when ordering is open — your bag stays on this page. On
-                larger screens the cart stays visible on the right.
+                Tap an item to choose options and add to cart. On larger screens the cart
+                stays visible on the right.
               </p>
             </div>
             <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
-              <FoodGrid items={liveMenuItems} />
+              <FoodGrid items={liveMenuItems} onOpenItem={openItem} />
             </div>
           </div>
 
@@ -204,6 +221,14 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
       </main>
 
       <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      <MenuItemModal
+        item={modalItem}
+        open={modalOpen}
+        onOpenChange={(o) => {
+          setModalOpen(o);
+          if (!o) setModalItem(null);
+        }}
+      />
     </CustomerPageShell>
   );
 }

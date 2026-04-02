@@ -20,6 +20,12 @@ A lightweight GrabFood-style food ordering system for a single restaurant. Custo
 | Deploy   | Vercel (frontend), Railway (backend), Neon (DB) |
 | Notifications | Twilio WhatsApp API |
 
+## UI Notes
+
+- Display typography uses the project Comic Sans fallback stack for headings, titles,
+  navbar labels, and CTA text.
+- Body copy remains in the existing sans font for readability.
+
 ## Project Structure
 
 ```

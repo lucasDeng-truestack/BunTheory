@@ -44,9 +44,12 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
   const formatItems = (order: Order) =>
     order.orderItems
       .map((oi) => {
-        const name =
-          oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Item";
-        return `${oi.quantity}x ${name}`;
+        const name = oi.menu?.name ?? "Item";
+        const snap = oi.selectedOptions as { summary?: string[] } | undefined;
+        let line = `${oi.quantity}x ${name}`;
+        if (snap?.summary?.length) line += ` (${snap.summary.join("; ")})`;
+        if (oi.remarks?.trim()) line += ` — ${oi.remarks.trim()}`;
+        return line;
       })
       .join(", ");
 
@@ -77,6 +80,7 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Order #</TableHead>
+              <TableHead>Batch</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Items</TableHead>
@@ -91,6 +95,10 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
               <TableRow key={order.id}>
                 <TableCell className="font-mono text-sm">
                   {order.slugId ?? order.id.slice(0, 8)}
+                </TableCell>
+                <TableCell className="max-w-[120px] truncate text-sm text-charcoal/80">
+                  {order.batch?.label?.trim() ||
+                    (order.batchId ? order.batchId.slice(0, 8) : "—")}
                 </TableCell>
                 <TableCell className="font-medium">{order.customerName}</TableCell>
                 <TableCell className="text-charcoal/70">{order.phone}</TableCell>

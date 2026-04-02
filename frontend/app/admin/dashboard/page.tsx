@@ -19,8 +19,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState({
-    maxOrdersPerDay: 15,
     orderingEnabled: true,
+    minimumDeliveryAmount: null as number | null,
   });
   const [batchCtx, setBatchCtx] = useState<Awaited<
     ReturnType<typeof getCanOrder>
@@ -37,8 +37,11 @@ export default function AdminDashboardPage() {
     Promise.all([getCanOrder(), getSettings(t)])
       .then(async ([co, s]) => {
         setBatchCtx(co);
-        setSettings(s);
-        const o = await getOrders(t, co.batchId ? { batchId: co.batchId } : { date: "week" });
+        setSettings({
+          orderingEnabled: s.orderingEnabled,
+          minimumDeliveryAmount: s.minimumDeliveryAmount ?? null,
+        });
+        const o = await getOrders(t, { date: "week" });
         setOrders(o);
       })
       .catch(() => router.replace("/admin/login"))
@@ -49,8 +52,11 @@ export default function AdminDashboardPage() {
     if (!token) return;
     const [co, s] = await Promise.all([getCanOrder(), getSettings(token)]);
     setBatchCtx(co);
-    setSettings(s);
-    const o = await getOrders(token, co.batchId ? { batchId: co.batchId } : { date: "week" });
+    setSettings({
+      orderingEnabled: s.orderingEnabled,
+      minimumDeliveryAmount: s.minimumDeliveryAmount ?? null,
+    });
+    const o = await getOrders(token, { date: "week" });
     setOrders(o);
   };
 
@@ -66,12 +72,9 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Dashboard"
-        description="Current batch capacity, emergency controls, and recent orders."
+        description="Daily capacity, delivery minimum, emergency controls, and recent orders."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/batches">Manage batches</Link>
-            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/orders">View all orders</Link>
             </Button>
@@ -89,6 +92,7 @@ export default function AdminDashboardPage() {
       <SettingsCard
         token={token!}
         orderingEnabled={settings.orderingEnabled}
+        minimumDeliveryAmount={settings.minimumDeliveryAmount}
         onUpdate={refresh}
       />
 
@@ -97,9 +101,7 @@ export default function AdminDashboardPage() {
           Recent orders
         </h2>
         <p className="mt-1 text-sm text-charcoal/65">
-          {batchCtx.batchId
-            ? "Orders for the selected active batch (or last week if none)."
-            : "Latest orders from the last 7 days."}
+          Latest orders from the last 7 days.
         </p>
       </div>
 

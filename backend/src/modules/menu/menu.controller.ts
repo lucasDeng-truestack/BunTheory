@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
-  /** Admin: draft menu (JWT). */
+  /** Admin: live menu with relations (JWT). */
   @Get('draft')
   @UseGuards(JwtAuthGuard)
   findDraft(@Query('available') available?: string) {
@@ -26,7 +26,7 @@ export class MenuController {
     return this.menuService.findAllDraft(availableOnly);
   }
 
-  /** Public: published snapshot for active batch window only. */
+  /** Public: live menu (same catalog as admin edits). */
   @Get()
   findPublished(@Query('available') available?: string) {
     const availableOnly = available === 'true';

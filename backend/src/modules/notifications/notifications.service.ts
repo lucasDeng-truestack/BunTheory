@@ -6,7 +6,8 @@ type OrderWithItems = Order & {
   orderItems: Array<{
     quantity: number;
     menu: { name: string } | null;
-    menuSnapshotItem: { name: string } | null;
+    remarks: string | null;
+    selectedOptions: unknown;
   }>;
 };
 
@@ -81,9 +82,16 @@ export class NotificationsService {
   formatItems(order: OrderWithItems): string {
     return order.orderItems
       .map((i) => {
-        const name =
-          i.menuSnapshotItem?.name ?? i.menu?.name ?? 'Item';
-        return `${i.quantity}x ${name}`;
+        const name = i.menu?.name ?? 'Item';
+        const snap = i.selectedOptions as { summary?: string[] } | null;
+        let line = `${i.quantity}x ${name}`;
+        if (snap?.summary?.length) {
+          line += ` (${snap.summary.join('; ')})`;
+        }
+        if (i.remarks?.trim()) {
+          line += ` — Note: ${i.remarks.trim()}`;
+        }
+        return line;
       })
       .join('\n');
   }

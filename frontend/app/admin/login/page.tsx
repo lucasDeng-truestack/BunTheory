@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
             Staff sign in
           </h1>
           <p className="mt-1 text-sm text-charcoal/65">
-            Bun Theory by Bakar &amp; Roast
+            Bakar & Roast
           </p>
         </div>
 

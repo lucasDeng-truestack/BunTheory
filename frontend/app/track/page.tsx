@@ -8,7 +8,7 @@ import { TrackOrderView } from "@/components/order/track-order-view";
 import { PackageSearch } from "lucide-react";
 
 export const metadata = {
-  title: "Track order | Bun Theory",
+  title: "Track order | Bakar & Roast",
   description: "Look up your in-progress order with your phone number",
 };
 

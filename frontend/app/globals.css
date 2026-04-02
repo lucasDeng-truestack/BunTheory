@@ -6,13 +6,17 @@
 
 :root {
   --roast-red: #b91c1c;
+  --deep-red: #7a0c0c;
+  --accent-orange: #e86a33;
+  --warm-cream: #fff5e6;
   --charcoal: #1f2937;
   --burnt-brown: #7c2d12;
   --mustard: #f59e0b;
   --cream: #fff7ed;
   --background: #fff7ed;
   --foreground: #1f2937;
-  /* react-phone-number-input: match brand focus */
+  --font-display: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt",
+    cursive;
   --PhoneInput-color--focus: #b91c1c;
   --PhoneInputCountryFlag-height: 1.25rem;
 }
@@ -22,13 +26,26 @@ body {
   background: var(--background);
 }
 
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  label {
+    font-family: var(--font-display);
+  }
+}
+
 @layer components {
   /** Reusable storefront copy scale */
   .text-section-label {
-    @apply text-sm font-semibold uppercase tracking-wider text-roast-red;
+    @apply font-display text-sm font-semibold uppercase tracking-wider text-roast-red;
   }
   .text-section-label-muted {
-    @apply text-sm font-semibold uppercase tracking-wider text-charcoal/50;
+    @apply font-display text-sm font-semibold uppercase tracking-wider text-charcoal/50;
   }
   .text-caption {
     @apply text-sm text-charcoal/60;
@@ -53,11 +70,14 @@ body {
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
   .text-balance {
     text-wrap: balance;
   }
 
-  /** Soft storefront backdrop (brand cream stays dominant) */
   .bg-store-gradient {
     background: linear-gradient(
       180deg,
@@ -67,14 +87,48 @@ body {
     );
   }
 
-  /**
-   * Subtle texture for large screens — keeps tablet/desktop from feeling flat.
-   */
   .bg-store-dots {
     background-image: radial-gradient(
       rgba(31, 41, 55, 0.06) 1px,
       transparent 1px
     );
     background-size: 24px 24px;
+  }
+
+  /* Single continuous wash — avoids a visible “split” where columns meet */
+  .bg-hero-warm {
+    background:
+      radial-gradient(
+        ellipse 90% 80% at 88% 42%,
+        rgba(255, 228, 196, 0.55) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 70% 60% at 12% 78%,
+        rgba(255, 247, 237, 0.9) 0%,
+        transparent 55%
+      ),
+      linear-gradient(180deg, #fff9f2 0%, #fff4e8 48%, #ffedd5 100%);
+  }
+
+  .bg-section-deep {
+    background: linear-gradient(180deg, #7a0c0c 0%, #5a0808 100%);
+  }
+
+  .bg-cta-banner {
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(232, 106, 51, 0.15), transparent),
+      radial-gradient(ellipse 50% 50% at 80% 20%, rgba(245, 158, 11, 0.1), transparent),
+      linear-gradient(180deg, #7a0c0c 0%, #5a0808 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

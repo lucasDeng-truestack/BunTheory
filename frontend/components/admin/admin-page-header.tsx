@@ -21,7 +21,9 @@ export function AdminPageHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-charcoal">{title}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal lg:text-4xl">
+          {title}
+        </h1>
         {description && (
           <p className="text-base text-charcoal/70">{description}</p>
         )}

@@ -1,0 +1,14 @@
+---
+description: Brand typography and navbar sizing standards
+alwaysApply: true
+---
+
+# Bun Theory Typography & Nav
+
+- Use `Comic Sans MS` (or the configured display-font fallback) for display text:
+  headings, section titles, navbar brand text, navbar links, buttons, labels, and CTA copy.
+- Keep body copy readable in the existing sans body font unless the user asks otherwise.
+- Landing and admin navbars should feel like the same design system:
+  larger desktop brand/logo treatment, rounded nav pills, and comparable text sizing.
+- Do not shrink the landing-page brand mark or title on desktop; prioritize visibility.
+- If a new navbar/header is added, match the sizing rhythm used in `customer-shell.tsx` and `app/admin/layout.tsx`.

@@ -21,13 +21,19 @@ Food photography
 Large call-to-action buttons
 
 Typography:
-Heading: Inter Bold
-Body: Inter Regular
+- Display / headings / titles / nav labels / CTA text: Comic Sans fallback stack
+  (`"Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt", cursive`)
+- Body: DM Sans / system sans fallback for readability
 
 Experience:
 Fast ordering
 Minimal steps
 Mobile friendly
+
+Navbar guidance:
+- Landing and admin navbars should share the same visual scale on desktop.
+- Brand/logo text should feel prominent, not understated.
+- Desktop navbar links should use the same display-font treatment as headings and CTAs.
 
 Responsive layout:
 - **Mobile-first:** primary breakpoints and touch targets suit small screens.

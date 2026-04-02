@@ -88,7 +88,9 @@ export default async function OrderPage() {
                   Contact &amp; type
                 </h2>
                 <div className="rounded-3xl border border-charcoal/10 bg-white p-4 shadow-card sm:p-6 lg:p-8">
-                  <OrderForm />
+                  <OrderForm
+                    minimumDeliveryAmount={canOrder.minimumDeliveryAmount}
+                  />
                 </div>
               </section>
             </div>

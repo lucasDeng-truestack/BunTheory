@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCartStore } from "@/store/cart.store";
+import { useCartStore, cartSelectionsToPayload } from "@/store/cart.store";
 import { getMenu } from "@/services/menu.service";
 import { createOrder } from "@/services/orders.service";
 import { saveLastOrderId } from "@/lib/last-order";
@@ -23,10 +23,17 @@ import { getMenuValidityLists, isCartLineOnMenu } from "@/lib/cart-menu-validati
 import { normalizeMenuSlug } from "@/lib/menu-slug";
 import { Loader2 } from "lucide-react";
 
-export function OrderForm() {
+type OrderFormProps = {
+  minimumDeliveryAmount?: number | null;
+};
+
+export function OrderForm({ minimumDeliveryAmount }: OrderFormProps) {
   const router = useRouter();
   const hydrated = useHydrated();
   const { items, total, clearCart, removeInvalidItems } = useCartStore();
+  const cartTotal = useCartStore((s) =>
+    s.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -34,6 +41,15 @@ export function OrderForm() {
     phone: "",
     type: "PICKUP" as "PICKUP" | "DELIVERY",
   });
+
+  const minDel = minimumDeliveryAmount ?? null;
+  const deliveryAllowed = minDel == null || cartTotal >= minDel;
+
+  useEffect(() => {
+    if (!deliveryAllowed && form.type === "DELIVERY") {
+      setForm((f) => ({ ...f, type: "PICKUP" }));
+    }
+  }, [deliveryAllowed, form.type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,16 +80,28 @@ export function OrderForm() {
       return;
     }
 
+    if (form.type === "DELIVERY" && !deliveryAllowed) {
+      setError("Cart total is below the minimum for delivery.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const order = await createOrder({
         customerName: form.customerName,
         phone: form.phone,
         type: form.type,
-        items: validItems.map((i) =>
-          i.slug
-            ? { slug: normalizeMenuSlug(i.slug), quantity: i.quantity }
-            : { menuId: i.menuId!, quantity: i.quantity }
-        ),
+        items: validItems.map((i) => {
+          const base = {
+            quantity: i.quantity,
+            remarks: i.remarks,
+            selections: cartSelectionsToPayload(i.selections),
+          };
+          if (i.slug) {
+            return { ...base, slug: normalizeMenuSlug(i.slug) };
+          }
+          return { ...base, menuId: i.menuId! };
+        }),
       });
       clearCart();
       saveLastOrderId(order.id);
@@ -84,7 +112,6 @@ export function OrderForm() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to place order";
 
-      // Only treat as stale cart when the API explicitly says a menu line is missing (not generic 404 text).
       const isMenuLineMissing =
         /menu item.*not found/i.test(message) ||
         /menu item with slug.*not found/i.test(message);
@@ -142,7 +169,7 @@ export function OrderForm() {
     return (
       <div className="text-center py-8">
         <p className="text-charcoal/70">Add items to cart first</p>
-        <Button asChild variant="outline" className="mt-4">
+        <Button asChild variant="outline" className="mt-4 font-display">
           <a href="/menu">View Menu</a>
         </Button>
       </div>
@@ -157,7 +184,9 @@ export function OrderForm() {
         </div>
       )}
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name" className="font-display">
+          Name
+        </Label>
         <Input
           id="name"
           placeholder="Your name"
@@ -168,7 +197,9 @@ export function OrderForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone</Label>
+        <Label htmlFor="phone" className="font-display">
+          Phone
+        </Label>
         <PhoneInput
           id="phone"
           international
@@ -191,7 +222,7 @@ export function OrderForm() {
         </p>
       </div>
       <div className="space-y-2">
-        <Label>Order Type</Label>
+        <Label className="font-display">Order Type</Label>
         <Select
           value={form.type}
           onValueChange={(v: "PICKUP" | "DELIVERY") =>
@@ -203,11 +234,19 @@ export function OrderForm() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="PICKUP">Pickup</SelectItem>
-            <SelectItem value="DELIVERY">Delivery</SelectItem>
+            {deliveryAllowed ? (
+              <SelectItem value="DELIVERY">Delivery</SelectItem>
+            ) : null}
           </SelectContent>
         </Select>
+        {!deliveryAllowed && minDel != null && (
+          <p className="text-sm text-charcoal/50">
+            Minimum RM{minDel.toFixed(2)} required for delivery. Add more items or choose
+            pickup.
+          </p>
+        )}
       </div>
-      <Button type="submit" size="lg" className="w-full" disabled={loading}>
+      <Button type="submit" size="lg" className="w-full font-display" disabled={loading}>
         {loading ? (
           <>
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />

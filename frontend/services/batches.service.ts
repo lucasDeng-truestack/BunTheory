@@ -1,9 +1,8 @@
 import { api } from "@/lib/api";
-import type { CanOrderResponse } from "@/services/orders.service";
 
 export type OrderBatchStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
-export interface OrderBatchListItem {
+export interface OrderBatchRow {
   id: string;
   label: string | null;
   fulfillmentDate: string;
@@ -14,7 +13,6 @@ export interface OrderBatchListItem {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  menuSnapshot: { id: string; createdAt: string } | null;
   _count: { orders: number };
 }
 
@@ -26,33 +24,62 @@ export interface CreateBatchPayload {
   maxItems: number;
 }
 
-export async function listBatches(token: string): Promise<OrderBatchListItem[]> {
-  return api<OrderBatchListItem[]>("/batches", { token });
+export interface UpdateBatchPayload {
+  label?: string;
+  fulfillmentDate?: string;
+  opensAt?: string;
+  closesAt?: string;
+  maxItems?: number;
 }
 
-export async function getBatch(id: string, token: string) {
-  return api<OrderBatchListItem & { menuSnapshot: unknown }>(`/batches/${id}`, {
-    token,
-  });
+export async function fetchBatches(token: string): Promise<OrderBatchRow[]> {
+  return api<OrderBatchRow[]>("/batches", { token });
 }
 
-export async function createBatch(payload: CreateBatchPayload, token: string) {
-  return api("/batches", {
+export async function createBatch(
+  payload: CreateBatchPayload,
+  token: string
+): Promise<OrderBatchRow> {
+  return api<OrderBatchRow>("/batches", {
     method: "POST",
     body: JSON.stringify(payload),
     token,
   });
 }
 
-export async function publishBatch(id: string, token: string) {
-  return api(`/batches/${id}/publish`, { method: "POST", token });
+export async function updateBatch(
+  id: string,
+  payload: UpdateBatchPayload,
+  token: string
+): Promise<OrderBatchRow> {
+  return api<OrderBatchRow>(`/batches/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    token,
+  });
 }
 
-export async function closeBatch(id: string, token: string) {
-  return api(`/batches/${id}/close`, { method: "POST", token });
+export async function publishBatch(id: string, token: string): Promise<OrderBatchRow> {
+  return api<OrderBatchRow>(`/batches/${id}/publish`, {
+    method: "POST",
+    token,
+  });
 }
 
-/** Public: same shape as GET /orders/can-order */
-export async function getActiveBatchPublic(): Promise<CanOrderResponse> {
-  return api<CanOrderResponse>("/batches/active");
+export async function closeBatch(id: string, token: string): Promise<OrderBatchRow> {
+  return api<OrderBatchRow>(`/batches/${id}/close`, {
+    method: "POST",
+    token,
+  });
+}
+
+export async function reopenBatch(id: string, token: string): Promise<OrderBatchRow> {
+  return api<OrderBatchRow>(`/batches/${id}/reopen`, {
+    method: "POST",
+    token,
+  });
+}
+
+export async function deleteBatch(id: string, token: string): Promise<void> {
+  await api(`/batches/${id}`, { method: "DELETE", token });
 }

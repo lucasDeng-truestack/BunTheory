@@ -114,8 +114,7 @@ export function TrackOrderView() {
   const formatItems = (order: Order) =>
     order.orderItems
       .map((oi) => {
-        const name =
-          oi.menuSnapshotItem?.name ?? oi.menu?.name ?? "Item";
+        const name = oi.menu?.name ?? "Item";
         return `${oi.quantity}× ${name}`;
       })
       .join(" · ");

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { MenuEditor } from "@/components/admin/menu-editor";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import type { MenuItem } from "@/types/menu";
-import { api } from "@/lib/api";
+import { getDraftMenu } from "@/services/menu.service";
 import { Loader2 } from "lucide-react";
 
 export default function AdminMenuPage() {
@@ -22,13 +22,8 @@ export default function AdminMenuPage() {
     }
     setToken(t);
     try {
-      const data = await api<MenuItem[]>("/menu/draft", { token: t });
-      setItems(
-        data.map((i) => ({
-          ...i,
-          price: typeof i.price === "string" ? parseFloat(i.price) : i.price,
-        }))
-      );
+      const data = await getDraftMenu(false, t);
+      setItems(data);
     } catch {
       router.replace("/admin/login");
     } finally {

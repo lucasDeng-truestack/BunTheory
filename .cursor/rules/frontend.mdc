@@ -2,7 +2,7 @@
 alwaysApply: true
 ---
 
-You are working on the frontend of Bun Theory by Bakar & Roast.
+You are working on the frontend of Bakar & Roast by Buns and Theory.
 
 Tech stack:
 - NextJS (App Router)
@@ -29,3 +29,5 @@ UX Rules:
 - Big buttons for ordering
 - Minimal form input
 - Loading states required
+- Use the project display font (Comic Sans fallback stack) for headings, titles, nav labels, labels, and CTA/button text.
+- Keep body copy in the regular sans font unless the user requests otherwise.

@@ -79,25 +79,29 @@ export function Cart({
       )}
     >
       {!isPanel && (
-        <h2 className="text-lg font-semibold tracking-tight">{heading}</h2>
+        <h2 className="text-lg font-semibold tracking-tight font-display">{heading}</h2>
       )}
       <div className="space-y-3">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <div
-            key={item.slug ?? item.menuId ?? `cart-item-${index}`}
+            key={item.lineKey}
             className="flex items-center justify-between rounded-xl border border-charcoal/10 bg-cream/20 p-3"
           >
             <div className="min-w-0 pr-2">
-              <p className="font-medium">{item.name}</p>
+              <p className="font-medium font-display">{item.name}</p>
+              {item.remarks ? (
+                <p className="text-xs text-charcoal/55 line-clamp-2">{item.remarks}</p>
+              ) : null}
               <p className="text-sm text-charcoal/70">
-                RM {(item.price * item.quantity).toFixed(2)}
+                RM {(item.unitPrice * item.quantity).toFixed(2)}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => updateQuantity(item.slug ?? item.menuId!, item.quantity - 1)}
+                type="button"
+                onClick={() => updateQuantity(item.lineKey, item.quantity - 1)}
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -105,7 +109,8 @@ export function Cart({
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => updateQuantity(item.slug ?? item.menuId!, item.quantity + 1)}
+                type="button"
+                onClick={() => updateQuantity(item.lineKey, item.quantity + 1)}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -114,11 +119,13 @@ export function Cart({
         ))}
       </div>
       <div className="flex items-center justify-between border-t border-charcoal/10 pt-4">
-        <span className="font-semibold text-charcoal/80">Total</span>
-        <span className="text-lg font-bold text-roast-red">RM {total().toFixed(2)}</span>
+        <span className="font-semibold text-charcoal/80 font-display">Total</span>
+        <span className="text-lg font-bold text-roast-red">
+          RM {total().toFixed(2)}
+        </span>
       </div>
       {showCheckoutButton && (
-        <Button asChild size="lg" className="w-full min-h-12">
+        <Button asChild size="lg" className="w-full min-h-12 font-display">
           <Link href="/order">
             <ShoppingCart className="mr-2 h-5 w-5" />
             {isPanel ? (

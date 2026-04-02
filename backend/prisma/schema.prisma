@@ -7,30 +7,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Draft menu (admin edits). Public storefront uses MenuSnapshotItem after publish.
+/// Live menu (storefront reads this directly; admin edits in place).
 model Menu {
-  id                 String              @id @default(cuid())
-  slug               String              @unique
-  name               String
-  description        String?
-  price              Decimal             @db.Decimal(10, 2)
-  image              String?
-  available          Boolean             @default(true)
-  createdAt          DateTime            @default(now())
-  orderItems         OrderItem[]
-  snapshotItemRefs   MenuSnapshotItem[]
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  name         String
+  description  String?
+  price        Decimal           @db.Decimal(10, 2)
+  image        String?
+  isFavorite   Boolean           @default(false)
+  available    Boolean           @default(true)
+  /// Max total quantity that can be sold (all-time). Null = unlimited.
+  maxQuantity  Int?
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  orderItems   OrderItem[]
+  optionGroups MenuOptionGroup[]
+}
+
+model MenuOptionGroup {
+  id          String       @id @default(cuid())
+  menuId      String
+  menu        Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  sortOrder   Int          @default(0)
+  name        String
+  required    Boolean      @default(false)
+  multiSelect Boolean      @default(false)
+  options     MenuOption[]
+}
+
+model MenuOption {
+  id         String          @id @default(cuid())
+  groupId    String
+  group      MenuOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sortOrder  Int             @default(0)
+  label      String
+  priceDelta Decimal         @default(0) @db.Decimal(10, 2)
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  slugId       String      @unique
+  id           String       @id @default(cuid())
+  slugId       String       @unique
   customerName String
   phone        String
   type         OrderType
-  status       OrderStatus @default(RECEIVED)
-  createdAt    DateTime    @default(now())
+  status       OrderStatus  @default(RECEIVED)
   batchId      String?
-  batch        OrderBatch? @relation(fields: [batchId], references: [id])
+  batch        OrderBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
   orderItems   OrderItem[]
 }
 
@@ -46,16 +70,37 @@ enum OrderStatus {
   DELIVERED
 }
 
-/// One line on an order. New orders use menuSnapshotItemId; legacy rows may use menuId only.
+enum OrderBatchStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+/// A time window when customers may order (live menu applies; capacity is per batch).
+model OrderBatch {
+  id              String           @id @default(cuid())
+  label           String?
+  fulfillmentDate DateTime         @db.Date
+  opensAt         DateTime
+  closesAt        DateTime
+  maxItems        Int
+  status          OrderBatchStatus @default(DRAFT)
+  publishedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  orders          Order[]
+}
+
 model OrderItem {
-  id                 String            @id @default(cuid())
-  orderId            String
-  order              Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  quantity           Int
-  menuId             String?
-  menu               Menu?             @relation(fields: [menuId], references: [id])
-  menuSnapshotItemId String?
-  menuSnapshotItem   MenuSnapshotItem? @relation(fields: [menuSnapshotItemId], references: [id])
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity          Int
+  menuId            String
+  menu              Menu     @relation(fields: [menuId], references: [id])
+  remarks           String?
+  unitPrice         Decimal  @db.Decimal(10, 2)
+  selectedOptions   Json?
 }
 
 model Admin {
@@ -65,58 +110,10 @@ model Admin {
   createdAt DateTime @default(now())
 }
 
-/// Legacy global defaults; batch rules take precedence when batches exist.
 model SystemSettings {
-  id              String   @id @default(cuid())
-  maxOrdersPerDay Int      @default(15)
-  orderingEnabled Boolean  @default(true)
-  updatedAt       DateTime @updatedAt
-}
-
-/// A Thursday (or other) release window. Admin creates manually; publish copies draft menu to snapshot.
-model OrderBatch {
-  id               String           @id @default(cuid())
-  label            String?
-  fulfillmentDate  DateTime         @db.Date
-  opensAt          DateTime
-  closesAt         DateTime
-  maxItems         Int
-  status           OrderBatchStatus @default(DRAFT)
-  publishedAt      DateTime?
-  menuSnapshot     MenuSnapshot?
-  orders           Order[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-}
-
-enum OrderBatchStatus {
-  DRAFT
-  PUBLISHED
-  CLOSED
-}
-
-/// Frozen catalog for one batch (created on publish).
-model MenuSnapshot {
-  id        String             @id @default(cuid())
-  batchId   String             @unique
-  batch     OrderBatch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  createdAt DateTime           @default(now())
-  items     MenuSnapshotItem[]
-}
-
-model MenuSnapshotItem {
-  id           String       @id @default(cuid())
-  snapshotId   String
-  snapshot     MenuSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  sourceMenuId String?
-  sourceMenu   Menu?        @relation(fields: [sourceMenuId], references: [id])
-  slug         String
-  name         String
-  description  String?
-  price        Decimal      @db.Decimal(10, 2)
-  image        String?
-  available    Boolean      @default(true)
-  orderItems   OrderItem[]
-
-  @@unique([snapshotId, slug])
+  id                      String   @id @default(cuid())
+  maxOrdersPerDay         Int      @default(15)
+  orderingEnabled         Boolean  @default(true)
+  minimumDeliveryAmount   Decimal? @db.Decimal(10, 2)
+  updatedAt               DateTime @updatedAt
 }

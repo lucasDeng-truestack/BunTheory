@@ -1,21 +1,40 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
+import type { OrderItemSelectionPayload } from "@/services/orders.service";
+
+export interface CartSelection {
+  groupId: string;
+  optionIds: string[];
+}
 
 export interface CartItem {
-  slug?: string;
+  lineKey: string;
+  slug: string;
   menuId?: string;
   name: string;
-  price: number;
+  unitPrice: number;
   quantity: number;
   image?: string | null;
+  remarks?: string;
+  selections?: CartSelection[];
+}
+
+function buildLineKey(
+  slug: string,
+  selections?: CartSelection[],
+  remarks?: string
+): string {
+  const sel = JSON.stringify(selections ?? []);
+  const r = (remarks ?? "").trim();
+  return `${normalizeMenuSlug(slug)}::${sel}::${r}`;
 }
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (slug: string) => void;
-  updateQuantity: (slug: string, quantity: number) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "lineKey">, quantity?: number) => void;
+  removeItem: (lineKey: string) => void;
+  updateQuantity: (lineKey: string, quantity: number) => void;
   clearCart: () => void;
   removeInvalidItems: (validSlugs: string[], validMenuIds?: string[]) => void;
   total: () => number;
@@ -28,38 +47,36 @@ export const useCartStore = create<CartStore>()(
       items: [],
       addItem: (item, quantity = 1) => {
         set((state) => {
-          const normalized =
-            item.slug != null && item.slug !== ""
-              ? { ...item, slug: normalizeMenuSlug(item.slug) }
-              : item;
-          const key = normalized.slug ?? normalized.menuId;
-          const existing = state.items.find((i) => {
-            const ik = i.slug ?? i.menuId;
-            return key && ik === key;
-          });
+          const slug = normalizeMenuSlug(item.slug);
+          const lineKey = buildLineKey(slug, item.selections, item.remarks);
+          const normalized: Omit<CartItem, "quantity"> = {
+            ...item,
+            slug,
+            lineKey,
+          };
+          const existing = state.items.find((i) => i.lineKey === lineKey);
           const items = existing
-            ? state.items.map((i) => {
-                const ik = i.slug ?? i.menuId;
-                return key && ik === key
+            ? state.items.map((i) =>
+                i.lineKey === lineKey
                   ? { ...i, quantity: i.quantity + quantity }
-                  : i;
-              })
+                  : i
+              )
             : [...state.items, { ...normalized, quantity }];
           return { items };
         });
       },
-      removeItem: (slugOrId) =>
+      removeItem: (lineKey) =>
         set((state) => ({
-          items: state.items.filter((i) => i.slug !== slugOrId && i.menuId !== slugOrId),
+          items: state.items.filter((i) => i.lineKey !== lineKey),
         })),
-      updateQuantity: (slugOrId, quantity) => {
+      updateQuantity: (lineKey, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(slugOrId);
+          get().removeItem(lineKey);
           return;
         }
         set((state) => ({
           items: state.items.map((i) =>
-            i.slug === slugOrId || i.menuId === slugOrId ? { ...i, quantity } : i
+            i.lineKey === lineKey ? { ...i, quantity } : i
           ),
         }));
       },
@@ -70,35 +87,29 @@ export const useCartStore = create<CartStore>()(
           const idSet = new Set(validMenuIds);
           const kept = state.items.filter(
             (i) =>
-              (i.slug && slugSet.has(normalizeMenuSlug(i.slug))) ||
-              (i.menuId && idSet.has(i.menuId!))
+              slugSet.has(normalizeMenuSlug(i.slug)) ||
+              (i.menuId && idSet.has(i.menuId))
           );
           return { items: kept };
         });
       },
       total: () =>
-        get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+        get().items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
       itemCount: () =>
         get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
     {
-      /** Bump when cart shape changes (e.g. slug-only lines to avoid stale menuIds). */
-      name: "bun-theory-cart-v5",
+      name: "bun-theory-cart-v6",
       storage: createJSONStorage<{ items: CartItem[] }>(() => localStorage, {
         reviver: (key, value) => {
           if (key === "items" && Array.isArray(value)) {
-            return (value as CartItem[])
-              .map((i): CartItem => {
-                if (i.slug) {
-                  const { menuId: _m, ...rest } = i;
-                  return {
-                    ...rest,
-                    slug: normalizeMenuSlug(rest.slug ?? i.slug ?? ""),
-                  };
-                }
-                return i;
-              })
-              .filter((i) => Boolean(i.slug));
+            return (value as CartItem[]).map((i) => ({
+              ...i,
+              slug: normalizeMenuSlug(i.slug ?? ""),
+              lineKey:
+                i.lineKey ??
+                buildLineKey(i.slug, i.selections, i.remarks),
+            }));
           }
           return value;
         },
@@ -106,3 +117,10 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
+
+export function cartSelectionsToPayload(
+  s?: CartSelection[]
+): OrderItemSelectionPayload[] | undefined {
+  if (!s?.length) return undefined;
+  return s.map((x) => ({ groupId: x.groupId, optionIds: x.optionIds }));
+}

@@ -16,18 +16,18 @@ export const customerMainPaddingClass =
   "px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-14";
 
 /** Inner max width for header rows on ultra-wide screens */
-const customerHeaderInnerClass =
+export const customerHeaderInnerClass =
   "mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16";
 
 /** Shared sticky bar chrome (home + inner pages) */
-const customerHeaderChromeClass =
-  "sticky top-0 z-30 w-full overflow-hidden border-b border-charcoal/15 bg-white/95 shadow-[0_6px_28px_-14px_rgba(31,41,55,0.22)] backdrop-blur-md supports-[backdrop-filter]:bg-white/88";
+export const customerHeaderChromeClass =
+  "sticky top-0 z-30 w-full overflow-hidden border-b border-charcoal/10 bg-white/97 shadow-[0_6px_32px_-12px_rgba(122,12,12,0.18),0_2px_8px_-2px_rgba(31,41,55,0.08)] backdrop-blur-lg supports-[backdrop-filter]:bg-white/92";
 
 const customerTopNavLinkClass =
-  "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-medium text-charcoal/75 transition-colors hover:bg-cream hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2";
+  "font-display inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-medium text-charcoal/75 transition-colors hover:bg-cream hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2";
 
 const customerTopNavPrimaryClass =
-  "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-semibold text-white shadow-sm transition-colors bg-roast-red hover:bg-roast-red/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/45 focus-visible:ring-offset-2";
+  "font-display inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-semibold text-white shadow-sm transition-colors bg-roast-red hover:bg-roast-red/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/45 focus-visible:ring-offset-2";
 
 /**
  * Full-height customer storefront shell: full-width background; headers span the viewport.
@@ -129,7 +129,7 @@ export function CustomerTopBar({
             <BrandLogo size="sm" priority />
           </span>
           <span className="hidden shrink-0 lg:block" aria-hidden>
-            <BrandLogo size="md" priority />
+            <BrandLogo size="lg" priority />
           </span>
           <div
             className={cn(
@@ -137,10 +137,10 @@ export function CustomerTopBar({
               centerTitle ? "text-center lg:text-left" : "text-left"
             )}
           >
-            <p className="hidden text-eyebrow font-semibold uppercase text-roast-red lg:block">
-              Bun Theory
+            <p className="font-display hidden text-eyebrow font-semibold uppercase text-roast-red lg:block">
+              Bakar & Roast
             </p>
-            <h1 className="min-w-0 truncate text-lg font-bold tracking-tight text-charcoal sm:text-xl lg:mt-0.5 lg:text-2xl xl:text-3xl xl:tracking-tight">
+            <h1 className="font-display min-w-0 truncate text-lg font-bold tracking-tight text-charcoal sm:text-xl lg:mt-0.5 lg:text-[2rem] xl:text-[2.35rem] xl:tracking-tight">
               {title}
             </h1>
           </div>
@@ -176,7 +176,7 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
   return (
     <header className={cn(customerHeaderChromeClass, className)}>
       <div
-        className="h-1 w-full bg-gradient-to-r from-roast-red via-roast-red/90 to-amber-500/35"
+        className="h-1.5 w-full bg-gradient-to-r from-deep-red via-roast-red to-accent-orange/60"
         aria-hidden
       />
       <div
@@ -190,14 +190,14 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
             <BrandLogo size="sm" priority />
           </span>
           <span className="hidden shrink-0 lg:block" aria-hidden>
-            <BrandLogo size="md" priority />
+            <BrandLogo size="lg" priority />
           </span>
           <div className="min-w-0">
-            <p className="text-eyebrow font-semibold uppercase text-roast-red">
-              Bun Theory
+            <p className="font-display text-xl font-black uppercase tracking-wide text-deep-red lg:text-[2.2rem] xl:text-[2.55rem]">
+              Bakar & Roast
             </p>
-            <p className="mt-0.5 text-base leading-snug text-charcoal/60">
-              by Bakar &amp; Roast
+            <p className="font-display text-sm font-medium leading-snug text-charcoal/50 lg:text-lg">
+              by Bun Theory
             </p>
           </div>
         </div>
