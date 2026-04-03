@@ -1,0 +1,12 @@
+FROM node:20-bookworm-slim
+WORKDIR /app
+
+COPY backend/package*.json ./
+RUN npm ci
+
+COPY backend/. ./
+COPY scripts/run-prisma-migrations.sh /usr/local/bin/run-prisma-migrations.sh
+
+RUN chmod +x /usr/local/bin/run-prisma-migrations.sh && npx prisma generate
+
+CMD ["run-prisma-migrations.sh"]
