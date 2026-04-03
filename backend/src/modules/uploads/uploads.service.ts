@@ -28,6 +28,8 @@ export class UploadsService {
         region: process.env.S3_REGION?.trim() || 'auto',
         endpoint,
         forcePathStyle: true,
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
         credentials: {
           accessKeyId,
           secretAccessKey,
