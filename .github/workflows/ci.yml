@@ -19,6 +19,9 @@ jobs:
   backend:
     name: Backend build
     runs-on: ubuntu-latest
+    # Prisma loads env("DATABASE_URL") from schema even for validate/generate; no real DB is contacted.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
     defaults:
       run:
         working-directory: backend
@@ -38,8 +41,6 @@ jobs:
 
       - name: Prisma generate (no DB connection)
         run: npx prisma generate
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
 
       - run: npm run build
 
