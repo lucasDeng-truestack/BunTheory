@@ -4,11 +4,15 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
+function normalizeOrigin(value: string): string {
+  return value.trim().replace(/\/+$/, '');
+}
+
 function getAllowedOrigins(): string[] {
   const configured = [process.env.FRONTEND_URL, process.env.FRONTEND_URLS]
     .filter(Boolean)
     .flatMap((value) => value!.split(','))
-    .map((value) => value.trim())
+    .map((value) => normalizeOrigin(value))
     .filter(Boolean);
 
   return configured.length > 0 ? configured : ['http://localhost:3000'];
@@ -27,7 +31,7 @@ async function bootstrap() {
         return;
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(normalizeOrigin(origin))) {
         callback(null, true);
         return;
       }
