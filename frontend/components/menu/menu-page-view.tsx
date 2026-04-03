@@ -234,7 +234,7 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
                     id="popular-picks-heading"
                     className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display"
                   >
-                    Today's Specials
+                    Today&apos;s Specials
                   </h2>
                   <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
                     Our weekly specials, by our chef.
