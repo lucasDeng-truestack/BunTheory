@@ -46,8 +46,22 @@ export class OrdersController {
     @Query('customer') customer?: string,
     @Query('menuId') menuId?: string,
     @Query('batchId') batchId?: string,
+    @Query('paymentOnly') paymentOnly?: string,
   ) {
-    return this.ordersService.findAll({ date, customer, menuId, batchId });
+    return this.ordersService.findAll({
+      date,
+      customer,
+      menuId,
+      batchId,
+      paymentOnly,
+    });
+  }
+
+  /** Admin: count of orders with status other than DELIVERED (sidebar badge). */
+  @Get('pending-count')
+  @UseGuards(JwtAuthGuard)
+  pendingCount() {
+    return this.ordersService.countNonDelivered();
   }
 
   @Get(':id')

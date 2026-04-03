@@ -43,14 +43,14 @@ function CustomerHeaderSkeleton({ variant }: { variant: "marketing" | "inner" })
         className={cn(
           customerHeaderInnerClass,
           variant === "marketing"
-            ? "flex flex-col gap-4 py-3 sm:gap-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:py-5"
-            : "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 py-3 sm:gap-x-3 sm:py-4 lg:gap-x-6 lg:py-5"
+            ? "flex flex-col gap-3 py-2.5 sm:gap-4 sm:py-3 md:py-3.5 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:py-4"
+            : "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 py-2.5 sm:gap-x-3 sm:py-3 md:py-3.5 lg:gap-x-6 lg:py-4"
         )}
       >
         {variant === "inner" ? (
           <>
             <Skeleton className="h-10 w-24 rounded-full justify-self-start" />
-            <Skeleton className="mx-auto h-10 w-36 rounded-xl sm:w-44 lg:h-12 lg:w-56" />
+            <Skeleton className="mx-auto h-9 w-32 rounded-xl sm:h-10 sm:w-40 lg:w-52" />
             <div className="flex justify-end gap-2">
               <Skeleton className="hidden h-10 w-16 rounded-full lg:block" />
               <Skeleton className="hidden h-10 w-16 rounded-full lg:block" />
@@ -220,7 +220,7 @@ export function OrderSuccessSkeleton() {
   );
 }
 
-/** Admin area — only main content (layout already renders header). */
+/** Admin area — main content only (layout renders sidebar + mobile bar). */
 export function AdminPageSkeleton() {
   return (
     <LoadingStatus className="space-y-8">
@@ -230,28 +230,27 @@ export function AdminPageSkeleton() {
           <Skeleton className="h-4 w-full max-w-md rounded" />
         </div>
         <div className="flex gap-2">
-          <Skeleton className="h-9 w-28 rounded-md" />
-          <Skeleton className="h-9 w-32 rounded-md" />
+          <Skeleton className="h-9 w-28 rounded-full" />
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <Skeleton className="h-9 w-9 rounded-full" />
         </div>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-charcoal/10 bg-white shadow-card">
-        <div className="border-b border-charcoal/10 bg-cream/30 px-4 py-3">
-          <div className="flex gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-20 rounded" />
-            ))}
-          </div>
-        </div>
-        <div className="divide-y divide-charcoal/8 p-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-4 py-4">
-              <Skeleton className="h-5 w-32 rounded" />
-              <Skeleton className="h-5 w-24 rounded" />
-              <Skeleton className="h-5 flex-1 rounded" />
-              <Skeleton className="h-8 w-8 rounded-full" />
-            </div>
-          ))}
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-2xl lg:h-36" />
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-stretch">
+        <Skeleton className="min-h-[280px] rounded-2xl lg:col-span-2" />
+        <Skeleton className="min-h-[280px] rounded-2xl" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="min-h-[240px] rounded-2xl" />
+        <Skeleton className="min-h-[240px] rounded-2xl" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="min-h-[200px] rounded-2xl" />
+        <Skeleton className="min-h-[200px] rounded-2xl" />
       </div>
     </LoadingStatus>
   );

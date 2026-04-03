@@ -34,6 +34,11 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  sanitizeDecimalInput,
+  sanitizeIntegerInput,
+  sanitizeMoneyInput,
+} from "@/lib/sanitize-input";
 
 type OptionRow = { label: string; priceDelta: string };
 type GroupRow = {
@@ -206,15 +211,18 @@ export function AdminMenuItemDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-11 rounded-xl border-charcoal/12 shadow-sm"
+			  placeholder="e.g. Chicken Burger"
             />
           </div>
           <div className="space-y-2">
             <Label className="font-display text-charcoal">Price (RM)</Label>
             <Input
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9.]*"
+              placeholder="e.g. 12.90"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(e) => setPrice(sanitizeMoneyInput(e.target.value, 2))}
               className="h-11 rounded-xl border-charcoal/12 shadow-sm"
             />
           </div>
@@ -233,10 +241,13 @@ export function AdminMenuItemDialog({
               Max item quantity <span className="font-normal text-charcoal/50">(optional)</span>
             </Label>
             <Input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={maxQty}
-              onChange={(e) => setMaxQty(e.target.value)}
+              onChange={(e) =>
+                setMaxQty(sanitizeIntegerInput(e.target.value))
+              }
               placeholder="Unlimited if empty"
               className="h-11 rounded-xl border-charcoal/12 shadow-sm"
             />
@@ -470,13 +481,14 @@ export function AdminMenuItemDialog({
                               +RM
                             </span>
                             <Input
-                              type="number"
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
+                              pattern="[0-9.]*"
                               className="h-9 w-24 border-0 bg-transparent p-0 text-right font-medium tabular-nums shadow-none focus-visible:ring-0 md:w-28"
                               placeholder="0"
                               value={o.priceDelta}
                               onChange={(e) => {
-                                const v = e.target.value;
+                                const v = sanitizeMoneyInput(e.target.value, 2);
                                 setGroups((prev) =>
                                   prev.map((gr, i) =>
                                     i === gi

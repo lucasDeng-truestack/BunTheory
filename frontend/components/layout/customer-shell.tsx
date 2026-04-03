@@ -41,7 +41,7 @@ export function CustomerPageShell({
   return (
     <div
       className={cn(
-        "relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-store-gradient text-charcoal pb-[env(safe-area-inset-bottom)]",
+        "relative flex min-h-[100dvh] flex-col bg-store-gradient text-charcoal pb-[env(safe-area-inset-bottom)]",
         className
       )}
     >
@@ -99,7 +99,7 @@ export function CustomerTopBar({
       <div
         className={cn(
           customerHeaderInnerClass,
-          "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 py-3 sm:gap-x-3 sm:py-4 lg:gap-x-6 lg:py-5"
+          "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 py-2.5 sm:gap-x-3 sm:py-3 md:py-3.5 lg:gap-x-6 lg:py-4"
         )}
       >
         <div className="flex min-w-0 justify-start">
@@ -107,7 +107,7 @@ export function CustomerTopBar({
             <Button
               variant="ghost"
               size="sm"
-              className="-ml-2 gap-1.5 px-2 text-base sm:px-3 lg:h-12 lg:rounded-full lg:border lg:border-charcoal/12 lg:bg-white/90 lg:px-5 lg:shadow-sm lg:hover:bg-cream"
+              className="-ml-2 gap-1.5 px-2 text-base sm:px-3 lg:h-11 lg:rounded-full lg:border lg:border-charcoal/12 lg:bg-white/90 lg:px-4 lg:shadow-sm lg:hover:bg-cream"
               asChild
             >
               <Link href={backHref} aria-label={backLabel}>
@@ -121,7 +121,7 @@ export function CustomerTopBar({
         </div>
         <div
           className={cn(
-            "flex min-w-0 max-w-[min(100vw-8rem,28rem)] items-center justify-center gap-2.5 sm:gap-3 lg:max-w-[min(100vw-12rem,36rem)] lg:gap-4",
+            "flex min-w-0 max-w-[min(100vw-7.5rem,22rem)] items-center justify-center gap-2 sm:max-w-[min(100vw-9rem,26rem)] sm:gap-2.5 md:max-w-[min(100vw-10rem,30rem)] lg:max-w-[min(100vw-12rem,34rem)] lg:gap-3",
             centerTitle ? "text-center lg:text-left" : "text-left"
           )}
         >
@@ -129,18 +129,18 @@ export function CustomerTopBar({
             <BrandLogo size="sm" priority />
           </span>
           <span className="hidden shrink-0 lg:block" aria-hidden>
-            <BrandLogo size="lg" priority />
+            <BrandLogo size="md" priority />
           </span>
           <div
             className={cn(
-              "min-w-0",
+              "flex min-w-0 flex-col gap-0.5 sm:gap-1",
               centerTitle ? "text-center lg:text-left" : "text-left"
             )}
           >
-            <p className="font-display hidden text-eyebrow font-semibold uppercase text-roast-red lg:block">
+            <p className="font-display hidden text-[0.7rem] font-semibold uppercase leading-none tracking-wider text-roast-red sm:block sm:text-eyebrow sm:leading-tight">
               Bakar & Roast
             </p>
-            <h1 className="font-display min-w-0 truncate text-lg font-bold tracking-tight text-charcoal sm:text-xl lg:mt-0.5 lg:text-[2rem] xl:text-[2.35rem] xl:tracking-tight">
+            <h1 className="font-display min-w-0 max-w-full truncate text-base font-bold leading-tight tracking-tight text-charcoal sm:text-lg md:text-xl lg:text-xl xl:text-2xl">
               {title}
             </h1>
           </div>
@@ -182,7 +182,7 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
       <div
         className={cn(
           customerHeaderInnerClass,
-          "flex flex-col gap-4 py-3 sm:gap-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:py-5"
+          "flex flex-col gap-3 py-2.5 sm:gap-4 sm:py-3 md:py-3.5 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:py-4"
         )}
       >
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3 lg:gap-4">
@@ -190,13 +190,13 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
             <BrandLogo size="sm" priority />
           </span>
           <span className="hidden shrink-0 lg:block" aria-hidden>
-            <BrandLogo size="lg" priority />
+            <BrandLogo size="md" priority />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-xl font-black uppercase tracking-wide text-deep-red lg:text-[2.2rem] xl:text-[2.55rem]">
+            <p className="font-display text-lg font-black uppercase leading-tight tracking-wide text-deep-red sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.125rem] xl:leading-tight">
               Bakar & Roast
             </p>
-            <p className="font-display text-sm font-medium leading-snug text-charcoal/50 lg:text-lg">
+            <p className="font-display mt-0.5 text-xs font-medium leading-snug text-charcoal/50 sm:text-sm lg:text-base">
               by Bun Theory
             </p>
           </div>

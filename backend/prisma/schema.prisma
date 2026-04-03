@@ -55,6 +55,10 @@ model Order {
   batchId      String?
   batch        OrderBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
   createdAt    DateTime     @default(now())
+  /// Checkout selection: pay at pickup vs online transfer + receipt.
+  paymentChoice         PaymentChoice         @default(PAY_LATER)
+  /// Set when PAY_NOW: URL to uploaded payment proof (same host as /uploads).
+  paymentReceiptUrl     String?
   orderItems   OrderItem[]
 }
 
@@ -68,6 +72,12 @@ enum OrderStatus {
   PREPARING
   READY
   DELIVERED
+}
+
+/// How the customer intends to pay (checkout modal).
+enum PaymentChoice {
+  PAY_LATER
+  PAY_NOW
 }
 
 enum OrderBatchStatus {
@@ -115,5 +125,13 @@ model SystemSettings {
   maxOrdersPerDay         Int      @default(15)
   orderingEnabled         Boolean  @default(true)
   minimumDeliveryAmount   Decimal? @db.Decimal(10, 2)
+  /// Admin storefront display name (sidebar, optional public use).
+  companyName             String?
+  /// URL from POST /uploads/image (admin).
+  companyLogoUrl          String?
+  /// Payment transfer QR shown at checkout (uploaded image / SVG URL).
+  paymentQrUrl            String?
+  /// WhatsApp number for admin new-order alerts (E.164 e.g. +60123456789). Overrides .env fallback.
+  adminWhatsappNumber     String?
   updatedAt               DateTime @updatedAt
 }

@@ -24,6 +24,8 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  /** Horizontal overflow without breaking `position: sticky` on the storefront header */
+  overflow-x: clip;
 }
 
 @layer base {

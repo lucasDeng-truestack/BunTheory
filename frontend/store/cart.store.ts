@@ -33,6 +33,12 @@ function buildLineKey(
 interface CartStore {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "quantity" | "lineKey">, quantity?: number) => void;
+  /** Remove a line and add the replacement (same as editing options / remarks / price). */
+  replaceItem: (
+    oldLineKey: string,
+    item: Omit<CartItem, "quantity" | "lineKey">,
+    quantity: number
+  ) => void;
   removeItem: (lineKey: string) => void;
   updateQuantity: (lineKey: string, quantity: number) => void;
   clearCart: () => void;
@@ -62,6 +68,31 @@ export const useCartStore = create<CartStore>()(
                   : i
               )
             : [...state.items, { ...normalized, quantity }];
+          return { items };
+        });
+      },
+      replaceItem: (oldLineKey, item, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(oldLineKey);
+          return;
+        }
+        set((state) => {
+          const rest = state.items.filter((i) => i.lineKey !== oldLineKey);
+          const slug = normalizeMenuSlug(item.slug);
+          const lineKey = buildLineKey(slug, item.selections, item.remarks);
+          const normalized: Omit<CartItem, "quantity"> = {
+            ...item,
+            slug,
+            lineKey,
+          };
+          const existing = rest.find((i) => i.lineKey === lineKey);
+          const items = existing
+            ? rest.map((i) =>
+                i.lineKey === lineKey
+                  ? { ...i, quantity: i.quantity + quantity }
+                  : i
+              )
+            : [...rest, { ...normalized, quantity }];
           return { items };
         });
       },

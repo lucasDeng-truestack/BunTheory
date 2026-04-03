@@ -17,7 +17,9 @@ export function DashboardStats({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b border-charcoal/10 bg-cream/30">
-        <CardTitle className="text-lg">Daily kitchen capacity</CardTitle>
+        <CardTitle className="font-display text-lg">
+          Daily kitchen capacity
+        </CardTitle>
         <p className="text-sm font-normal text-charcoal/65">
           Item totals for the current published batch versus that batch&apos;s limit.
         </p>

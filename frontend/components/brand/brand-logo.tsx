@@ -19,26 +19,48 @@ type BrandLogoProps = {
   className?: string;
   /** Set on LCP / above-the-fold instances */
   priority?: boolean;
+  /** When set (e.g. admin company logo URL), replaces the default asset. */
+  src?: string | null;
+  alt?: string;
 };
 
 /**
  * Bakar & Roast parent brand mark (square asset).
  */
+function resolveImageSrc(src: string): string {
+  const s = src.trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/")) {
+    const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(
+      /\/$/,
+      ""
+    );
+    return `${base}${s}`;
+  }
+  return s;
+}
+
 export function BrandLogo({
   size = "md",
   className,
   priority,
+  src,
+  alt,
 }: BrandLogoProps) {
   const dim = SIZE_PX[size];
+  const effectiveSrc = src?.trim()
+    ? resolveImageSrc(src)
+    : BRAND_LOGO_SRC;
   return (
     <Image
-      src={BRAND_LOGO_SRC}
-      alt="Bakar & Roast"
+      src={effectiveSrc}
+      alt={alt ?? "Bakar & Roast"}
       width={dim}
       height={dim}
       className={cn("object-contain object-center", className)}
       priority={priority}
       sizes={`${dim}px`}
+      unoptimized={effectiveSrc.startsWith("data:")}
     />
   );
 }

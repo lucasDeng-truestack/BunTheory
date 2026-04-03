@@ -4,61 +4,53 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DashboardStats } from "@/components/admin/dashboard-stats";
-import { SettingsCard } from "@/components/admin/settings-card";
-import { OrderTable } from "@/components/admin/order-table";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
-import { getSettings } from "@/services/admin.service";
+import { DashboardKpiCards } from "@/components/admin/dashboard/dashboard-kpi-cards";
+import { DashboardRevenueChart } from "@/components/admin/dashboard/dashboard-revenue-chart";
+import { DashboardBusinessStats } from "@/components/admin/dashboard/dashboard-business-stats";
+import { DashboardRecentActivity } from "@/components/admin/dashboard/dashboard-recent-activity";
+import { DashboardTopItems } from "@/components/admin/dashboard/dashboard-top-items";
 import { getOrders, getCanOrder } from "@/services/orders.service";
 import { formatBatchLabel } from "@/lib/batch-display";
+import {
+  countByStatus,
+  orderTotal,
+  uniqueCustomers,
+  type DateRangeFilter,
+} from "@/lib/dashboard-metrics";
 import type { Order } from "@/types/order";
-import { Loader2 } from "lucide-react";
+import { Bell, Loader2, Settings } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [settings, setSettings] = useState({
-    orderingEnabled: true,
-    minimumDeliveryAmount: null as number | null,
-  });
+  const [dateRange, setDateRange] = useState<DateRangeFilter>("week");
   const [batchCtx, setBatchCtx] = useState<Awaited<
     ReturnType<typeof getCanOrder>
   > | null>(null);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    const t =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_token")
+        : null;
     if (!t) {
       router.replace("/admin/login");
       return;
     }
-    setToken(t);
-    Promise.all([getCanOrder(), getSettings(t)])
-      .then(async ([co, s]) => {
+    setLoading(true);
+    Promise.all([getCanOrder(), getOrders(t, { date: dateRange })])
+      .then(([co, o]) => {
         setBatchCtx(co);
-        setSettings({
-          orderingEnabled: s.orderingEnabled,
-          minimumDeliveryAmount: s.minimumDeliveryAmount ?? null,
-        });
-        const o = await getOrders(t, { date: "week" });
         setOrders(o);
       })
       .catch(() => router.replace("/admin/login"))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, dateRange]);
 
-  const refresh = async () => {
-    if (!token) return;
-    const [co, s] = await Promise.all([getCanOrder(), getSettings(token)]);
-    setBatchCtx(co);
-    setSettings({
-      orderingEnabled: s.orderingEnabled,
-      minimumDeliveryAmount: s.minimumDeliveryAmount ?? null,
-    });
-    const o = await getOrders(token, { date: "week" });
-    setOrders(o);
-  };
+  const totalRevenue = orders.reduce((s, o) => s + orderTotal(o), 0);
 
   if (loading || !batchCtx) {
     return (
@@ -72,15 +64,66 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Dashboard"
-        description="Daily capacity, delivery minimum, emergency controls, and recent orders."
+        description="Welcome back! Here's your kitchen at a glance."
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="font-display" asChild>
               <Link href="/admin/orders">View all orders</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full text-charcoal/70 hover:text-charcoal"
+              asChild
+              aria-label="Orders — notifications"
+            >
+              <Link href="/admin/orders">
+                <Bell className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full text-charcoal/70 hover:text-charcoal"
+              asChild
+              aria-label="Settings"
+            >
+              <Link href="/admin/settings">
+                <Settings className="h-5 w-5" />
+              </Link>
             </Button>
           </div>
         }
       />
+
+      <DashboardKpiCards
+        pending={countByStatus(orders, "RECEIVED")}
+        preparing={countByStatus(orders, "PREPARING")}
+        capacityCurrent={batchCtx.current}
+        capacityMax={batchCtx.max}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-stretch">
+        <div className="lg:col-span-2">
+          <DashboardRevenueChart
+            orders={orders}
+            range={dateRange}
+            onRangeChange={setDateRange}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <DashboardBusinessStats
+            uniqueCustomers={uniqueCustomers(orders)}
+            orderCount={orders.length}
+            totalRevenue={totalRevenue}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <DashboardRecentActivity orders={orders} />
+        <DashboardTopItems orders={orders} range={dateRange} />
+      </div>
 
       <DashboardStats
         current={batchCtx.current}
@@ -88,24 +131,6 @@ export default function AdminDashboardPage() {
         canOrder={batchCtx.canOrder}
         batchLabel={formatBatchLabel(batchCtx)}
       />
-
-      <SettingsCard
-        token={token!}
-        orderingEnabled={settings.orderingEnabled}
-        minimumDeliveryAmount={settings.minimumDeliveryAmount}
-        onUpdate={refresh}
-      />
-
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight text-charcoal">
-          Recent orders
-        </h2>
-        <p className="mt-1 text-sm text-charcoal/65">
-          Latest orders from the last 7 days.
-        </p>
-      </div>
-
-      <OrderTable orders={orders} token={token!} onUpdate={refresh} />
     </div>
   );
 }

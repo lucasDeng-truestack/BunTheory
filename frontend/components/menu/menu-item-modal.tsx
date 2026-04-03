@@ -19,7 +19,7 @@ import { useCartStore, type CartSelection } from "@/store/cart.store";
 import type { MenuItem } from "@/types/menu";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, ShoppingCart, ListChecks } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ListChecks, Pencil } from "lucide-react";
 
 function computeUnitPrice(
   item: MenuItem,
@@ -46,24 +46,52 @@ type MenuItemModalProps = {
   item: MenuItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, save updates this cart line instead of adding a new one. */
+  editLineKey?: string | null;
 };
 
-export function MenuItemModal({ item, open, onOpenChange }: MenuItemModalProps) {
+export function MenuItemModal({
+  item,
+  open,
+  onOpenChange,
+  editLineKey = null,
+}: MenuItemModalProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const replaceItem = useCartStore((s) => s.replaceItem);
   const [quantity, setQuantity] = useState(1);
   const [remarks, setRemarks] = useState("");
   const [selections, setSelections] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    if (!item) return;
-    setQuantity(1);
-    setRemarks("");
-    const init: Record<string, string[]> = {};
-    for (const g of item.optionGroups) {
-      init[g.id] = [];
+    if (!item || !open) return;
+    if (editLineKey) {
+      const line = useCartStore
+        .getState()
+        .items.find((i) => i.lineKey === editLineKey);
+      if (!line) {
+        onOpenChange(false);
+        return;
+      }
+      setQuantity(line.quantity);
+      setRemarks(line.remarks ?? "");
+      const init: Record<string, string[]> = {};
+      for (const g of item.optionGroups) {
+        init[g.id] = [];
+      }
+      for (const sel of line.selections ?? []) {
+        init[sel.groupId] = [...sel.optionIds];
+      }
+      setSelections(init);
+    } else {
+      setQuantity(1);
+      setRemarks("");
+      const init: Record<string, string[]> = {};
+      for (const g of item.optionGroups) {
+        init[g.id] = [];
+      }
+      setSelections(init);
     }
-    setSelections(init);
-  }, [item]);
+  }, [item, open, editLineKey, onOpenChange]);
 
   const unitPrice = useMemo(
     () => (item ? computeUnitPrice(item, selections) : 0),
@@ -112,19 +140,22 @@ export function MenuItemModal({ item, open, onOpenChange }: MenuItemModalProps) 
       const ids = selections[g.id] ?? [];
       if (ids.length) sel.push({ groupId: g.id, optionIds: ids });
     }
-    addItem(
-      {
-        slug,
-        menuId: item.id,
-        name: item.name,
-        unitPrice,
-        image: item.image,
-        remarks: remarks.trim() || undefined,
-        selections: sel.length ? sel : undefined,
-      },
-      quantity
-    );
-    toast.success("Added to cart", { description: item.name });
+    const payload = {
+      slug,
+      menuId: item.id,
+      name: item.name,
+      unitPrice,
+      image: item.image,
+      remarks: remarks.trim() || undefined,
+      selections: sel.length ? sel : undefined,
+    };
+    if (editLineKey) {
+      replaceItem(editLineKey, payload, quantity);
+      toast.success("Cart updated", { description: item.name });
+    } else {
+      addItem(payload, quantity);
+      toast.success("Added to cart", { description: item.name });
+    }
     onOpenChange(false);
   };
 
@@ -154,6 +185,11 @@ export function MenuItemModal({ item, open, onOpenChange }: MenuItemModalProps) 
               <DialogTitle className="font-display text-xl leading-tight text-charcoal sm:text-2xl">
                 {item.name}
               </DialogTitle>
+              {editLineKey ? (
+                <p className="text-sm font-medium text-roast-red">
+                  Editing your cart
+                </p>
+              ) : null}
               {item.description ? (
                 <DialogDescription className="text-left text-sm leading-relaxed text-charcoal/70">
                   {item.description}
@@ -325,8 +361,12 @@ export function MenuItemModal({ item, open, onOpenChange }: MenuItemModalProps) 
               className="h-12 min-w-[180px] gap-2 rounded-2xl font-display text-base shadow-md transition hover:shadow-lg"
               onClick={handleAdd}
             >
-              <ShoppingCart className="h-5 w-5" />
-              Add to cart
+              {editLineKey ? (
+                <Pencil className="h-5 w-5" />
+              ) : (
+                <ShoppingCart className="h-5 w-5" />
+              )}
+              {editLineKey ? "Update cart" : "Add to cart"}
             </Button>
           </div>
         </div>

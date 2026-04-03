@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_STEPS } from "@/lib/constants";
 import {
@@ -20,6 +21,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Order, OrderStatus } from "@/types/order";
 import { updateOrderStatus } from "@/services/orders.service";
+import { useAdminChrome } from "@/components/admin/admin-chrome-context";
+import { OrderLineItemExtras } from "@/components/order/order-line-item-extras";
+import {
+  paymentChoiceLabel,
+  receiptStatusLabel,
+} from "@/lib/order-payment-labels";
 
 interface OrderTableProps {
   orders: Order[];
@@ -28,9 +35,13 @@ interface OrderTableProps {
 }
 
 export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
+  const router = useRouter();
+  const { refreshPendingOrdersCount } = useAdminChrome();
+
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
     try {
       await updateOrderStatus(orderId, status, token);
+      void refreshPendingOrdersCount();
       onUpdate?.();
       toast.success("Order status updated", {
         description: `Status set to ${ORDER_STATUS_LABELS[status]}. Customer will receive a WhatsApp notification.`,
@@ -40,18 +51,6 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
       toast.error("Failed to update order status");
     }
   };
-
-  const formatItems = (order: Order) =>
-    order.orderItems
-      .map((oi) => {
-        const name = oi.menu?.name ?? "Item";
-        const snap = oi.selectedOptions as { summary?: string[] } | undefined;
-        let line = `${oi.quantity}x ${name}`;
-        if (snap?.summary?.length) line += ` (${snap.summary.join("; ")})`;
-        if (oi.remarks?.trim()) line += ` — ${oi.remarks.trim()}`;
-        return line;
-      })
-      .join(", ");
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -85,14 +84,22 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
               <TableHead>Phone</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Receipt</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date & Time</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">View</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
+            {orders.map((order) => {
+              const receiptLabel = receiptStatusLabel(order);
+              return (
+              <TableRow
+                key={order.id}
+                className="cursor-pointer hover:bg-cream/40"
+                onClick={() => router.push(`/admin/orders/${order.id}`)}
+              >
                 <TableCell className="font-mono text-sm">
                   {order.slugId ?? order.id.slice(0, 8)}
                 </TableCell>
@@ -102,15 +109,48 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
                 </TableCell>
                 <TableCell className="font-medium">{order.customerName}</TableCell>
                 <TableCell className="text-charcoal/70">{order.phone}</TableCell>
-                <TableCell className="max-w-[200px] truncate text-sm">
-                  {formatItems(order)}
+                <TableCell className="max-w-[min(100vw,22rem)] align-top text-sm sm:max-w-sm">
+                  <div className="space-y-3 py-0.5">
+                    {order.orderItems.map((oi) => (
+                      <div
+                        key={oi.id}
+                        className="border-b border-charcoal/10 pb-2.5 last:border-0 last:pb-0"
+                      >
+                        <p className="font-medium leading-snug text-charcoal">
+                          <span className="text-roast-red">{oi.quantity}×</span>{" "}
+                          {oi.menu?.name ?? "Item"}
+                        </p>
+                        <OrderLineItemExtras oi={oi} className="mt-1" />
+                      </div>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="capitalize">
                     {order.type.toLowerCase()}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-sm text-charcoal/80">
+                  {paymentChoiceLabel(order)}
+                </TableCell>
                 <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      receiptLabel === "Received"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : receiptLabel === "Pending"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "text-charcoal/70"
+                    }
+                  >
+                    {receiptLabel}
+                  </Badge>
+                </TableCell>
+                <TableCell
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <Select
                     value={order.status}
                     onValueChange={(v) => handleStatusChange(order.id, v as OrderStatus)}
@@ -130,9 +170,12 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
                 <TableCell className="text-sm text-charcoal/70">
                   {formatDate(order.createdAt)}
                 </TableCell>
-                <TableCell className="text-right" />
+                <TableCell className="text-right text-sm font-medium text-roast-red">
+                  Open
+                </TableCell>
               </TableRow>
-            ))}
+            );
+            })}
           </TableBody>
         </Table>
       </div>

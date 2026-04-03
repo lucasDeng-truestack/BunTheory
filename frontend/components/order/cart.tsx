@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/store/cart.store";
+import { useCartStore, type CartItem } from "@/store/cart.store";
+import type { MenuItem } from "@/types/menu";
+import { getCartLineOptionSummary } from "@/lib/cart-line-summary";
+import { normalizeMenuSlug } from "@/lib/menu-slug";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { ShoppingCart, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CartProps {
@@ -17,12 +20,17 @@ interface CartProps {
    * `panel` — compact body for bottom sheet / embedded layouts.
    */
   variant?: "default" | "panel";
+  /** When set with `menuItems`, shows an Edit control and option summaries on each line. */
+  menuItems?: MenuItem[];
+  onEditCartItem?: (item: CartItem) => void;
 }
 
 export function Cart({
   showCheckoutButton = true,
   heading = "Your order",
   variant = "default",
+  menuItems,
+  onEditCartItem,
 }: CartProps) {
   const hydrated = useHydrated();
   const { items, updateQuantity, total, itemCount } = useCartStore();
@@ -82,41 +90,79 @@ export function Cart({
         <h2 className="text-lg font-semibold tracking-tight font-display">{heading}</h2>
       )}
       <div className="space-y-3">
-        {items.map((item) => (
-          <div
-            key={item.lineKey}
-            className="flex items-center justify-between rounded-xl border border-charcoal/10 bg-cream/20 p-3"
-          >
-            <div className="min-w-0 pr-2">
-              <p className="font-medium font-display">{item.name}</p>
-              {item.remarks ? (
-                <p className="text-xs text-charcoal/55 line-clamp-2">{item.remarks}</p>
-              ) : null}
-              <p className="text-sm text-charcoal/70">
-                RM {(item.unitPrice * item.quantity).toFixed(2)}
-              </p>
+        {items.map((item) => {
+          const menu = menuItems?.find(
+            (m) =>
+              (item.menuId && m.id === item.menuId) ||
+              normalizeMenuSlug(m.slug) === normalizeMenuSlug(item.slug)
+          );
+          const optionSummary = menu
+            ? getCartLineOptionSummary(item, menu)
+            : null;
+          return (
+            <div
+              key={item.lineKey}
+              className="flex items-start justify-between gap-2 rounded-xl border border-charcoal/10 bg-cream/20 p-3"
+            >
+              <div className="min-w-0 flex-1 pr-1">
+                <p className="font-medium font-display leading-snug">{item.name}</p>
+                {optionSummary ? (
+                  <p className="mt-0.5 text-xs leading-snug text-charcoal/60">
+                    {optionSummary}
+                  </p>
+                ) : null}
+                {item.remarks ? (
+                  <p className="mt-0.5 text-xs text-charcoal/55 line-clamp-3">
+                    <span className="font-medium text-charcoal/65">Note:</span>{" "}
+                    {item.remarks}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-sm text-charcoal/70">
+                  RM {(item.unitPrice * item.quantity).toFixed(2)}
+                </p>
+                {onEditCartItem ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1.5 h-8 gap-1 px-2 font-display text-xs text-roast-red hover:bg-roast-red/10 hover:text-roast-red"
+                    onClick={() => onEditCartItem(item)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit options
+                  </Button>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                    className="h-9 w-9"
+                    onClick={() => updateQuantity(item.lineKey, item.quantity - 1)}
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="min-w-[2rem] text-center text-sm font-medium">
+                    {item.quantity}
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                    className="h-9 w-9"
+                    onClick={() => updateQuantity(item.lineKey, item.quantity + 1)}
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                type="button"
-                onClick={() => updateQuantity(item.lineKey, item.quantity - 1)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-8 text-center font-medium">{item.quantity}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                type="button"
-                onClick={() => updateQuantity(item.lineKey, item.quantity + 1)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="flex items-center justify-between border-t border-charcoal/10 pt-4">
         <span className="font-semibold text-charcoal/80 font-display">Total</span>

@@ -6,7 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
-import { OrderStatus, OrderBatchStatus } from '@prisma/client';
+import { OrderStatus, OrderBatchStatus, PaymentChoice } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BatchesService } from '../batches/batches.service';
 
@@ -51,6 +51,14 @@ export class OrdersService {
   async getTodayItemCount() {
     const ctx = await this.getStorefrontContext();
     return ctx.current;
+  }
+
+  /** Orders still needing attention (not completed / delivered). */
+  async countNonDelivered(): Promise<{ count: number }> {
+    const count = await this.prisma.order.count({
+      where: { status: { not: OrderStatus.DELIVERED } },
+    });
+    return { count };
   }
 
   async getStorefrontContext(now = new Date()) {
@@ -266,6 +274,23 @@ export class OrdersService {
       );
     }
 
+    const paymentChoice: PaymentChoice =
+      dto.paymentChoice === 'PAY_NOW' ? 'PAY_NOW' : 'PAY_LATER';
+    let paymentReceiptUrl: string | null = null;
+
+    if (paymentChoice === 'PAY_NOW') {
+      if (!dto.receiptUrl?.trim()) {
+        throw new BadRequestException(
+          'Upload your payment receipt before placing a Pay now order.',
+        );
+      }
+      paymentReceiptUrl = dto.receiptUrl.trim();
+    } else if (dto.receiptUrl?.trim()) {
+      throw new BadRequestException(
+        'Receipt upload is only used when you choose Pay now.',
+      );
+    }
+
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `BT-${dateStr}-`;
 
@@ -317,6 +342,8 @@ export class OrdersService {
             customerName: dto.customerName,
             phone: dto.phone,
             type: dto.type,
+            paymentChoice,
+            paymentReceiptUrl,
             batch: { connect: { id: batch.id } },
             orderItems: {
               create: resolved.map((r) => ({
@@ -386,11 +413,20 @@ export class OrdersService {
     customer?: string;
     menuId?: string;
     batchId?: string;
+    /** When true: only orders with Pay now + uploaded receipt (admin “Payments” view). */
+    paymentOnly?: string;
   }) {
     const where: Prisma.OrderWhereInput = {};
 
     if (filters?.batchId?.trim()) {
       where.batchId = filters.batchId.trim();
+    }
+
+    const paymentOnly =
+      filters?.paymentOnly === 'true' || filters?.paymentOnly === '1';
+    if (paymentOnly) {
+      where.paymentChoice = 'PAY_NOW';
+      where.paymentReceiptUrl = { not: null };
     }
 
     if (filters?.date) {

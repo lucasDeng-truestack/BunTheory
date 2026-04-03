@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { FoodGrid } from "@/components/menu/food-grid";
 import { MenuItemModal } from "@/components/menu/menu-item-modal";
@@ -15,9 +15,10 @@ import {
 } from "@/components/layout/customer-shell";
 import { cn } from "@/lib/utils";
 import { StatusBanner } from "@/components/layout/status-banner";
-import { MenuHighlights } from "@/components/menu/menu-highlights";
-import { useCartStore } from "@/store/cart.store";
+import { useCartStore, type CartItem } from "@/store/cart.store";
 import type { MenuItem } from "@/types/menu";
+import { normalizeMenuSlug } from "@/lib/menu-slug";
+import { toast } from "sonner";
 import { getMenu } from "@/services/menu.service";
 import { getCanOrder, type CanOrderResponse } from "@/services/orders.service";
 import { formatBatchLabel } from "@/lib/batch-display";
@@ -70,6 +71,7 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [modalItem, setModalItem] = useState<MenuItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editLineKey, setEditLineKey] = useState<string | null>(null);
   const [liveMenuItems, setLiveMenuItems] = useState(menuItems);
   const [batchCtx, setBatchCtx] = useState(canOrder);
   const [menuRefreshError, setMenuRefreshError] = useState(false);
@@ -107,15 +109,56 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
 
   const openItem = (item: MenuItem) => {
     if (item.soldOut || !item.available) return;
+    setEditLineKey(null);
     setModalItem(item);
     setModalOpen(true);
   };
 
+  const openCartItemEdit = (cartItem: CartItem) => {
+    const menuItem = liveMenuItems.find(
+      (m) =>
+        (cartItem.menuId && m.id === cartItem.menuId) ||
+        normalizeMenuSlug(m.slug) === normalizeMenuSlug(cartItem.slug)
+    );
+    if (!menuItem) {
+      toast.error("This item is no longer on the menu.");
+      return;
+    }
+    if (menuItem.soldOut || !menuItem.available) {
+      toast.error("This item is unavailable.");
+      return;
+    }
+    setModalItem(menuItem);
+    setEditLineKey(cartItem.lineKey);
+    setModalOpen(true);
+    setCartOpen(false);
+  };
+
   const banner = closedBanner(batchCtx);
   const batchLabel = formatBatchLabel(batchCtx);
-  const favoriteItems = liveMenuItems.filter(
-    (item) => item.available && !item.soldOut && item.image && item.isFavorite
+
+  const sortedAvailable = useMemo(
+    () =>
+      [...liveMenuItems]
+        .filter((i) => i.available && !i.soldOut)
+        .sort(
+          (a, b) =>
+            a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "en")
+        ),
+    [liveMenuItems]
   );
+
+  const popularPicks = useMemo(
+    () => sortedAvailable.filter((i) => i.isFavorite),
+    [sortedAvailable]
+  );
+
+  /** Full menu for “Burger for today”: all items, excluding any already shown in Popular picks to avoid duplicate cards. */
+  const burgerForTodayItems = useMemo(() => {
+    if (popularPicks.length === 0) return sortedAvailable;
+    const favoriteIds = new Set(popularPicks.map((i) => i.id));
+    return sortedAvailable.filter((i) => !favoriteIds.has(i.id));
+  }, [sortedAvailable, popularPicks]);
 
   return (
     <CustomerPageShell>
@@ -182,51 +225,85 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
         )}
 
         <div className="grid gap-8 lg:grid-cols-12 lg:items-start lg:gap-10 xl:gap-12">
-          <div className="lg:col-span-7 xl:col-span-8">
-            {favoriteItems.length > 0 && (
-              <div className="mb-8 lg:mb-10">
-                <MenuHighlights
-                  items={favoriteItems}
-                  limit={2}
-                  eyebrow="Crowd Favorites"
-                  title="Most loved right now"
-                  description="Quick picks from the items marked as favorites in admin."
-                  gridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
-                />
-              </div>
-            )}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-10 lg:space-y-12">
+            {popularPicks.length > 0 ? (
+              <section aria-labelledby="popular-picks-heading">
+                <div className="mb-6 lg:mb-8">
+                  <p className="text-section-label">Menu</p>
+                  <h2
+                    id="popular-picks-heading"
+                    className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display"
+                  >
+                    Today's Specials
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
+                    Our weekly specials, by our chef.
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
+                  <FoodGrid items={popularPicks} onOpenItem={openItem} />
+                </div>
+              </section>
+            ) : null}
 
-            <div className="mb-6 lg:mb-8">
-              <p className="text-section-label">Menu</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display">
-                Popular picks
-              </h2>
-              <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
-                Tap an item to choose options and add to cart. On larger screens the cart
-                stays visible on the right.
-              </p>
-            </div>
-            <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
-              <FoodGrid items={liveMenuItems} onOpenItem={openItem} />
-            </div>
+            <section aria-labelledby="burger-today-heading">
+              <div className="mb-6 lg:mb-8">
+                <p className="text-section-label">Menu</p>
+                <h2
+                  id="burger-today-heading"
+                  className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display"
+                >
+					Order Now
+                </h2>
+                <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
+                  {popularPicks.length > 0
+                    ? "The rest of today’s menu. Together with Popular picks above, this is everything available."
+                    : "Tap an item to choose options and add to cart. On larger screens the cart stays visible on the right."}
+                </p>
+              </div>
+              <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
+                {burgerForTodayItems.length > 0 ? (
+                  <FoodGrid items={burgerForTodayItems} onOpenItem={openItem} />
+                ) : popularPicks.length > 0 ? (
+                  <p className="py-10 text-center text-sm text-charcoal/65">
+                    Every available item is listed under Popular picks above.
+                  </p>
+                ) : (
+                  <FoodGrid items={sortedAvailable} onOpenItem={openItem} />
+                )}
+              </div>
+            </section>
           </div>
 
           <div className="hidden lg:col-span-5 xl:col-span-4 lg:block">
             <div className="lg:sticky lg:top-24">
               <p className="text-section-label-muted mb-3">Your cart</p>
-              <Cart heading="Your cart" />
+              <Cart
+                heading="Your cart"
+                menuItems={liveMenuItems}
+                onEditCartItem={openCartItemEdit}
+              />
             </div>
           </div>
         </div>
       </main>
 
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        menuItems={liveMenuItems}
+        onEditCartItem={openCartItemEdit}
+      />
       <MenuItemModal
         item={modalItem}
         open={modalOpen}
+        editLineKey={editLineKey}
         onOpenChange={(o) => {
           setModalOpen(o);
-          if (!o) setModalItem(null);
+          if (!o) {
+            setModalItem(null);
+            setEditLineKey(null);
+          }
         }}
       />
     </CustomerPageShell>

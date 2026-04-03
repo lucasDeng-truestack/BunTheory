@@ -1,6 +1,8 @@
 export type OrderType = "PICKUP" | "DELIVERY";
 export type OrderStatus = "RECEIVED" | "PREPARING" | "READY" | "DELIVERED";
 
+export type PaymentChoice = "PAY_LATER" | "PAY_NOW";
+
 export interface OrderItem {
   id: string;
   menuId?: string;
@@ -19,6 +21,8 @@ export interface Order {
   type: OrderType;
   status: OrderStatus;
   createdAt: string;
+  paymentChoice?: PaymentChoice;
+  paymentReceiptUrl?: string | null;
   orderItems: OrderItem[];
   batchId?: string | null;
   batch?: {

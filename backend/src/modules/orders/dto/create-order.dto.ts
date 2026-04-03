@@ -6,6 +6,7 @@ import {
   MinLength,
   Min,
   IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -58,4 +59,14 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items: OrderItemDto[];
+
+  @IsOptional()
+  @IsEnum(['PAY_LATER', 'PAY_NOW'])
+  paymentChoice?: 'PAY_LATER' | 'PAY_NOW';
+
+  /** Required when paymentChoice is PAY_NOW (URL from POST /uploads/payment-receipt). */
+  @ValidateIf((o: CreateOrderDto) => o.paymentChoice === 'PAY_NOW')
+  @IsString()
+  @MinLength(1)
+  receiptUrl?: string;
 }

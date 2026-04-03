@@ -10,6 +10,9 @@ export interface CreateOrderPayload {
   customerName: string;
   phone: string;
   type: "PICKUP" | "DELIVERY";
+  paymentChoice?: "PAY_LATER" | "PAY_NOW";
+  /** Required when paymentChoice is PAY_NOW (URL from POST /uploads/payment-receipt). */
+  receiptUrl?: string;
   items: {
     slug?: string;
     menuId?: string;
@@ -26,8 +29,11 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   });
 }
 
-export async function getOrder(id: string): Promise<Order> {
-  return api<Order>(`/orders/${id}`);
+export async function getOrder(
+  id: string,
+  token?: string
+): Promise<Order> {
+  return api<Order>(`/orders/${id}`, token ? { token } : undefined);
 }
 
 export type StorefrontReason = "OK" | "DISABLED" | "FULL" | "NO_BATCH";
@@ -55,6 +61,16 @@ export interface GetOrdersParams {
   customer?: string;
   menuId?: string;
   batchId?: string;
+  /** Only orders with Pay now + receipt (admin list filter). */
+  paymentOnly?: boolean;
+}
+
+/** Admin: count of orders not yet delivered (sidebar badge). */
+export async function getPendingOrdersCount(token: string): Promise<number> {
+  const { count } = await api<{ count: number }>("/orders/pending-count", {
+    token,
+  });
+  return count;
 }
 
 export async function getOrders(
@@ -66,6 +82,7 @@ export async function getOrders(
   if (params?.customer?.trim()) search.set("customer", params.customer.trim());
   if (params?.menuId?.trim()) search.set("menuId", params.menuId.trim());
   if (params?.batchId?.trim()) search.set("batchId", params.batchId.trim());
+  if (params?.paymentOnly) search.set("paymentOnly", "true");
   const qs = search.toString();
   return api<Order[]>(`/orders${qs ? `?${qs}` : ""}`, { token });
 }
@@ -96,3 +113,4 @@ export async function trackOrdersByPhone(phone: string): Promise<Order[]> {
   search.set("phone", phone);
   return api<Order[]>(`/orders/track?${search.toString()}`);
 }
+

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toggleOrdering, updateMinimumDelivery } from "@/services/admin.service";
+import { sanitizeDecimalInput } from "@/lib/sanitize-input";
 import { Loader2 } from "lucide-react";
 
 interface SettingsCardProps {
@@ -77,7 +78,7 @@ export function SettingsCard({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b border-charcoal/10 bg-cream/30">
-        <CardTitle className="text-lg">Storefront controls</CardTitle>
+        <CardTitle className="font-display text-lg">Storefront controls</CardTitle>
         <p className="text-sm font-normal text-charcoal/65">
           Edit the live menu under Menu. Set{" "}
           <Link
@@ -126,12 +127,12 @@ export function SettingsCard({
           <div className="flex flex-wrap gap-2">
             <Input
               id="min-del"
-              type="number"
-              step="0.01"
-              min={0}
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9.]*"
               placeholder="e.g. 15"
               value={minDel}
-              onChange={(e) => setMinDel(e.target.value)}
+              onChange={(e) => setMinDel(sanitizeDecimalInput(e.target.value))}
               className="max-w-[200px]"
             />
             <Button

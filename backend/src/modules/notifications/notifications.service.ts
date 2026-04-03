@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as twilio from 'twilio';
 import { Order } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 type OrderWithItems = Order & {
   orderItems: Array<{
@@ -36,21 +37,29 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private client: twilio.Twilio | null = null;
   private from: string;
-  private adminNumber: string;
 
-  constructor() {
+  constructor(private prisma: PrismaService) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
     const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
     const apiKeySid = process.env.TWILIO_API_KEY_SID?.trim();
     const apiKeySecret = process.env.TWILIO_API_KEY_SECRET?.trim();
     this.from = process.env.TWILIO_WHATSAPP_FROM?.trim() || '';
-    this.adminNumber = process.env.ADMIN_WHATSAPP_NUMBER?.trim() || '';
 
     if (accountSid && apiKeySid && apiKeySecret) {
       this.client = twilio(apiKeySid, apiKeySecret, { accountSid });
     } else if (accountSid && authToken) {
       this.client = twilio(accountSid, authToken);
     }
+  }
+
+  /** DB (Settings → Company info) first, then ADMIN_WHATSAPP_NUMBER env fallback. */
+  private async resolveAdminWhatsAppNumber(): Promise<string> {
+    const row = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    const fromDb = row?.adminWhatsappNumber?.trim();
+    if (fromDb) return fromDb;
+    return process.env.ADMIN_WHATSAPP_NUMBER?.trim() ?? '';
   }
 
   private async sendWhatsApp(toRaw: string, body: string, context?: string) {
@@ -97,14 +106,19 @@ export class NotificationsService {
   }
 
   async notifyAdminNewOrder(order: OrderWithItems) {
-    if (!this.adminNumber) {
+    const adminNumber = await this.resolveAdminWhatsAppNumber();
+    if (!adminNumber) {
       this.logger.warn(
-        'WhatsApp admin alert skipped — set ADMIN_WHATSAPP_NUMBER in .env',
+        'WhatsApp admin alert skipped — set Admin phone in Settings → Company info, or ADMIN_WHATSAPP_NUMBER in .env',
       );
       return;
     }
     const items = this.formatItems(order);
     const typeLabel = order.type === 'PICKUP' ? 'Pickup' : 'Delivery';
+    const paymentHint =
+      order.paymentChoice === 'PAY_NOW'
+        ? `\nPayment: Pay now — receipt uploaded.`
+        : `\nPayment: Pay later / at pickup.`;
     const body = `🍔 Bun Theory
 
 New Order!
@@ -112,12 +126,12 @@ New Order!
 Order: ${order.slugId}
 Customer: ${order.customerName}
 Phone: ${order.phone}
-Type: ${typeLabel}
+Type: ${typeLabel}${paymentHint}
 
 Items:
 ${items}`;
 
-    await this.sendWhatsApp(this.adminNumber, body, `admin new order ${order.slugId}`);
+    await this.sendWhatsApp(adminNumber, body, `admin new order ${order.slugId}`);
   }
 
   async notifyCustomerOrderReceived(order: OrderWithItems) {

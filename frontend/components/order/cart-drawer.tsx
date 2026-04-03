@@ -8,17 +8,26 @@ import {
 } from "@/components/ui/dialog";
 import { Cart } from "@/components/order/cart";
 import { Button } from "@/components/ui/button";
+import type { CartItem } from "@/store/cart.store";
+import type { MenuItem } from "@/types/menu";
 import { X } from "lucide-react";
 
 type CartDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  menuItems?: MenuItem[];
+  onEditCartItem?: (item: CartItem) => void;
 };
 
 /**
  * Mobile bottom sheet: cart contents + checkout. Uses Radix Dialog for a11y + focus trap.
  */
-export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
+export function CartDrawer({
+  open,
+  onOpenChange,
+  menuItems,
+  onEditCartItem,
+}: CartDrawerProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -53,6 +62,8 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
             variant="panel"
             heading="Your cart"
             showCheckoutButton
+            menuItems={menuItems}
+            onEditCartItem={onEditCartItem}
           />
         </div>
       </DialogContent>

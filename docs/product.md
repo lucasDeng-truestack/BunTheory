@@ -26,6 +26,7 @@ Single-restaurant ordering (GrabFood-style flow) for **Bun Theory by Bakar & Roa
   - `Icons/` — icon assets
   - `UI Design/` — frames or style notes
   - `Preview/` — screen previews  
+  - [`design-references/`](./design-references/) — optional UX mockups (e.g. admin dashboard); add files such as `design-references/admin-dashboard-reference.png` when tracking a reference image in-repo.  
   Paths are conventional; add these folders under the project when assets are available. Until then, implement with the existing stack (Next.js, Tailwind, shadcn/ui) and branding tokens.
 
 ## Notifications

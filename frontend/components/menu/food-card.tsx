@@ -24,7 +24,7 @@ export function FoodCard({ item, onOpen }: FoodCardProps) {
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-shadow duration-200",
+        "flex h-full flex-col overflow-hidden transition-shadow duration-200",
         disabled ? "opacity-80" : "hover:shadow-elevated"
       )}
     >
@@ -32,7 +32,7 @@ export function FoodCard({ item, onOpen }: FoodCardProps) {
         role="button"
         tabIndex={disabled ? -1 : 0}
         className={cn(
-          "block w-full text-left outline-none",
+          "flex min-h-0 flex-1 flex-col text-left outline-none",
           disabled ? "cursor-not-allowed" : "cursor-pointer focus-visible:ring-2 focus-visible:ring-roast-red/40"
         )}
         onClick={open}
@@ -44,7 +44,7 @@ export function FoodCard({ item, onOpen }: FoodCardProps) {
           }
         }}
       >
-        <div className="relative aspect-[4/3] bg-charcoal/5">
+        <div className="relative aspect-[4/3] shrink-0 bg-charcoal/5">
           {item.image ? (
             <Image
               src={item.image}
@@ -73,17 +73,23 @@ export function FoodCard({ item, onOpen }: FoodCardProps) {
             </div>
           )}
         </div>
-        <CardContent className="p-4">
-          <h3 className="text-xl font-semibold text-charcoal font-display">{item.name}</h3>
-          {item.description && (
+        <CardContent className="flex flex-1 flex-col p-4">
+          <h3 className="text-xl font-semibold text-charcoal font-display">
+            {item.name}
+          </h3>
+          {item.description ? (
             <p className="mt-1 line-clamp-2 text-base text-charcoal/70">
               {item.description}
             </p>
-          )}
-          <p className="mt-2 font-bold text-roast-red">RM {price.toFixed(2)}</p>
+          ) : null}
+          {/* Fills space so price + footer button align across cards with varying description height */}
+          <div className="min-h-0 flex-1" aria-hidden />
+          <p className="mt-2 shrink-0 font-bold text-roast-red">
+            RM {price.toFixed(2)}
+          </p>
         </CardContent>
       </div>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="mt-auto shrink-0 p-4 pt-0">
         <Button
           size="lg"
           className="w-full font-display"

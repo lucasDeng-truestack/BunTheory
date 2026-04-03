@@ -6,6 +6,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { OrderLineItemExtras } from "@/components/order/order-line-item-extras";
 import { OrderStatusDisplay } from "@/components/order/order-status";
 import { trackOrdersByPhone } from "@/services/orders.service";
 import type { Order } from "@/types/order";
@@ -111,14 +112,6 @@ export function TrackOrderView() {
     });
   };
 
-  const formatItems = (order: Order) =>
-    order.orderItems
-      .map((oi) => {
-        const name = oi.menu?.name ?? "Item";
-        return `${oi.quantity}× ${name}`;
-      })
-      .join(" · ");
-
   if (!hydrated) {
     return (
       <div className="space-y-4" aria-busy>
@@ -210,7 +203,17 @@ export function TrackOrderView() {
                       {order.customerName} ·{" "}
                       <span className="capitalize">{order.type.toLowerCase()}</span>
                     </p>
-                    <p className="text-base font-medium text-charcoal">{formatItems(order)}</p>
+                    <div className="space-y-3 text-base text-charcoal">
+                      {order.orderItems.map((oi) => (
+                        <div key={oi.id}>
+                          <p className="font-medium">
+                            <span className="text-roast-red">{oi.quantity}×</span>{" "}
+                            {oi.menu?.name ?? "Item"}
+                          </p>
+                          <OrderLineItemExtras oi={oi} className="mt-1 text-sm" />
+                        </div>
+                      ))}
+                    </div>
                     <OrderStatusDisplay status={order.status} />
                   </CardContent>
                 </Card>

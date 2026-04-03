@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCanOrder } from "@/lib/menu-data";
+import { getPublicSettings } from "@/services/storefront-settings.service";
 import { OrderCounter } from "@/components/order/order-counter";
 import { Cart } from "@/components/order/cart";
 import { OrderForm } from "@/components/order/order-form";
@@ -16,7 +17,10 @@ import { formatBatchLabel, checkoutClosedCopy } from "@/lib/batch-display";
 export const dynamic = "force-dynamic";
 
 export default async function OrderPage() {
-  const canOrder = await getCanOrder();
+  const [canOrder, storefrontSettings] = await Promise.all([
+    getCanOrder(),
+    getPublicSettings().catch(() => null),
+  ]);
   const batchLabel = formatBatchLabel(canOrder);
   const closed = checkoutClosedCopy(canOrder);
 
@@ -90,6 +94,7 @@ export default async function OrderPage() {
                 <div className="rounded-3xl border border-charcoal/10 bg-white p-4 shadow-card sm:p-6 lg:p-8">
                   <OrderForm
                     minimumDeliveryAmount={canOrder.minimumDeliveryAmount}
+                    paymentQrSrc={storefrontSettings?.paymentQrUrl ?? null}
                   />
                 </div>
               </section>
