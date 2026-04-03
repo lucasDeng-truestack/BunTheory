@@ -4,6 +4,8 @@ name: Platform Deploy Sync
 # Backend deploys from GitHub to Railway using Railway's native Git integration.
 # This workflow only handles production database changes for Neon.
 #
+# Builds on every PR/push: see .github/workflows/ci.yml
+#
 # Required GitHub secret:
 # NEON_DATABASE_URL
 #
