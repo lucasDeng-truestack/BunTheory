@@ -27,6 +27,7 @@ export class UploadsService {
       this.s3Client = new S3Client({
         region: process.env.S3_REGION?.trim() || 'auto',
         endpoint,
+        forcePathStyle: true,
         credentials: {
           accessKeyId,
           secretAccessKey,
