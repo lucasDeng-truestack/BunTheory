@@ -2,7 +2,7 @@
   "name": "bun-theory",
   "version": "1.0.0",
   "private": true,
-  "description": "Bun Theory by Bakar & Roast",
+  "description": "The Bun Theory by Bakar & Roast",
   "scripts": {
     "dev": "concurrently -n \"backend,frontend\" -c \"blue,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",

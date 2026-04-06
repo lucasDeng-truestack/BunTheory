@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { login } from "@/services/admin.service";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import { Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -54,7 +55,7 @@ export default function AdminLoginPage() {
             Staff sign in
           </h1>
           <p className="mt-1 text-sm text-charcoal/65">
-            Bakar & Roast
+            {BRAND_FULL_NAME}
           </p>
         </div>
 

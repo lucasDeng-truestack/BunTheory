@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /** Public path — file lives in `public/images/branding/` */
@@ -25,7 +26,7 @@ type BrandLogoProps = {
 };
 
 /**
- * Bakar & Roast parent brand mark (square asset).
+ * Square brand mark used in nav and admin chrome.
  */
 function resolveImageSrc(src: string): string {
   const s = src.trim();
@@ -54,7 +55,7 @@ export function BrandLogo({
   return (
     <Image
       src={effectiveSrc}
-      alt={alt ?? "Bakar & Roast"}
+      alt={alt ?? BRAND_FULL_NAME}
       width={dim}
       height={dim}
       className={cn("object-contain object-center", className)}

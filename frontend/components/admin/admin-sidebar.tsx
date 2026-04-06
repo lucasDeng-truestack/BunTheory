@@ -16,9 +16,10 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
-const DEFAULT_COMPANY_NAME = "Bakar & Roast";
+const DEFAULT_COMPANY_NAME = BRAND_FULL_NAME;
 
 const ICON_COL = "flex size-5 shrink-0 items-center justify-center";
 

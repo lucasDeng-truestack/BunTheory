@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { NavigationLoadingGate } from "@/components/layout/navigation-loading-gate";
 import { CartSync } from "@/components/providers/cart-sync";
 import { cn } from "@/lib/utils";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const fontSans = DM_Sans({
@@ -13,7 +14,7 @@ const fontSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bakar & Roast by Bun Theory",
+  title: BRAND_FULL_NAME,
   description: "Order delicious roasted buns - fast, simple, mobile-friendly",
   icons: {
     icon: "/images/branding/bakar-roast-logo.png",

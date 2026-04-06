@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { BRAND_FULL_NAME, BRAND_SUBLINE, BRAND_TITLE_LINE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { ChevronLeft } from "lucide-react";
 
@@ -137,8 +138,8 @@ export function CustomerTopBar({
               centerTitle ? "text-center lg:text-left" : "text-left"
             )}
           >
-            <p className="font-display hidden text-[0.7rem] font-semibold uppercase leading-none tracking-wider text-roast-red sm:block sm:text-eyebrow sm:leading-tight">
-              Bakar & Roast
+            <p className="font-display hidden text-[0.65rem] font-semibold leading-tight tracking-wide text-roast-red sm:block sm:text-xs sm:leading-tight">
+              {BRAND_FULL_NAME}
             </p>
             <h1 className="font-display min-w-0 max-w-full truncate text-base font-bold leading-tight tracking-tight text-charcoal sm:text-lg md:text-xl lg:text-xl xl:text-2xl">
               {title}
@@ -193,11 +194,11 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
             <BrandLogo size="md" priority />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-lg font-black uppercase leading-tight tracking-wide text-deep-red sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.125rem] xl:leading-tight">
-              Bakar & Roast
+            <p className="font-display text-lg font-black leading-tight tracking-wide text-deep-red sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.125rem] xl:leading-tight">
+              {BRAND_TITLE_LINE}
             </p>
             <p className="font-display mt-0.5 text-xs font-medium leading-snug text-charcoal/50 sm:text-sm lg:text-base">
-              by Bun Theory
+              {BRAND_SUBLINE}
             </p>
           </div>
         </div>

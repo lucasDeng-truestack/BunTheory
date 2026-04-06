@@ -7,10 +7,11 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const DEFAULT_COMPANY_NAME = "Bakar & Roast";
+const DEFAULT_COMPANY_NAME = BRAND_FULL_NAME;
 
 type AdminLayoutInnerProps = {
   children: React.ReactNode;

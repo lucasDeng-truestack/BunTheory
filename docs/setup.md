@@ -1,4 +1,4 @@
-# Bun Theory - Setup Guide
+# The Bun Theory — Setup Guide
 
 Quick reference for starting the development environment.
 

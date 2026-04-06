@@ -1,6 +1,6 @@
-# Bun Theory — Product & Access Model
+# The Bun Theory — Product & Access Model
 
-Single-restaurant ordering (GrabFood-style flow) for **Bun Theory by Bakar & Roast**. This document is the reference for **who can do what** and **how the public site is meant to behave**.
+Single-restaurant ordering (GrabFood-style flow) for **The Bun Theory by Bakar & Roast**. This document is the reference for **who can do what** and **how the public site is meant to behave**.
 
 ## Customer experience
 

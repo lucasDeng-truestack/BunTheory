@@ -23,6 +23,7 @@ import { uploadImage } from "@/services/upload.service";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { PhoneDisplayReadonly } from "@/components/admin/phone-display-readonly";
 import { sanitizeIntegerInput } from "@/lib/sanitize-input";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import { Eye, Loader2, Pencil, ShieldPlus } from "lucide-react";
 
@@ -275,7 +276,7 @@ export default function AdminSettingsPage() {
     );
   }
 
-  const displayPreviewName = companyName.trim() || "Bakar & Roast";
+  const displayPreviewName = companyName.trim() || BRAND_FULL_NAME;
 
   return (
     <div className="space-y-8">
@@ -292,7 +293,7 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-charcoal/65">
             Store name and logo appear in the admin sidebar. The admin phone is
             where new-order WhatsApp alerts are sent (Twilio). Leave the name
-            empty to use the default &quot;Bakar & Roast&quot;. Logo uses the
+            empty to use the default &quot;{BRAND_FULL_NAME}&quot;. Logo uses the
             same upload pipeline as the menu.
           </p>
         </CardHeader>
@@ -325,7 +326,7 @@ export default function AdminSettingsPage() {
                     <p className="rounded-xl border border-charcoal/10 bg-cream/30 px-4 py-3 text-base font-medium text-charcoal">
                       {companyName.trim() || (
                         <span className="text-charcoal/50">
-                          (default: Bakar & Roast)
+                          (default: {BRAND_FULL_NAME})
                         </span>
                       )}
                     </p>
@@ -423,7 +424,7 @@ export default function AdminSettingsPage() {
                       id="company-name"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="e.g. Bakar & Roast"
+                      placeholder={`e.g. ${BRAND_FULL_NAME}`}
                       className="max-w-md"
                       maxLength={120}
                     />

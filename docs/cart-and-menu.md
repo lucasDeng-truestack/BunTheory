@@ -1,4 +1,4 @@
-# Cart & menu contract (Bun Theory)
+# Cart & menu contract (The Bun Theory)
 
 This document explains how the **customer cart** stays aligned with the **backend menu**, so items are not removed unexpectedly after “Add to cart”.
 

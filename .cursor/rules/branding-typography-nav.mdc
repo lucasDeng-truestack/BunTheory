@@ -3,7 +3,7 @@ description: Brand typography and navbar sizing standards
 alwaysApply: true
 ---
 
-# Bun Theory Typography & Nav
+# The Bun Theory Typography & Nav
 
 - Use `Comic Sans MS` (or the configured display-font fallback) for display text:
   headings, section titles, navbar brand text, navbar links, buttons, labels, and CTA copy.

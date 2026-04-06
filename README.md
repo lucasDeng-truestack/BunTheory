@@ -1,4 +1,4 @@
-# Bun Theory by Bakar & Roast
+# The Bun Theory by Bakar & Roast
 
 A lightweight GrabFood-style food ordering system for a single restaurant. Customers order **without an account** (name and phone at checkout). Staff use an **admin area** to manage orders and the menu.
 
@@ -15,7 +15,7 @@ A lightweight GrabFood-style food ordering system for a single restaurant. Custo
 
 | Layer    | Technology      |
 | -------- | --------------- |
-| Frontend | Next.js 14, TypeScript, TailwindCSS, shadcn/ui |
+| Frontend | Next.js 15, TypeScript, TailwindCSS, shadcn/ui |
 | Backend  | NestJS, Prisma, PostgreSQL |
 | Deploy   | Vercel (frontend), Railway (backend), Neon (DB) |
 | Notifications | Twilio WhatsApp API |

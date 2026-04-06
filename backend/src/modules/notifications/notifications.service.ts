@@ -3,6 +3,8 @@ import * as twilio from 'twilio';
 import { Order } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+const BRAND_WHATSAPP_HEADER = '🍔 The Bun Theory by Bakar & Roast';
+
 type OrderWithItems = Order & {
   orderItems: Array<{
     quantity: number;
@@ -119,7 +121,7 @@ export class NotificationsService {
       order.paymentChoice === 'PAY_NOW'
         ? `\nPayment: Pay now — receipt uploaded.`
         : `\nPayment: Pay later / at pickup.`;
-    const body = `🍔 Bun Theory
+    const body = `${BRAND_WHATSAPP_HEADER}
 
 New Order!
 
@@ -135,7 +137,7 @@ ${items}`;
   }
 
   async notifyCustomerOrderReceived(order: OrderWithItems) {
-    const body = `🍔 Bun Theory by Bakar & Roast
+    const body = `${BRAND_WHATSAPP_HEADER}
 
 Your order has been received!
 
@@ -147,7 +149,7 @@ We'll notify you when it's ready.`;
   }
 
   async notifyCustomerPreparing(order: OrderWithItems) {
-    const body = `🍔 Bun Theory by Bakar & Roast
+    const body = `${BRAND_WHATSAPP_HEADER}
 
 Your order is now being prepared!
 
@@ -161,7 +163,7 @@ Status: Preparing`;
       order.type === 'DELIVERY'
         ? `Your order is out for delivery — it will arrive soon!`
         : `Your order is ready for pickup!`;
-    const body = `🍔 Bun Theory by Bakar & Roast
+    const body = `${BRAND_WHATSAPP_HEADER}
 
 ${line}
 
@@ -171,7 +173,7 @@ Status: Ready`;
   }
 
   async notifyCustomerDelivered(order: OrderWithItems) {
-    const body = `🍔 Bun Theory by Bakar & Roast
+    const body = `${BRAND_WHATSAPP_HEADER}
 
 Your order has been delivered. Enjoy! 🎉
 

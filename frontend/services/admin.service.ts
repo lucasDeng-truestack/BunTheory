@@ -54,7 +54,7 @@ export interface SystemSettings {
   maxOrdersPerDay: number;
   orderingEnabled: boolean;
   minimumDeliveryAmount?: number | null;
-  /** Admin display; null = use default “Bakar & Roast”. */
+  /** Admin display; null = use default full brand name (see `BRAND_FULL_NAME`). */
   companyName?: string | null;
   /** From POST /uploads/image; null = default logo asset. */
   companyLogoUrl?: string | null;

@@ -6,9 +6,10 @@ import {
 import { cn } from "@/lib/utils";
 import { TrackOrderView } from "@/components/order/track-order-view";
 import { PackageSearch } from "lucide-react";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: "Track order | Bakar & Roast",
+  title: `Track order | ${BRAND_FULL_NAME}`,
   description: "Look up your in-progress order with your phone number",
 };
 

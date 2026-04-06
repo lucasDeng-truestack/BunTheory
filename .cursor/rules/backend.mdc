@@ -2,7 +2,7 @@
 alwaysApply: true
 ---
 
-Backend rules for Bun Theory ordering system.
+Backend rules for The Bun Theory ordering system.
 
 Stack:
 - NestJS

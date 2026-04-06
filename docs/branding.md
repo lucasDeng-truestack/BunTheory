@@ -1,4 +1,4 @@
-Brand: Bun Theory by Bakar & Roast
+Brand: The Bun Theory by Bakar & Roast
 
 Theme:
 Fire roasted burgers and artisan buns.

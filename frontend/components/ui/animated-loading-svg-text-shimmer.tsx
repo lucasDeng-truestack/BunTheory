@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND_FULL_NAME } from "@/lib/brand";
 
 // ---------------------------------------------------------------------------
 // Loader — animated SVG path
@@ -95,7 +96,7 @@ const Loader = React.forwardRef<SVGSVGElement, LoaderProps>(
 Loader.displayName = "Loader";
 
 // ---------------------------------------------------------------------------
-// Loading breadcrumb — shimmer label (default: Bakar & Roast)
+// Loading breadcrumb — shimmer label (default: brand)
 // ---------------------------------------------------------------------------
 
 interface LoadingBreadcrumbProps {
@@ -104,7 +105,7 @@ interface LoadingBreadcrumbProps {
 }
 
 export function LoadingBreadcrumb({
-  text = "Bakar & Roast",
+  text = BRAND_FULL_NAME,
   className,
 }: LoadingBreadcrumbProps) {
   return (
