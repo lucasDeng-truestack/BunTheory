@@ -15,8 +15,9 @@
   --cream: #fff7ed;
   --background: #fff7ed;
   --foreground: #1f2937;
-  --font-display: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt",
-    cursive;
+  /* Same as body: Next.js `next/font` sets --font-sans on <html> (DM Sans). */
+  --font-display: var(--font-sans), ui-sans-serif, system-ui, "Segoe UI", Roboto,
+    sans-serif;
   --PhoneInput-color--focus: #b91c1c;
   --PhoneInputCountryFlag-height: 1.25rem;
 }
