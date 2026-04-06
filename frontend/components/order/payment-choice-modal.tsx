@@ -13,19 +13,84 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   CheckCircle2,
+  Download,
   FileText,
   HandCoins,
   Loader2,
+  MessageCircle,
   QrCode,
   Upload,
   X,
 } from "lucide-react";
+import {
+  CHECKOUT_PAYMENT_DRAFT_KEY,
+  type CheckoutPaymentDraftV1,
+} from "@/lib/checkout-payment-draft";
 
 /** Must match checkout fallback when no admin URL / env. */
 const DEFAULT_QR = "/images/payment-qr.svg";
 
 type PaymentMethod = "payNow" | "payLater";
 type Step = "choice" | "confirm" | "payNow";
+
+function readDraftInitialState(): {
+  step: Step;
+  selectedMethod: PaymentMethod | null;
+  fileReuploadHint: string | null;
+} {
+  if (typeof window === "undefined") {
+    return { step: "choice", selectedMethod: null, fileReuploadHint: null };
+  }
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_PAYMENT_DRAFT_KEY);
+    if (!raw) {
+      return { step: "choice", selectedMethod: null, fileReuploadHint: null };
+    }
+    const d = JSON.parse(raw) as CheckoutPaymentDraftV1;
+    if (d.v !== 1) {
+      return { step: "choice", selectedMethod: null, fileReuploadHint: null };
+    }
+    const stepOk =
+      d.step === "choice" || d.step === "confirm" || d.step === "payNow";
+    if (!stepOk) {
+      return { step: "choice", selectedMethod: null, fileReuploadHint: null };
+    }
+    return {
+      step: d.step,
+      selectedMethod: d.selectedMethod,
+      fileReuploadHint: d.fileMeta?.name ? d.fileMeta.name : null,
+    };
+  } catch {
+    return { step: "choice", selectedMethod: null, fileReuploadHint: null };
+  }
+}
+
+async function downloadQrImage(src: string, baseName = "bun-theory-payment-qr") {
+  try {
+    const res = await fetch(src, { mode: "cors" });
+    if (!res.ok) throw new Error("fetch failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ext = blob.type.includes("png")
+      ? "png"
+      : blob.type.includes("jpeg") || blob.type.includes("jpg")
+        ? "jpg"
+        : blob.type.includes("webp")
+          ? "webp"
+          : blob.type.includes("svg")
+            ? "svg"
+            : "png";
+    a.download = `${baseName}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch {
+    window.open(src, "_blank", "noopener,noreferrer");
+  }
+}
 
 type PaymentChoiceModalProps = {
   open: boolean;
@@ -38,6 +103,10 @@ type PaymentChoiceModalProps = {
   onPayLater: () => void | Promise<void>;
   /** Upload receipt then place order (parent handles API). */
   onMarkedPaid: (file: File) => void | Promise<void>;
+  /** Pay now without receipt upload; optional WhatsApp handoff in parent. */
+  onPayNowReceiptLater?: () => void | Promise<void>;
+  uploadError?: string | null;
+  onClearUploadError?: () => void;
 };
 
 export function PaymentChoiceModal({
@@ -49,22 +118,44 @@ export function PaymentChoiceModal({
   uploading,
   onPayLater,
   onMarkedPaid,
+  onPayNowReceiptLater,
+  uploadError,
+  onClearUploadError,
 }: PaymentChoiceModalProps) {
   const [step, setStep] = useState<Step>("choice");
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
+    null
+  );
+  const [fileReuploadHint, setFileReuploadHint] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [qrDownloading, setQrDownloading] = useState(false);
+  const [persistReady, setPersistReady] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /** Avoid SSR/client mismatch: sessionStorage only on client after mount. */
   useEffect(() => {
-    if (open) {
-      setStep("choice");
-      setSelectedMethod(null);
-      setFile(null);
-      setPreviewUrl(null);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }, [open]);
+    const initial = readDraftInitialState();
+    setStep(initial.step);
+    setSelectedMethod(initial.selectedMethod);
+    setFileReuploadHint(initial.fileReuploadHint);
+    setPersistReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !persistReady) return;
+    const draft: CheckoutPaymentDraftV1 = {
+      v: 1,
+      step,
+      selectedMethod,
+      fileMeta: file ? { name: file.name } : null,
+    };
+    sessionStorage.setItem(CHECKOUT_PAYMENT_DRAFT_KEY, JSON.stringify(draft));
+  }, [persistReady, step, selectedMethod, file]);
+
+  useEffect(() => {
+    if (file) setFileReuploadHint(null);
+  }, [file]);
 
   useEffect(() => {
     if (!file) {
@@ -98,7 +189,34 @@ export function PaymentChoiceModal({
 
   const fileIsImage = Boolean(file?.type.startsWith("image/"));
   const fileIsPdf =
-    file?.type === "application/pdf" || file?.name.toLowerCase().endsWith(".pdf");
+    file?.type === "application/pdf" ||
+    file?.name.toLowerCase().endsWith(".pdf");
+
+  const payNowProgress = (
+    <div className="mt-4 rounded-2xl border border-charcoal/10 bg-white/80 px-4 py-3">
+      <p className="font-display text-sm text-charcoal">Pay now · 3 steps</p>
+      <ol className="mt-2 space-y-2 text-sm text-charcoal/75">
+        <li className="flex items-start gap-2">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-roast-red text-xs font-semibold text-white">
+            1
+          </span>
+          <span>Scan QR (or save it first) / pay the total</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-roast-red/20 text-xs font-semibold text-roast-red">
+            2
+          </span>
+          <span>Confirm payment in your banking app</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-roast-red/20 text-xs font-semibold text-roast-red">
+            3
+          </span>
+          <span>Upload receipt and finish your order here</span>
+        </li>
+      </ol>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,8 +319,9 @@ export function PaymentChoiceModal({
               </button>
             </div>
             <div className="mt-5 rounded-2xl border border-charcoal/10 bg-white/70 px-4 py-3 text-sm text-charcoal/60">
-              Recommendation: use <span className="font-display text-charcoal">Pay now</span> if
-              you already have your banking app open. It speeds up confirmation and
+              Recommendation: use{" "}
+              <span className="font-display text-charcoal">Pay now</span> if you
+              already have your banking app open. It speeds up confirmation and
               keeps checkout in one flow.
             </div>
           </>
@@ -210,7 +329,7 @@ export function PaymentChoiceModal({
           <>
             <button
               type="button"
-              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-roast-red hover:underline font-display"
+              className="mb-2 inline-flex items-center gap-1 font-display text-sm font-medium text-roast-red hover:underline"
               onClick={() => setStep("choice")}
               disabled={busy || uploading}
             >
@@ -234,11 +353,12 @@ export function PaymentChoiceModal({
                   )}
                 </div>
                 <DialogTitle className="font-display text-2xl text-charcoal">
-                  Proceed with {selectedMethod === "payNow" ? "Pay now" : "Pay later"}?
+                  Proceed with{" "}
+                  {selectedMethod === "payNow" ? "Pay now" : "Pay later"}?
                 </DialogTitle>
                 <DialogDescription className="text-base leading-relaxed text-charcoal/70">
                   {selectedMethod === "payNow"
-                    ? "You’ll continue to the QR step to upload your receipt after payment."
+                    ? "You’ll continue to the QR step to upload your receipt after payment (or send it on WhatsApp if that’s easier)."
                     : "Your order will be placed first, and you can settle payment at pickup or delivery."}
                 </DialogDescription>
               </DialogHeader>
@@ -269,8 +389,8 @@ export function PaymentChoiceModal({
           <>
             <button
               type="button"
-              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-roast-red hover:underline font-display"
-              onClick={() => setStep("choice")}
+              className="mb-2 inline-flex items-center gap-1 font-display text-sm font-medium text-roast-red hover:underline"
+              onClick={() => setStep("confirm")}
               disabled={busy || uploading}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -284,10 +404,14 @@ export function PaymentChoiceModal({
                 Pay now
               </DialogTitle>
               <DialogDescription className="text-left text-base leading-relaxed text-charcoal/70">
-                Scan the QR, transfer the total, then upload your receipt and tap
-                Marked as paid.
+                Scan the QR and pay the total. Your payment is not lost if you
+                switch apps — you can come back and upload the same receipt, or
+                use WhatsApp below.
               </DialogDescription>
             </DialogHeader>
+
+            {payNowProgress}
+
             <div className="mt-5 rounded-[1.75rem] border border-charcoal/10 bg-white/85 p-4 shadow-card">
               <div className="flex items-center gap-3 rounded-2xl bg-cream/60 px-4 py-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-roast-red text-white">
@@ -298,21 +422,66 @@ export function PaymentChoiceModal({
                     Transfer with QR
                   </p>
                   <p className="text-sm text-charcoal/60">
-                    Upload your receipt after payment.
+                    Save the QR first if you need to leave this screen.
                   </p>
                 </div>
               </div>
               <div className="relative mx-auto mt-4 w-full max-w-[240px] overflow-hidden rounded-2xl border border-charcoal/10 bg-cream/50">
-              {/* eslint-disable-next-line @next/next/no-img-element -- QR from /public or external URL */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- QR from /public or external URL */}
                 <img
                   src={qrSrc || DEFAULT_QR}
                   alt="Payment QR code"
                   className="h-auto w-full object-contain p-3"
                 />
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3 w-full font-display"
+                disabled={qrDownloading || busy}
+                onClick={() => {
+                  void (async () => {
+                    setQrDownloading(true);
+                    try {
+                      await downloadQrImage(qrSrc || DEFAULT_QR);
+                    } finally {
+                      setQrDownloading(false);
+                    }
+                  })();
+                }}
+              >
+                {qrDownloading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Save QR to phone
+                  </>
+                )}
+              </Button>
             </div>
 
             <div className="mt-4 space-y-3">
+              {fileReuploadHint && !file ? (
+                <div
+                  className="rounded-2xl border border-mustard/30 bg-mustard/10 px-4 py-3 text-sm text-charcoal"
+                  role="status"
+                >
+                  <p className="font-display font-medium text-charcoal">
+                    Pick your receipt again
+                  </p>
+                  <p className="mt-1 text-charcoal/75">
+                    We couldn&apos;t keep “{fileReuploadHint}” after you left this
+                    screen — that&apos;s normal. Choose the file again; your payment
+                    is still valid.
+                  </p>
+                </div>
+              ) : null}
+
               <input
                 ref={inputRef}
                 type="file"
@@ -320,6 +489,7 @@ export function PaymentChoiceModal({
                 className="sr-only"
                 id="payment-receipt"
                 onChange={(e) => {
+                  onClearUploadError?.();
                   const f = e.target.files?.[0];
                   setFile(f ?? null);
                 }}
@@ -328,7 +498,8 @@ export function PaymentChoiceModal({
                 <div
                   className={cn(
                     "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-charcoal/20 bg-white px-4 py-6 transition hover:border-roast-red/40",
-                    file && "border-roast-red/30 bg-roast-red/[0.04]"
+                    file && "border-roast-red/30 bg-roast-red/[0.04]",
+                    uploadError && "border-roast-red/50 bg-roast-red/[0.06]"
                   )}
                 >
                   <Upload className="mb-2 h-8 w-8 text-charcoal/40" />
@@ -340,6 +511,21 @@ export function PaymentChoiceModal({
                   </span>
                 </div>
               </label>
+
+              {uploadError ? (
+                <div
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+                  role="alert"
+                >
+                  <p className="font-display font-medium">Couldn&apos;t finish upload</p>
+                  <p className="mt-1 text-red-800/90">{uploadError}</p>
+                  <p className="mt-2 text-xs text-red-800/80">
+                    Try JPG, PNG, WebP, or PDF under 5MB. Your transfer is fine —
+                    just pick the file again and tap{" "}
+                    <span className="font-display">Upload receipt & place order</span>.
+                  </p>
+                </div>
+              ) : null}
 
               {file && previewUrl ? (
                 <div className="rounded-[1.5rem] border border-charcoal/10 bg-white/90 p-4 shadow-card">
@@ -358,7 +544,10 @@ export function PaymentChoiceModal({
                       variant="ghost"
                       className="shrink-0 font-display text-charcoal/70"
                       disabled={busy || uploading}
-                      onClick={clearUploadedFile}
+                      onClick={() => {
+                        onClearUploadError?.();
+                        clearUploadedFile();
+                      }}
                     >
                       <X className="mr-1 h-4 w-4" />
                       Remove
@@ -401,7 +590,8 @@ export function PaymentChoiceModal({
                           File selected
                         </p>
                         <p className="text-xs text-charcoal/55">
-                          This file type can be uploaded, but preview is limited here.
+                          This file type can be uploaded, but preview is limited
+                          here.
                         </p>
                       </div>
                     )}
@@ -422,9 +612,30 @@ export function PaymentChoiceModal({
                     {uploading ? "Uploading…" : "Placing order…"}
                   </>
                 ) : (
-                  "Marked as paid"
+                  "Upload receipt & place order"
                 )}
               </Button>
+
+              {onPayNowReceiptLater ? (
+                <div className="space-y-2 border-t border-charcoal/10 pt-4">
+                  <p className="text-center text-xs leading-relaxed text-charcoal/60">
+                    Already transferred? If uploading here is awkward, place your
+                    order and send your proof in WhatsApp with your order number
+                    — we&apos;ll match it on our side.
+                  </p>
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    className="w-full font-display"
+                    disabled={busy || uploading}
+                    onClick={() => void onPayNowReceiptLater()}
+                  >
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    Place order & send receipt on WhatsApp
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </>
         )}

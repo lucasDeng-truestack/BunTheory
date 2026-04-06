@@ -23,6 +23,8 @@ import { uploadPaymentReceipt } from "@/services/upload.service";
 import { saveLastOrderId } from "@/lib/last-order";
 import { getMenuValidityLists, isCartLineOnMenu } from "@/lib/cart-menu-validation";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
+import { CHECKOUT_PAYMENT_DRAFT_KEY } from "@/lib/checkout-payment-draft";
+import { buildCustomerWhatsAppReceiptUrl } from "@/lib/customer-whatsapp";
 import { Loader2 } from "lucide-react";
 import { PaymentChoiceModal } from "@/components/order/payment-choice-modal";
 
@@ -49,6 +51,9 @@ export function OrderForm({
   const [loading, setLoading] = useState(false);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [receiptUploadError, setReceiptUploadError] = useState<string | null>(
+    null
+  );
   const [error, setError] = useState("");
   const [rememberDetails, setRememberDetails] = useState(false);
   const [rememberReady, setRememberReady] = useState(false);
@@ -168,28 +173,68 @@ export function OrderForm({
   const runCreateOrder = useCallback(
     async (
       paymentChoice: "PAY_LATER" | "PAY_NOW",
-      receiptUrl?: string
+      receiptUrl?: string,
+      handoff?: "whatsapp-receipt"
     ) => {
       const validItems = getValidItems();
+      const trimmedReceipt = receiptUrl?.trim();
       const order = await createOrder({
         customerName: form.customerName.trim(),
         phone: form.phone,
         type: form.type,
         paymentChoice,
-        receiptUrl:
-          paymentChoice === "PAY_NOW" ? receiptUrl : undefined,
         items: buildPayloadItems(validItems),
+        ...(paymentChoice === "PAY_NOW" && trimmedReceipt
+          ? { receiptUrl: trimmedReceipt }
+          : {}),
       });
       clearCart();
       saveLastOrderId(order.id);
-      const payNowMsg =
-        paymentChoice === "PAY_NOW"
-          ? "We received your payment screenshot — we'll confirm on WhatsApp."
-          : "You'll receive a WhatsApp confirmation shortly.";
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(CHECKOUT_PAYMENT_DRAFT_KEY);
+      }
+
+      let openedWa = false;
+      if (
+        handoff === "whatsapp-receipt" &&
+        typeof window !== "undefined"
+      ) {
+        const label = order.slugId ?? order.id.slice(0, 8);
+        const wa = buildCustomerWhatsAppReceiptUrl(label);
+        if (wa) {
+          window.open(wa, "_blank", "noopener,noreferrer");
+          openedWa = true;
+        }
+      }
+
+      const payNowWithReceipt =
+        paymentChoice === "PAY_NOW" && Boolean(trimmedReceipt);
+      const payNowPendingReceipt =
+        paymentChoice === "PAY_NOW" && !trimmedReceipt;
+
+      let payNowMsg: string;
+      if (payNowWithReceipt) {
+        payNowMsg =
+          "We received your payment proof — we'll confirm on WhatsApp.";
+      } else if (payNowPendingReceipt) {
+        payNowMsg = openedWa
+          ? "We opened WhatsApp — send your receipt there with your order number."
+          : "Send your payment receipt on WhatsApp with your order number from the next screen.";
+      } else {
+        payNowMsg = "You'll receive a WhatsApp confirmation shortly.";
+      }
       toast.success("Order placed!", { description: payNowMsg });
       router.push(`/order/success?id=${order.id}`);
     },
-    [buildPayloadItems, clearCart, form.customerName, form.phone, form.type, getValidItems, router]
+    [
+      buildPayloadItems,
+      clearCart,
+      form.customerName,
+      form.phone,
+      form.type,
+      getValidItems,
+      router,
+    ]
   );
 
   const validateBeforePaymentModal = (): boolean => {
@@ -231,6 +276,7 @@ export function OrderForm({
   const openPaymentModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateBeforePaymentModal()) return;
+    setReceiptUploadError(null);
     setPaymentOpen(true);
   };
 
@@ -249,6 +295,7 @@ export function OrderForm({
   };
 
   const onMarkedPaid = async (file: File) => {
+    setReceiptUploadError(null);
     setUploadingReceipt(true);
     try {
       const { url } = await uploadPaymentReceipt(file);
@@ -259,10 +306,25 @@ export function OrderForm({
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to upload or place order";
-      setError(message);
+      setReceiptUploadError(message);
       toast.error("Could not complete payment", { description: message });
     } finally {
       setUploadingReceipt(false);
+      setLoading(false);
+    }
+  };
+
+  const onPayNowReceiptLater = async () => {
+    setLoading(true);
+    setReceiptUploadError(null);
+    try {
+      await runCreateOrder("PAY_NOW", undefined, "whatsapp-receipt");
+      setPaymentOpen(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to place order";
+      handleOrderError(err, message);
+    } finally {
       setLoading(false);
     }
   };
@@ -305,13 +367,19 @@ export function OrderForm({
     <>
       <PaymentChoiceModal
         open={paymentOpen}
-        onOpenChange={setPaymentOpen}
+        onOpenChange={(openNext) => {
+          setPaymentOpen(openNext);
+          if (!openNext) setReceiptUploadError(null);
+        }}
         qrSrc={paymentQrSrc?.trim() || FALLBACK_PAYMENT_QR}
         totalLabel={totalLabel}
         busy={loading}
         uploading={uploadingReceipt}
         onPayLater={onPayLater}
         onMarkedPaid={onMarkedPaid}
+        onPayNowReceiptLater={onPayNowReceiptLater}
+        uploadError={receiptUploadError}
+        onClearUploadError={() => setReceiptUploadError(null)}
       />
       <form onSubmit={openPaymentModal} className="space-y-4" noValidate>
         {error && (

@@ -119,7 +119,9 @@ export class NotificationsService {
     const typeLabel = order.type === 'PICKUP' ? 'Pickup' : 'Delivery';
     const paymentHint =
       order.paymentChoice === 'PAY_NOW'
-        ? `\nPayment: Pay now — receipt uploaded.`
+        ? order.paymentReceiptUrl?.trim()
+          ? `\nPayment: Pay now — receipt uploaded.`
+          : `\nPayment: Pay now — receipt not attached (customer may WhatsApp proof).`
         : `\nPayment: Pay later / at pickup.`;
     const body = `${BRAND_WHATSAPP_HEADER}
 

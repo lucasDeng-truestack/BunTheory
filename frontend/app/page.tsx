@@ -11,6 +11,7 @@ import { getMenu } from "@/services/menu.service";
 import { MenuHighlights } from "@/components/menu/menu-highlights";
 import { HeroImageStack } from "@/components/menu/hero-image-stack";
 import { FadeIn } from "@/components/ui/fade-in";
+import SiteFooter from "@/components/ui/footer";
 import type { MenuItem } from "@/types/menu";
 
 export default async function HomePage() {
@@ -85,8 +86,8 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="relative mx-6 mb-6 flex min-h-[260px] items-end justify-center sm:min-h-[320px] lg:mx-0 lg:mb-0 lg:min-h-[420px] lg:items-center lg:justify-center lg:pl-0 lg:pr-0 xl:-translate-x-2">
-              <div className="relative h-[min(52vw,280px)] w-full max-w-md sm:h-80 lg:h-[min(420px,42vw)] lg:max-w-[min(100%,520px)] lg:flex-1">
+            <div className="relative mx-6 mb-6 flex min-h-[340px] items-end justify-center sm:min-h-[380px] lg:mx-0 lg:mb-0 lg:min-h-[520px] lg:items-center lg:justify-center lg:pl-0 lg:pr-0 xl:-translate-x-2">
+              <div className="relative h-[min(64vw,360px)] w-full max-w-xl sm:min-h-[26rem] sm:h-[26rem] lg:h-[min(540px,52vw)] lg:max-w-[min(100%,640px)] lg:flex-1">
                 <div
                   className="pointer-events-none absolute inset-[4%] -z-10 rounded-[2.5rem] bg-[radial-gradient(ellipse_85%_75%_at_70%_55%,rgba(255,210,170,0.35),rgba(255,237,213,0.12)_45%,transparent_72%)]"
                   aria-hidden
@@ -139,17 +140,7 @@ export default async function HomePage() {
           </FadeIn>
         )}
 
-        <p className="text-fine-print mt-10 text-center lg:mt-12">
-          Questions about your order? You&apos;ll get updates on WhatsApp — we
-          roast to order and pack it fresh.{" "}
-          <Link
-            href="/track"
-            className="font-medium text-roast-red underline underline-offset-2 hover:opacity-90"
-          >
-            Track an active order
-          </Link>
-          .
-        </p>
+        <SiteFooter />
       </main>
     </CustomerPageShell>
   );

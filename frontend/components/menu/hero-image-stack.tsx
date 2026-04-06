@@ -1,44 +1,117 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Static landing hero assets (not from DB). Center = burger; sides peek on a timer. */
-export const LANDING_HERO_IMAGES = {
-  left: {
-    src: "/images/items/grilled%20cheese.png",
-    alt: "Grilled cheese sandwich",
-  },
-  center: {
-    src: "/images/items/FriedChickenBurger-removebg-preview.png",
-    alt: "Fried chicken burger",
-  },
-  right: {
-    src: "/images/items/vecteezy_loaded-fries-transparent-background_53296599.png",
-    alt: "Loaded fries",
-  },
+type RevealItem = {
+  src: string;
+  alt: string;
+  /** Relative size multiplier for each revealed item. */
+  size?: number;
+};
+
+const BAG_IMAGE = {
+  src: "/images/items/paper%20bag.png",
+  alt: "The Bun Theory takeaway bag",
 } as const;
 
-const CYCLE_MS_DESKTOP = 3000;
-/** Slightly slower on narrow viewports — easier to follow, less busy on small screens. */
-const CYCLE_MS_COMPACT = 3800;
-const EASE = "cubic-bezier(0.34, 1.35, 0.64, 1)";
-const TRANSITION_MS_DESKTOP = 780;
-const TRANSITION_MS_COMPACT = 820;
+/**
+ * Items shown in front when the bag step hides — add entries anytime.
+ */
+export const HERO_REVEAL_ITEMS: RevealItem[] = [
+  {
+    src: "/images/items/Burger.png",
+    alt: "The Bun Theory Burger",
+    size: 1.3,
+  },
+  {
+    src: "/images/items/Fries.png",
+    alt: "Loaded Fries",
+    size: 1.12,
+  },
+];
 
-const COMPACT_QUERY = "(max-width: 639px)";
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const COMPACT_PX = 480;
+const TOGGLE_DESKTOP_MS = 2600;
+const TOGGLE_COMPACT_MS = 3000;
+const TRANSITION_DESKTOP_MS = 900;
+const TRANSITION_COMPACT_MS = 980;
+/** Narrow fan — items stay close, like one order being handed over. */
+const ARC_DEG = 7;
+const SPREAD_DESKTOP = 3.35;
+const SPREAD_COMPACT = 2.95;
+const BASE_ITEM_PCT_DESKTOP = 86;
+const BASE_ITEM_PCT_COMPACT = 82;
+const BAG_SCALE_DESKTOP = 0.98;
+const BAG_SCALE_COMPACT = 0.94;
+
+/** Horizontal fan angle per item index */
+function spreadAngle(index: number, count: number): number {
+  if (count <= 1) return 0;
+  const lo = -ARC_DEG;
+  const hi = ARC_DEG;
+  return lo + ((hi - lo) * index) / (count - 1);
+}
 
 /**
- * Center burger on top. Side dishes start stacked at the center (behind the burger),
- * then slide out to their corners every few seconds; reduced motion = static trio.
- * Compact layouts use gentler transforms so sides stay in-frame on phones.
+ * Closed: deeper in Z, smaller — inside the bag.
+ * Open: comes forward with a slight rotateX (tray tilt “toward the guest”) — not a wide fan.
  */
+function itemTransform3d(
+  angle: number,
+  size: number,
+  index: number,
+  open: boolean,
+  compact: boolean,
+): { transform: string; opacity: number } {
+  const spread = compact ? SPREAD_COMPACT : SPREAD_DESKTOP;
+  /** Pull side items a hair toward center so the pair reads as one serving. */
+  const towardCenter = index === 0 ? 1.1 : index === 1 ? -1.1 : 0;
+  const txPct = -50 + (angle * spread) / size + towardCenter;
+  const rotZ = angle * (compact ? 0.28 : 0.34);
+
+  if (!open) {
+    return {
+      transform: `translate3d(${txPct.toFixed(1)}%, 10%, -90px) rotate(${(
+        rotZ * 0.25
+      ).toFixed(1)}deg) rotateX(2deg) scale(0.78)`,
+      opacity: 0,
+    };
+  }
+
+  const tyPct = compact ? -5 : -6;
+  const zBase = compact ? 44 : 54;
+  /** Second item half a step “on the same tray”, not floating away. */
+  const zForward = zBase - index * 8;
+  const tiltX = compact ? 4.5 : 5.5;
+
+  return {
+    transform: `translate3d(${txPct.toFixed(1)}%, ${tyPct}%, ${zForward}px) rotateZ(${rotZ.toFixed(
+      1,
+    )}deg) rotateX(${tiltX}deg) scale(1)`,
+    opacity: 1,
+  };
+}
+
 export function HeroImageStack() {
-  const { left, center, right } = LANDING_HERO_IMAGES;
-  const [peek, setPeek] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setCompact(entry.contentRect.width < COMPACT_PX);
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -49,110 +122,101 @@ export function HeroImageStack() {
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia(COMPACT_QUERY);
-    const update = () => setCompact(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+    if (reducedMotion || HERO_REVEAL_ITEMS.length === 0) return;
 
-  useEffect(() => {
-    if (reducedMotion) return;
-    const cycle = compact ? CYCLE_MS_COMPACT : CYCLE_MS_DESKTOP;
-    const id = window.setInterval(() => setPeek((v) => !v), cycle);
+    const ms = compact ? TOGGLE_COMPACT_MS : TOGGLE_DESKTOP_MS;
+    const id = window.setInterval(() => setOpen((value) => !value), ms);
     return () => window.clearInterval(id);
-  }, [reducedMotion, compact]);
+  }, [compact, reducedMotion]);
 
-  const showSides = reducedMotion || peek;
-
-  const transitionMs = compact ? TRANSITION_MS_COMPACT : TRANSITION_MS_DESKTOP;
-
-  /** Hidden: clustered at hero center (under burger); visible: further out — softer on compact. */
-  const leftTransform = showSides
-    ? compact
-      ? "translate(-8%, 1%) rotate(-8deg) scale(1)"
-      : "translate(-14%, 2%) rotate(-11deg) scale(1)"
-    : compact
-      ? "translate(32%, -26%) rotate(-3deg) scale(0.4)"
-      : "translate(48%, -30%) rotate(-4deg) scale(0.34)";
-
-  const rightTransform = showSides
-    ? compact
-      ? "translate(2%, 1%) rotate(7deg) scale(1)"
-      : "translate(0, 0) rotate(9deg) scale(1)"
-    : compact
-      ? "translate(-28%, -18%) rotate(3deg) scale(0.42)"
-      : "translate(-38%, -22%) rotate(4deg) scale(0.38)";
+  /** When reduced motion, interval is off — stay on bag only (no rapid hiding). */
+  const showItems = open;
+  const transitionMs = compact
+    ? TRANSITION_COMPACT_MS
+    : TRANSITION_DESKTOP_MS;
+  const baseItemPct = compact
+    ? BASE_ITEM_PCT_COMPACT
+    : BASE_ITEM_PCT_DESKTOP;
+  const bagScale = compact ? BAG_SCALE_COMPACT : BAG_SCALE_DESKTOP;
 
   return (
-    <div className="relative h-full w-full">
-      {/* Back-left — transform-origin at center-bottom so motion reads as “from the middle” */}
+    <div
+      ref={containerRef}
+      className="relative h-full w-full"
+      style={{
+        perspective: "1000px",
+        perspectiveOrigin: "50% 65%",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-[14%] -z-10 rounded-[2.75rem] bg-[radial-gradient(ellipse_78%_70%_at_50%_58%,rgba(248,191,112,0.28),rgba(255,237,213,0.126)_50%,transparent_74%)] blur-sm"
+        aria-hidden
+      />
+
+      {HERO_REVEAL_ITEMS.map((item, index) => {
+        const size = item.size ?? 1;
+        const angle = spreadAngle(index, HERO_REVEAL_ITEMS.length);
+        const pct = baseItemPct * size;
+        const { transform, opacity } = itemTransform3d(
+          angle,
+          size,
+          index,
+          showItems,
+          compact,
+        );
+
+        return (
+          <div
+            key={item.src}
+            className={cn(
+              "pointer-events-none absolute left-1/2 z-20",
+              !reducedMotion && "will-change-transform",
+            )}
+            style={{
+              width: `${pct}%`,
+              height: `${pct}%`,
+              bottom: "-10%",
+              transformOrigin: "50% 92%",
+              transition: `transform ${transitionMs}ms ${EASE} ${index * 100}ms, opacity 480ms ease ${index * 80}ms`,
+              transform,
+              opacity,
+            }}
+          >
+            <Image
+              src={item.src}
+              alt={item.alt}
+              fill
+              className="object-contain drop-shadow-[0_20px_36px_rgba(0,0,0,0.2)]"
+              sizes={`(max-width: 640px) ${Math.round(52 * size)}vw, ${Math.round(280 * size)}px`}
+            />
+          </div>
+        );
+      })}
+
+      {/* Bag only when closed — hidden while food is shown */}
       <div
         className={cn(
-          "pointer-events-none absolute z-[1] h-[52%] w-[52%] sm:h-[50%] sm:w-[50%]",
-          !reducedMotion && !compact && "will-change-transform"
+          "absolute inset-x-0 bottom-0 z-10 mx-auto h-[92%] w-[82%]",
+          !reducedMotion &&
+            "transition-[transform,opacity,visibility] duration-700 ease-out",
         )}
         style={{
-          left: "-12%",
-          bottom: "-2%",
-          transformOrigin: "55% 78%",
-          transition: `transform ${transitionMs}ms ${EASE}, opacity 520ms ease-out`,
-          transform: leftTransform,
-          opacity: showSides ? 1 : 0,
+          transformOrigin: "50% 100%",
+          transform: showItems
+            ? "translateY(4%) scale(0.94)"
+            : `translateY(0) scale(${bagScale.toFixed(3)})`,
+          opacity: showItems ? 0 : 1,
+          visibility: showItems ? "hidden" : "visible",
+          pointerEvents: showItems ? "none" : "auto",
         }}
+        aria-hidden={showItems}
       >
         <Image
-          src={left.src}
-          alt={left.alt}
+          src={BAG_IMAGE.src}
+          alt={BAG_IMAGE.alt}
           fill
-          className="object-contain object-bottom drop-shadow-[0_14px_32px_rgba(0,0,0,0.2)]"
-          sizes="(max-width: 640px) 42vw, 200px"
-        />
-      </div>
-
-      {/* Back-right — same idea, mirrored */}
-      <div
-        className={cn(
-          "pointer-events-none absolute z-[1] h-[48%] w-[48%] sm:h-[46%] sm:w-[46%]",
-          !reducedMotion && !compact && "will-change-transform"
-        )}
-        style={{
-          right: "-6%",
-          top: "0%",
-          transformOrigin: "45% 72%",
-          transition: `transform ${transitionMs}ms ${EASE} 70ms, opacity 520ms ease-out 50ms`,
-          transform: rightTransform,
-          opacity: showSides ? 1 : 0,
-        }}
-      >
-        <Image
-          src={right.src}
-          alt={right.alt}
-          fill
-          className="object-contain object-top drop-shadow-[0_14px_32px_rgba(0,0,0,0.2)]"
-          sizes="(max-width: 640px) 38vw, 180px"
-        />
-      </div>
-
-      {/* Center — burger */}
-      <div
-        className={cn(
-          "relative z-10 h-full w-full",
-          !reducedMotion && "transition-transform duration-700 ease-out",
-          showSides && !reducedMotion
-            ? compact
-              ? "scale-[1.01]"
-              : "scale-[1.02]"
-            : "scale-100"
-        )}
-        style={{ transformOrigin: "50% 85%" }}
-      >
-        <Image
-          src={center.src}
-          alt={center.alt}
-          fill
-          className="object-contain object-bottom drop-shadow-[0_22px_55px_rgba(122,12,12,0.22)] lg:object-[30%_100%]"
-          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="object-contain object-bottom drop-shadow-[0_24px_55px_rgba(122,12,12,0.18)]"
+          sizes="(max-width: 640px) 68vw, 400px"
           priority
         />
       </div>

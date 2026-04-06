@@ -10,7 +10,7 @@ export function paymentChoiceLabel(order: Order): string {
 export function receiptStatusLabel(order: Order): string {
   if (order.paymentChoice === "PAY_LATER") return "N/A";
   if (order.paymentChoice === "PAY_NOW") {
-    return order.paymentReceiptUrl?.trim() ? "Received" : "Pending";
+    return order.paymentReceiptUrl?.trim() ? "Received" : "Awaiting receipt";
   }
   return "—";
 }

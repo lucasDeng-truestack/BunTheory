@@ -198,7 +198,7 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
               {BRAND_TITLE_LINE}
             </p>
             <p className="font-display mt-0.5 text-xs font-medium leading-snug text-charcoal/50 sm:text-sm lg:text-base">
-              {BRAND_SUBLINE}
+              {BRAND_SUBLINE} · Designed by Lucas
             </p>
           </div>
         </div>

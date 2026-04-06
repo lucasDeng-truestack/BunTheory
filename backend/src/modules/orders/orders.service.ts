@@ -279,12 +279,7 @@ export class OrdersService {
     let paymentReceiptUrl: string | null = null;
 
     if (paymentChoice === 'PAY_NOW') {
-      if (!dto.receiptUrl?.trim()) {
-        throw new BadRequestException(
-          'Upload your payment receipt before placing a Pay now order.',
-        );
-      }
-      paymentReceiptUrl = dto.receiptUrl.trim();
+      paymentReceiptUrl = dto.receiptUrl?.trim() || null;
     } else if (dto.receiptUrl?.trim()) {
       throw new BadRequestException(
         'Receipt upload is only used when you choose Pay now.',

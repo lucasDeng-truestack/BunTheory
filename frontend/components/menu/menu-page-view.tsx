@@ -246,33 +246,41 @@ export function MenuPageView({ menuItems, canOrder }: MenuPageViewProps) {
               </section>
             ) : null}
 
-            <section aria-labelledby="burger-today-heading">
-              <div className="mb-6 lg:mb-8">
-                <p className="text-section-label">Menu</p>
-                <h2
-                  id="burger-today-heading"
-                  className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display"
-                >
-					Order Now
-                </h2>
-                <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
-                  {popularPicks.length > 0
-                    ? "The rest of today’s menu. Together with Popular picks above, this is everything available."
-                    : "Tap an item to choose options and add to cart. On larger screens the cart stays visible on the right."}
+            {burgerForTodayItems.length > 0 ? (
+              <section aria-labelledby="burger-today-heading">
+                <div className="mb-6 lg:mb-8">
+                  <p className="text-section-label">Menu</p>
+                  <h2
+                    id="burger-today-heading"
+                    className="mt-1 text-2xl font-bold tracking-tight text-charcoal sm:text-3xl font-display"
+                  >
+                    Order Now
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-pretty text-sm text-charcoal/65 lg:text-base">
+                    {popularPicks.length > 0
+                      ? "The rest of today’s menu. Together with Popular picks above, this is everything available."
+                      : "Tap an item to choose options and add to cart. On larger screens the cart stays visible on the right."}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
+                  <FoodGrid
+                    items={burgerForTodayItems}
+                    onOpenItem={openItem}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            {sortedAvailable.length === 0 ? (
+              <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-8 text-center shadow-card sm:p-10">
+                <p className="font-display text-lg font-semibold text-charcoal">
+                  No items available right now
+                </p>
+                <p className="mt-2 text-sm text-charcoal/65">
+                  Check back soon — the kitchen may be updating the menu.
                 </p>
               </div>
-              <div className="rounded-3xl border border-charcoal/10 bg-white/70 p-4 shadow-card sm:p-6 md:p-8 lg:rounded-[1.75rem]">
-                {burgerForTodayItems.length > 0 ? (
-                  <FoodGrid items={burgerForTodayItems} onOpenItem={openItem} />
-                ) : popularPicks.length > 0 ? (
-                  <p className="py-10 text-center text-sm text-charcoal/65">
-                    Every available item is listed under Popular picks above.
-                  </p>
-                ) : (
-                  <FoodGrid items={sortedAvailable} onOpenItem={openItem} />
-                )}
-              </div>
-            </section>
+            ) : null}
           </div>
 
           <div className="hidden lg:col-span-5 xl:col-span-4 lg:block">

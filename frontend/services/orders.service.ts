@@ -11,7 +11,7 @@ export interface CreateOrderPayload {
   phone: string;
   type: "PICKUP" | "DELIVERY";
   paymentChoice?: "PAY_LATER" | "PAY_NOW";
-  /** Required when paymentChoice is PAY_NOW (URL from POST /uploads/payment-receipt). */
+  /** When PAY_NOW: proof URL from POST /uploads/payment-receipt; omit if sending proof via WhatsApp. */
   receiptUrl?: string;
   items: {
     slug?: string;
