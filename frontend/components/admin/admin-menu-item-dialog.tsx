@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,9 @@ import {
   sanitizeIntegerInput,
   sanitizeMoneyInput,
 } from "@/lib/sanitize-input";
+
+const MENU_IMAGE_ACCEPT =
+  "image/svg+xml,image/png,image/jpeg,image/webp,.svg,.png,.jpg,.jpeg,.webp";
 
 type OptionRow = { label: string; priceDelta: string };
 type GroupRow = {
@@ -170,7 +173,9 @@ export function AdminMenuItemDialog({
       onSaved();
       onOpenChange(false);
     } catch (e) {
-      console.error(e);
+      toast.error("Could not save menu item", {
+        description: e instanceof Error ? e.message : "Please try again.",
+      });
     } finally {
       setSaving(false);
     }
@@ -181,8 +186,13 @@ export function AdminMenuItemDialog({
     try {
       const { url } = await uploadImage(file, token);
       setImageUrl(url);
+      toast.success("Image uploaded", {
+        description: "Save the item to keep this photo on the menu.",
+      });
     } catch (e) {
-      console.error(e);
+      toast.error("Could not upload image", {
+        description: e instanceof Error ? e.message : "Please try again.",
+      });
     } finally {
       setUploading(false);
     }
@@ -282,7 +292,8 @@ export function AdminMenuItemDialog({
             <div className="flex items-center gap-4 rounded-2xl border border-dashed border-charcoal/15 bg-charcoal/[0.02] p-4 md:gap-6 md:p-5">
               {imageUrl ? (
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-charcoal/5 shadow-inner ring-1 ring-charcoal/10 md:h-32 md:w-32">
-                  <Image src={imageUrl} alt="" fill className="object-cover" />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- dynamic admin upload preview */}
+                  <img src={imageUrl} alt="" className="h-full w-full object-cover" />
                 </div>
               ) : (
                 <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-charcoal/5 text-3xl text-charcoal/25 md:h-32 md:w-32 md:text-4xl">
@@ -292,7 +303,7 @@ export function AdminMenuItemDialog({
               <label className="cursor-pointer">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={MENU_IMAGE_ACCEPT}
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -312,6 +323,9 @@ export function AdminMenuItemDialog({
                 </Button>
               </label>
             </div>
+            <p className="text-sm text-charcoal/60">
+              Use JPG, PNG, WebP, or SVG up to 5MB, same as the admin QR upload.
+            </p>
           </div>
 
           <Separator className="my-2 bg-charcoal/8" />
