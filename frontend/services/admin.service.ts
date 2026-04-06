@@ -38,6 +38,18 @@ export async function createAdminUser(
   });
 }
 
+export async function updateAdminPassword(
+  adminId: string,
+  payload: { password: string; confirmPassword: string },
+  token: string
+): Promise<AdminUser> {
+  return api<AdminUser>(`/auth/admins/${adminId}/password`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export interface SystemSettings {
   maxOrdersPerDay: number;
   orderingEnabled: boolean;

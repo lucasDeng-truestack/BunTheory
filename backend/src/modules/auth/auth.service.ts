@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -70,6 +73,32 @@ export class AuthService {
         email,
         password,
       },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateAdminPassword(adminId: string, dto: UpdateAdminPasswordDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const existing = await this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Admin not found');
+    }
+
+    const hashed = await bcrypt.hash(dto.password, 10);
+    return this.prisma.admin.update({
+      where: { id: adminId },
+      data: { password: hashed },
       select: {
         id: true,
         email: true,

@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -23,5 +32,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async createAdmin(@Body() dto: CreateAdminDto) {
     return this.authService.createAdmin(dto);
+  }
+
+  @Patch('admins/:id/password')
+  @UseGuards(JwtAuthGuard)
+  async updateAdminPassword(
+    @Param('id') id: string,
+    @Body() dto: UpdateAdminPasswordDto,
+  ) {
+    return this.authService.updateAdminPassword(id, dto);
   }
 }

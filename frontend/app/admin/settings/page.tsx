@@ -14,6 +14,7 @@ import {
   createAdminUser,
   getAdminUsers,
   getSettings,
+  updateAdminPassword,
   updateBranding,
   updateMaxOrders,
   type AdminUser,
@@ -40,6 +41,12 @@ export default function AdminSettingsPage() {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [passwordEditAdminId, setPasswordEditAdminId] = useState<string | null>(
+    null
+  );
+  const [passwordEditNew, setPasswordEditNew] = useState("");
+  const [passwordEditConfirm, setPasswordEditConfirm] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const [editingPaymentQr, setEditingPaymentQr] = useState(false);
   const [editingCompanyInfo, setEditingCompanyInfo] = useState(false);
   const [maxOrders, setMaxOrders] = useState("15");
@@ -218,6 +225,45 @@ export default function AdminSettingsPage() {
       });
     } finally {
       setCreatingAdmin(false);
+    }
+  };
+
+  const cancelPasswordEdit = () => {
+    setPasswordEditAdminId(null);
+    setPasswordEditNew("");
+    setPasswordEditConfirm("");
+  };
+
+  const handleSaveAdminPassword = async (adminId: string) => {
+    if (!token) return;
+    const p = passwordEditNew.trim();
+    const c = passwordEditConfirm.trim();
+    if (p.length < 6 || c.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (p !== c) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await updateAdminPassword(
+        adminId,
+        { password: p, confirmPassword: c },
+        token
+      );
+      toast.success("Password updated", {
+        description: "The admin can sign in with the new password.",
+      });
+      cancelPasswordEdit();
+      await load();
+    } catch (e) {
+      toast.error("Could not update password", {
+        description: e instanceof Error ? e.message : "Please try again.",
+      });
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -630,9 +676,27 @@ export default function AdminSettingsPage() {
                     key={admin.id}
                     className="rounded-xl border border-charcoal/8 bg-cream/30 px-4 py-3"
                   >
-                    <p className="break-all font-medium text-charcoal">
-                      {admin.email}
-                    </p>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="break-all font-medium text-charcoal">
+                        {admin.email}
+                      </p>
+                      {passwordEditAdminId !== admin.id ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 gap-1 text-roast-red hover:bg-roast-red/10 hover:text-roast-red"
+                          onClick={() => {
+                            setPasswordEditAdminId(admin.id);
+                            setPasswordEditNew("");
+                            setPasswordEditConfirm("");
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
+                          Edit
+                        </Button>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-charcoal/50">
                       Added{" "}
                       {new Date(admin.createdAt).toLocaleDateString(undefined, {
@@ -641,6 +705,71 @@ export default function AdminSettingsPage() {
                         day: "numeric",
                       })}
                     </p>
+                    {passwordEditAdminId === admin.id ? (
+                      <div className="mt-3 space-y-3 border-t border-charcoal/10 pt-3">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor={`admin-pw-${admin.id}`}
+                            className="font-display text-xs"
+                          >
+                            New password
+                          </Label>
+                          <Input
+                            id={`admin-pw-${admin.id}`}
+                            type="password"
+                            autoComplete="new-password"
+                            value={passwordEditNew}
+                            onChange={(e) => setPasswordEditNew(e.target.value)}
+                            placeholder="At least 6 characters"
+                            className="max-w-md"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor={`admin-pw-confirm-${admin.id}`}
+                            className="font-display text-xs"
+                          >
+                            Confirm password
+                          </Label>
+                          <Input
+                            id={`admin-pw-confirm-${admin.id}`}
+                            type="password"
+                            autoComplete="new-password"
+                            value={passwordEditConfirm}
+                            onChange={(e) =>
+                              setPasswordEditConfirm(e.target.value)
+                            }
+                            placeholder="Re-enter password"
+                            className="max-w-md"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="font-display"
+                            disabled={savingPassword}
+                            onClick={() => void handleSaveAdminPassword(admin.id)}
+                          >
+                            {savingPassword ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Save password"
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="font-display"
+                            disabled={savingPassword}
+                            onClick={cancelPasswordEdit}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
