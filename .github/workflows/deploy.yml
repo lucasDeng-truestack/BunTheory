@@ -43,7 +43,6 @@ jobs:
     env:
       # Single place so every step sees the same URL (Neon direct URL recommended).
       DATABASE_URL: ${{ secrets.NEON_DATABASE_URL || secrets.DATABASE_URL }}
-	  
 
     steps:
       - name: Checkout code
