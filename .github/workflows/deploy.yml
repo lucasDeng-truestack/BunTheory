@@ -6,11 +6,12 @@ name: Platform Deploy Sync
 #
 # Builds on every PR/push: see .github/workflows/ci.yml
 #
-# Required GitHub secret:
-# NEON_DATABASE_URL
+# Required GitHub secret (repository → Settings → Secrets and variables → Actions):
+#   NEON_DATABASE_URL — Neon **direct** Postgres URL (migrate deploy will fail if empty/missing).
+# Optional fallback if you already store the URL under another name:
+#   DATABASE_URL — used only when NEON_DATABASE_URL is unset.
 #
-# Use the direct Neon connection string here for migrations.
-# Neon recommends direct connections for schema migrations instead of pooled URLs.
+# Neon recommends direct (non-pooled) connections for `prisma migrate deploy`.
 
 on:
   push:
@@ -35,10 +36,21 @@ jobs:
   neon-db:
     name: Apply Neon Database Changes
     runs-on: ubuntu-latest
+    env:
+      # Single place so every step sees the same URL (Neon direct URL recommended).
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL || secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Verify database URL is configured
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL is empty. Add repository secret NEON_DATABASE_URL with your Neon direct connection string (postgres://... from Neon dashboard). If you use a different secret name, you can set DATABASE_URL instead — the workflow uses NEON_DATABASE_URL first, then DATABASE_URL."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (ready for Prisma)."
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -54,19 +66,13 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
 
       - name: Apply pending migrations
         if: github.event_name == 'push' || github.event.inputs.action == 'db-migrate' || github.event.inputs.action == 'db-migrate-and-seed'
         run: npx prisma migrate deploy
         working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
 
       - name: Seed Neon database
         if: github.event.inputs.action == 'db-seed' || github.event.inputs.action == 'db-migrate-and-seed'
         run: npm run db:seed
         working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
