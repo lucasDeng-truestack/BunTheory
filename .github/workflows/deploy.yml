@@ -6,10 +6,14 @@ name: Platform Deploy Sync
 #
 # Builds on every PR/push: see .github/workflows/ci.yml
 #
-# Required GitHub secret (repository → Settings → Secrets and variables → Actions):
-#   NEON_DATABASE_URL — Neon **direct** Postgres URL (migrate deploy will fail if empty/missing).
-# Optional fallback if you already store the URL under another name:
-#   DATABASE_URL — used only when NEON_DATABASE_URL is unset.
+# Required secret available to this job (see below):
+#   NEON_DATABASE_URL — Neon **direct** Postgres URL, or
+#   DATABASE_URL — fallback name if NEON_DATABASE_URL is unset.
+#
+# Add as *repository* secret: Settings → Secrets and variables → Actions → New repository secret.
+# If you only defined the URL under a GitHub *Environment*, add to job `neon-db`:
+#   environment: <that-environment-name>
+# …or duplicate the secret as a repository secret so this job can read it.
 #
 # Neon recommends direct (non-pooled) connections for `prisma migrate deploy`.
 
@@ -39,6 +43,7 @@ jobs:
     env:
       # Single place so every step sees the same URL (Neon direct URL recommended).
       DATABASE_URL: ${{ secrets.NEON_DATABASE_URL || secrets.DATABASE_URL }}
+	  
 
     steps:
       - name: Checkout code
