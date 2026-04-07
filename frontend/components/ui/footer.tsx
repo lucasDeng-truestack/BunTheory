@@ -25,7 +25,7 @@ export default function SiteFooter({
   supportLead = "Questions about your order? You'll get updates on WhatsApp — we roast to order and pack it fresh.",
   trackHref = "/track",
   trackLabel = "Track an active order",
-  portfolioUrl = "https://www.imsolucas-portfolio.vercel.app/",
+  portfolioUrl = "https://dyj-lucas-portfolio.vercel.app/",
   portfolioLabel = "Lucas",
   copyrightName = BRAND_FULL_NAME,
   logoSrc = "/logo.png",
