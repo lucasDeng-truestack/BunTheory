@@ -60,6 +60,18 @@ model Order {
   /// Set when PAY_NOW: URL to uploaded payment proof (same host as /uploads).
   paymentReceiptUrl     String?
   orderItems   OrderItem[]
+  appFeedbacks AppFeedback[]
+}
+
+/// Optional post-checkout remarks about the storefront experience (linked to order when provided).
+model AppFeedback {
+  id        String   @id @default(cuid())
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
 }
 
 enum OrderType {

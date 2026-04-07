@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  href: string;
+  /** When omitted, the card is display-only (e.g. landing highlights — order via main menu CTA). */
+  href?: string;
   name: string;
   description: string | null;
   image: string;
@@ -21,8 +22,10 @@ export function MenuHighlightCard({
   image,
   price,
 }: Props) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLAnchorElement | HTMLDivElement>(null);
   const [inFocus, setInFocus] = useState(false);
+
+  const interactive = Boolean(href);
 
   useEffect(() => {
     const el = ref.current;
@@ -56,12 +59,15 @@ export function MenuHighlightCard({
     return () => observer.disconnect();
   }, []);
 
-  return (
-    <Link
-      ref={ref}
-      href={href}
-      className="group touch-manipulation rounded-2xl border border-charcoal/8 bg-white p-4 shadow-card transition-all duration-300 active:scale-[0.995] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover"
-    >
+  const cardClass = cn(
+    "rounded-2xl border border-charcoal/8 bg-white p-4 shadow-card transition-all duration-300",
+    interactive &&
+      "group touch-manipulation active:scale-[0.995] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover",
+    !interactive && "cursor-default"
+  );
+
+  const inner = (
+    <>
       <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-charcoal/5">
         <Image
           src={image}
@@ -76,7 +82,12 @@ export function MenuHighlightCard({
       </div>
 
       <div className="mt-4">
-        <h3 className="text-lg font-bold text-charcoal transition-colors group-hover:text-deep-red">
+        <h3
+          className={cn(
+            "text-lg font-bold text-charcoal transition-colors",
+            interactive && "group-hover:text-deep-red"
+          )}
+        >
           {name}
         </h3>
         {description && (
@@ -88,6 +99,25 @@ export function MenuHighlightCard({
           RM {price.toFixed(2)}
         </p>
       </div>
-    </Link>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link ref={ref as React.RefObject<HTMLAnchorElement>} href={href} className={cardClass}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      ref={ref as React.RefObject<HTMLDivElement>}
+      className={cardClass}
+      role="group"
+      aria-label={`${name}, display only — use View menu and order to add to cart`}
+    >
+      {inner}
+    </div>
   );
 }

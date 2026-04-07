@@ -6,6 +6,8 @@ interface MenuHighlightsProps {
   items: MenuItem[];
   className?: string;
   featuredOnly?: boolean;
+  /** When false, cards are not links (avoids “order twice” confusion on the landing page). */
+  linkItemsToMenu?: boolean;
   title?: string;
   eyebrow?: string;
   description?: string;
@@ -17,6 +19,7 @@ export function MenuHighlights({
   items,
   className,
   featuredOnly = false,
+  linkItemsToMenu = true,
   title = "Crowd Favorites",
   eyebrow = "Our Menu",
   description,
@@ -66,7 +69,7 @@ export function MenuHighlights({
           return (
             <MenuHighlightCard
               key={item.id}
-              href="/menu"
+              href={linkItemsToMenu ? "/menu" : undefined}
               name={item.name}
               description={item.description}
               image={item.image!}

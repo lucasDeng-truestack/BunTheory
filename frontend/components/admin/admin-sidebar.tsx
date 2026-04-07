@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronsLeft,
   ChevronsRight,
+  MessageSquareQuote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND_FULL_NAME } from "@/lib/brand";
@@ -28,6 +29,7 @@ const PRIMARY_NAV = [
   { href: "/admin/batches", label: "Batches", icon: CalendarClock },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 

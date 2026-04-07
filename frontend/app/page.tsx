@@ -133,9 +133,10 @@ export default async function HomePage() {
           <FadeIn className="mt-12 lg:mt-16">
             <MenuHighlights
               items={favoriteItems}
+              linkItemsToMenu={false}
               title="Crowd Favorites"
               eyebrow="Our Menu"
-              description="Only the items marked as Most Favorite in admin show up here."
+              description="A preview of fan favourites — use “View menu & order” above to build your cart in one place."
             />
           </FadeIn>
         )}

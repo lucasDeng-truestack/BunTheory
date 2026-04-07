@@ -12,6 +12,7 @@ import {
 } from "@/components/layout/customer-shell";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { PostOrderFeedback } from "@/components/order/post-order-feedback";
 import type { Order } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +93,8 @@ export default async function OrderSuccessPage({
                   </CardContent>
                 </Card>
               </div>
+
+              <PostOrderFeedback orderId={order.id} />
             </div>
 
             <div className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center lg:mt-12 lg:max-w-2xl">
