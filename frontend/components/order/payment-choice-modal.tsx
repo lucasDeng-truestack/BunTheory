@@ -602,13 +602,13 @@ export function PaymentChoiceModal({
               <Button
                 type="button"
                 size="lg"
-                className="w-full font-display"
+                className="h-auto min-h-14 w-full whitespace-normal px-4 py-3 text-center font-display leading-snug"
                 disabled={!file || busy || uploading}
                 onClick={() => file && void onMarkedPaid(file)}
               >
                 {uploading || busy ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 shrink-0 animate-spin" />
                     {uploading ? "Uploading…" : "Placing order…"}
                   </>
                 ) : (
@@ -627,12 +627,14 @@ export function PaymentChoiceModal({
                     type="button"
                     size="lg"
                     variant="outline"
-                    className="w-full font-display"
+                    className="h-auto min-h-14 w-full whitespace-normal px-3 py-3 text-center font-display leading-snug sm:px-6 flex-col gap-2 sm:flex-row"
                     disabled={busy || uploading}
                     onClick={() => void onPayNowReceiptLater()}
                   >
-                    <MessageCircle className="mr-2 h-5 w-5" />
-                    Place order & send receipt on WhatsApp
+                    <MessageCircle className="h-5 w-5 shrink-0 sm:mr-0" />
+                    <span className="max-w-full text-balance">
+                      Place order & send receipt on WhatsApp
+                    </span>
                   </Button>
                 </div>
               ) : null}
