@@ -4,10 +4,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { AdminMenuItemDialog } from "@/components/admin/admin-menu-item-dialog";
 import type { MenuItem } from "@/types/menu";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 
 interface MenuEditorProps {
@@ -20,6 +27,9 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
   const [editMode, setEditMode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogItem, setDialogItem] = useState<MenuItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const openCreate = () => {
     setDialogItem(null);
@@ -31,15 +41,31 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
     setDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this item?")) return;
+  const openDeleteDialog = (item: MenuItem) => {
+    setDeleteTarget(item);
+    setDeleteStep(1);
+  };
+
+  const closeDeleteDialog = () => {
+    if (deleteLoading) return;
+    setDeleteTarget(null);
+    setDeleteStep(1);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget || deleteStep !== 2) return;
+    setDeleteLoading(true);
     try {
-      await api(`/menu/${id}`, { method: "DELETE", token });
+      await api(`/menu/${deleteTarget.id}`, { method: "DELETE", token });
       onUpdate();
       toast.success("Item deleted");
+      setDeleteTarget(null);
+      setDeleteStep(1);
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -120,7 +146,8 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
                     size="sm"
                     variant="ghost"
                     className="text-red-600 font-display"
-                    onClick={() => void handleDelete(item.id)}
+                    aria-label={`Delete ${item.name}`}
+                    onClick={() => openDeleteDialog(item)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -138,6 +165,98 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
         item={dialogItem}
         onSaved={handleSaved}
       />
+
+      <Dialog
+        open={deleteTarget != null}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteDialog();
+        }}
+      >
+        <DialogContent className="border-charcoal/10 bg-cream/95 p-0 sm:max-w-md">
+          <Card className="border-0 bg-transparent shadow-none">
+            <CardContent className="space-y-4 p-6 sm:p-7">
+              {deleteStep === 1 ? (
+                <>
+                  <DialogHeader className="space-y-2 text-left">
+                    <DialogTitle className="font-display text-xl text-charcoal">
+                      Delete this item?
+                    </DialogTitle>
+                    <DialogDescription asChild>
+                      <div className="space-y-2 text-left text-base leading-relaxed text-charcoal/75">
+                        <p>
+                          You are about to remove{" "}
+                          <span className="font-display font-semibold text-charcoal">
+                            {deleteTarget?.name}
+                          </span>{" "}
+                          (RM {deleteTarget != null ? Number(deleteTarget.price).toFixed(2) : "—"}) from
+                          the menu. Continue to the final step to confirm.
+                        </p>
+                      </div>
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="font-display"
+                      disabled={deleteLoading}
+                      onClick={closeDeleteDialog}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      className="font-display"
+                      disabled={deleteLoading}
+                      onClick={() => setDeleteStep(2)}
+                    >
+                      Continue
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-left">
+                    <div className="shrink-0 text-red-600">
+                      <AlertTriangle className="h-6 w-6" aria-hidden />
+                    </div>
+                    <DialogHeader className="space-y-2 text-left">
+                      <DialogTitle className="font-display text-lg text-charcoal">
+                        Final confirmation
+                      </DialogTitle>
+                      <DialogDescription className="text-sm leading-relaxed text-charcoal/75">
+                        This permanently removes the item from the live menu. Orders
+                        that already include it are unchanged. This action cannot
+                        be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="font-display"
+                      disabled={deleteLoading}
+                      onClick={() => setDeleteStep(1)}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="font-display"
+                      disabled={deleteLoading}
+                      onClick={() => void executeDelete()}
+                    >
+                      {deleteLoading ? "Deleting…" : "Delete item"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
