@@ -43,6 +43,8 @@ interface CartStore {
   updateQuantity: (lineKey: string, quantity: number) => void;
   clearCart: () => void;
   removeInvalidItems: (validSlugs: string[], validMenuIds?: string[]) => void;
+  /** Drop cart lines for a menu row removed on the server (id and/or slug match). */
+  removeLinesForDeletedMenu: (menuId: string, slug: string) => void;
   total: () => number;
   itemCount: () => number;
 }
@@ -123,6 +125,15 @@ export const useCartStore = create<CartStore>()(
           );
           return { items: kept };
         });
+      },
+      removeLinesForDeletedMenu: (menuId, slug) => {
+        const slugNorm = normalizeMenuSlug(slug);
+        set((state) => ({
+          items: state.items.filter(
+            (i) =>
+              i.menuId !== menuId && normalizeMenuSlug(i.slug) !== slugNorm
+          ),
+        }));
       },
       total: () =>
         get().items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),

@@ -32,6 +32,24 @@ export function CartValidator({ redirectIfEmpty = false }: CartValidatorProps) {
     [items]
   );
 
+  const removeLinesForDeletedMenu = useCartStore(
+    (s) => s.removeLinesForDeletedMenu
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) {
+      return;
+    }
+    const bc = new BroadcastChannel("bun-theory-menu");
+    bc.onmessage = (e: MessageEvent) => {
+      if (e.data?.type !== "menu-deleted" || !e.data?.id || !e.data?.slug) {
+        return;
+      }
+      removeLinesForDeletedMenu(e.data.id as string, e.data.slug as string);
+    };
+    return () => bc.close();
+  }, [removeLinesForDeletedMenu]);
+
   useEffect(() => {
     if (items.length === 0) return;
 

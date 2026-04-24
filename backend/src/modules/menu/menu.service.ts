@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
@@ -216,30 +216,19 @@ export class MenuService {
     return this.findOne(id);
   }
 
+  /**
+   * Hard delete: removes the menu row and all `OrderItem` lines that reference it.
+   * Any `Order` that would have zero line items after that is deleted (e.g. order
+   * contained only this dish). Customer carts drop the item on the next menu fetch
+   * via the storefront `CartValidator`.
+   */
   async remove(id: string) {
-    const orderLineCount = await this.prisma.orderItem.count({
-      where: { menuId: id },
-    });
-    if (orderLineCount > 0) {
-      throw new ConflictException(
-        'This item appears on existing orders and cannot be removed. Turn off Available in Edit to hide it from the menu.',
-      );
-    }
-
-    try {
-      return await this.prisma.menu.delete({
-        where: { id },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.orderItem.deleteMany({ where: { menuId: id } });
+      await tx.order.deleteMany({
+        where: { orderItems: { none: {} } },
       });
-    } catch (e) {
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2003'
-      ) {
-        throw new ConflictException(
-          'This item is still linked to orders and cannot be removed. Hide it from the menu instead.',
-        );
-      }
-      throw e;
-    }
+      return tx.menu.delete({ where: { id } });
+    });
   }
 }

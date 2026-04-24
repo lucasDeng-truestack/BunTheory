@@ -56,9 +56,24 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
     if (!deleteTarget || deleteStep !== 2) return;
     setDeleteLoading(true);
     try {
-      await api(`/menu/${deleteTarget.id}`, { method: "DELETE", token });
+      const { id, slug } = deleteTarget;
+      await api(`/menu/${id}`, { method: "DELETE", token });
       onUpdate();
-      toast.success("Item deleted");
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        try {
+          new BroadcastChannel("bun-theory-menu").postMessage({
+            type: "menu-deleted",
+            id,
+            slug,
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+      toast.success("Item removed from the database", {
+        description:
+          "Order lines for this dish were removed. Orders that only contained this item were deleted. Carts will drop it when customers open the menu.",
+      });
       setDeleteTarget(null);
       setDeleteStep(1);
     } catch (err) {
@@ -130,6 +145,7 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
               <p className="text-sm text-charcoal/65">
                 {item.soldOut ? "Sold out" : item.available ? "Available" : "Hidden"}
                 {item.maxQuantity != null ? ` · cap ${item.maxQuantity}` : ""}
+                {item.soldQuantity > 0 ? ` · ${item.soldQuantity} sold` : ""}
               </p>
               {editMode && (
                 <div className="flex gap-2 pt-2">
@@ -148,7 +164,8 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
                     size="sm"
                     variant="ghost"
                     className="text-red-600 font-display"
-                    aria-label={`Delete ${item.name}`}
+                    aria-label={`Delete ${item.name} from the database`}
+                    title="Removes the dish, order lines, and any orders that would be empty"
                     onClick={() => openDeleteDialog(item)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -186,12 +203,14 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
                     <DialogDescription asChild>
                       <div className="space-y-2 text-left text-base leading-relaxed text-charcoal/75">
                         <p>
-                          You are about to remove{" "}
+                          You will <strong>permanently</strong> remove{" "}
                           <span className="font-display font-semibold text-charcoal">
                             {deleteTarget?.name}
                           </span>{" "}
                           (RM {deleteTarget != null ? Number(deleteTarget.price).toFixed(2) : "—"}) from
-                          the menu. Continue to the final step to confirm.
+                          the database, including for customers who saved it in
+                          their cart (it disappears the next time they load the
+                          menu). Continue to review what happens to order history.
                         </p>
                       </div>
                     </DialogDescription>
@@ -227,9 +246,23 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
                         Final confirmation
                       </DialogTitle>
                       <DialogDescription className="text-sm leading-relaxed text-charcoal/75">
-                        This permanently removes the item from the live menu. Orders
-                        that already include it are unchanged. This action cannot
-                        be undone.
+                        <span className="block">
+                          The menu item row will be <strong>deleted from the
+                          database</strong>. Every order line for this dish is
+                          removed. If an order only contained this dish, that whole
+                          order is removed too.
+                        </span>
+                        {deleteTarget != null && deleteTarget.soldQuantity > 0 ? (
+                          <span className="mt-2 block text-charcoal/85">
+                            This item has{" "}
+                            <strong>
+                              {deleteTarget.soldQuantity} total portion
+                              {deleteTarget.soldQuantity === 1 ? "" : "s"} sold
+                            </strong>{" "}
+                            across past orders (lines will be stripped).
+                          </span>
+                        ) : null}
+                        <span className="mt-2 block">This cannot be undone.</span>
                       </DialogDescription>
                     </DialogHeader>
                   </div>
