@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
@@ -217,8 +217,29 @@ export class MenuService {
   }
 
   async remove(id: string) {
-    return this.prisma.menu.delete({
-      where: { id },
+    const orderLineCount = await this.prisma.orderItem.count({
+      where: { menuId: id },
     });
+    if (orderLineCount > 0) {
+      throw new ConflictException(
+        'This item appears on existing orders and cannot be removed. Turn off Available in Edit to hide it from the menu.',
+      );
+    }
+
+    try {
+      return await this.prisma.menu.delete({
+        where: { id },
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'This item is still linked to orders and cannot be removed. Hide it from the menu instead.',
+        );
+      }
+      throw e;
+    }
   }
 }

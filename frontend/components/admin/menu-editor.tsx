@@ -63,7 +63,9 @@ export function MenuEditor({ items, token, onUpdate }: MenuEditorProps) {
       setDeleteStep(1);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete");
+      const message =
+        err instanceof Error ? err.message : "Failed to delete item";
+      toast.error(message);
     } finally {
       setDeleteLoading(false);
     }
