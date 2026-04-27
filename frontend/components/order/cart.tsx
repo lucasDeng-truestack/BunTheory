@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCartStore, type CartItem } from "@/store/cart.store";
 import type { MenuItem } from "@/types/menu";
 import { getCartLineOptionSummary } from "@/lib/cart-line-summary";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { getMenu } from "@/services/menu.service";
 import { ShoppingCart, Minus, Plus, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,36 @@ export function Cart({
   const hydrated = useHydrated();
   const { items, updateQuantity, total, itemCount } = useCartStore();
   const isPanel = variant === "panel";
+
+  /** Load menu to resolve add-on labels when the parent does not pass `menuItems` (e.g. legacy). */
+  const [fetchedMenu, setFetchedMenu] = useState<MenuItem[] | undefined>(undefined);
+  const selectionsIdentity = useMemo(
+    () =>
+      items
+        .map((i) => `${i.lineKey}:${JSON.stringify(i.selections ?? [])}`)
+        .join("|"),
+    [items]
+  );
+  useEffect(() => {
+    if (menuItems !== undefined) {
+      setFetchedMenu(undefined);
+      return;
+    }
+    const cartItems = useCartStore.getState().items;
+    const needsLabels = cartItems.some((i) => (i.selections?.length ?? 0) > 0);
+    if (!needsLabels) {
+      setFetchedMenu(undefined);
+      return;
+    }
+    let cancelled = false;
+    void getMenu(false).then((m) => {
+      if (!cancelled) setFetchedMenu(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [menuItems, selectionsIdentity]);
+  const resolvedMenuItems = menuItems ?? fetchedMenu;
 
   if (!hydrated) {
     return (
@@ -91,7 +123,7 @@ export function Cart({
       )}
       <div className="space-y-3">
         {items.map((item) => {
-          const menu = menuItems?.find(
+          const menu = resolvedMenuItems?.find(
             (m) =>
               (item.menuId && m.id === item.menuId) ||
               normalizeMenuSlug(m.slug) === normalizeMenuSlug(item.slug)
@@ -107,7 +139,8 @@ export function Cart({
               <div className="min-w-0 flex-1 pr-1">
                 <p className="font-medium font-display leading-snug">{item.name}</p>
                 {optionSummary ? (
-                  <p className="mt-0.5 text-xs leading-snug text-charcoal/60">
+                  <p className="mt-0.5 text-xs leading-snug text-charcoal/70">
+                    <span className="font-medium text-charcoal/75">Add-ons: </span>
                     {optionSummary}
                   </p>
                 ) : null}

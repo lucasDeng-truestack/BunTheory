@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCanOrder } from "@/lib/menu-data";
+import { getCanOrder, getMenu } from "@/lib/menu-data";
 import { getPublicSettings } from "@/services/storefront-settings.service";
 import { OrderCounter } from "@/components/order/order-counter";
 import { Cart } from "@/components/order/cart";
@@ -13,13 +13,17 @@ import {
 import { cn } from "@/lib/utils";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { formatBatchLabel, checkoutClosedCopy } from "@/lib/batch-display";
+import type { MenuItem } from "@/types/menu";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrderPage() {
-  const [canOrder, storefrontSettings] = await Promise.all([
-    getCanOrder(),
+  const canOrder = await getCanOrder();
+  const [storefrontSettings, menuItems] = await Promise.all([
     getPublicSettings().catch(() => null),
+    canOrder.canOrder
+      ? getMenu(false)
+      : Promise.resolve([] as MenuItem[]),
   ]);
   const batchLabel = formatBatchLabel(canOrder);
   const closed = checkoutClosedCopy(canOrder);
@@ -81,7 +85,11 @@ export default async function OrderPage() {
                   Your order
                 </h2>
                 <div className="rounded-3xl border border-charcoal/10 bg-white/80 p-4 shadow-card sm:p-6">
-                  <Cart showCheckoutButton={false} heading="Items" />
+                  <Cart
+                    showCheckoutButton={false}
+                    heading="Items"
+                    menuItems={menuItems}
+                  />
                 </div>
               </section>
               <section aria-labelledby="checkout-details-heading">
