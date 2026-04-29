@@ -43,6 +43,23 @@ export function OrderReceipt({
           {order.type === "DELIVERY" ? "Delivery" : "Pickup"} ·{" "}
           {order.customerName}
         </p>
+        {order.type === "DELIVERY" &&
+        (order.deliveryAddress?.trim() || order.deliveryNotes?.trim()) ? (
+          <div className="mt-2 rounded-xl border border-charcoal/10 bg-cream/30 px-3 py-2 text-sm text-charcoal/80">
+            {order.deliveryAddress?.trim() ? (
+              <p className="leading-snug">
+                <span className="font-medium text-charcoal">Address: </span>
+                {order.deliveryAddress.trim()}
+              </p>
+            ) : null}
+            {order.deliveryNotes?.trim() ? (
+              <p className="mt-1 leading-snug">
+                <span className="font-medium text-charcoal">Notes: </span>
+                {order.deliveryNotes.trim()}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         <ul className="space-y-4">

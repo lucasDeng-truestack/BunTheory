@@ -8,6 +8,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -61,6 +62,8 @@ export function OrderForm({
     customerName: "",
     phone: "",
     type: "PICKUP" as "PICKUP" | "DELIVERY",
+    deliveryAddress: "",
+    deliveryNotes: "",
   });
 
   const minDel = minimumDeliveryAmount ?? null;
@@ -68,7 +71,12 @@ export function OrderForm({
 
   useEffect(() => {
     if (!deliveryAllowed && form.type === "DELIVERY") {
-      setForm((f) => ({ ...f, type: "PICKUP" }));
+      setForm((f) => ({
+        ...f,
+        type: "PICKUP",
+        deliveryAddress: "",
+        deliveryNotes: "",
+      }));
     }
   }, [deliveryAllowed, form.type]);
 
@@ -182,6 +190,14 @@ export function OrderForm({
         customerName: form.customerName.trim(),
         phone: form.phone,
         type: form.type,
+        ...(form.type === "DELIVERY"
+          ? {
+              deliveryAddress: form.deliveryAddress.trim(),
+              ...(form.deliveryNotes.trim()
+                ? { deliveryNotes: form.deliveryNotes.trim() }
+                : {}),
+            }
+          : {}),
         paymentChoice,
         items: buildPayloadItems(validItems),
         ...(paymentChoice === "PAY_NOW" && trimmedReceipt
@@ -232,6 +248,8 @@ export function OrderForm({
       form.customerName,
       form.phone,
       form.type,
+      form.deliveryAddress,
+      form.deliveryNotes,
       getValidItems,
       router,
     ]
@@ -269,6 +287,13 @@ export function OrderForm({
     if (form.type === "DELIVERY" && !deliveryAllowed) {
       setError("Cart total is below the minimum for delivery.");
       return false;
+    }
+    if (form.type === "DELIVERY") {
+      const addr = form.deliveryAddress.trim();
+      if (addr.length < 5) {
+        setError("Please enter your full delivery address (building, street, area).");
+        return false;
+      }
     }
     return true;
   };
@@ -452,11 +477,17 @@ export function OrderForm({
           <Select
             value={form.type}
             onValueChange={(v: "PICKUP" | "DELIVERY") =>
-              setForm((f) => ({ ...f, type: v }))
+              setForm((f) => ({
+                ...f,
+                type: v,
+                ...(v === "PICKUP"
+                  ? { deliveryAddress: "", deliveryNotes: "" }
+                  : {}),
+              }))
             }
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger id="order-type-select" aria-label="Order type">
+              <SelectValue placeholder="Choose pickup or delivery" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="PICKUP">Pickup</SelectItem>
@@ -471,6 +502,47 @@ export function OrderForm({
               or choose pickup.
             </p>
           )}
+          {form.type === "DELIVERY" && deliveryAllowed ? (
+            <div className="space-y-3 rounded-2xl border border-charcoal/10 bg-cream/25 p-4">
+              <div className="space-y-2">
+                <Label htmlFor="delivery-address" className="font-display">
+                  Delivery address
+                </Label>
+                <Textarea
+                  id="delivery-address"
+                  name="deliveryAddress"
+                  value={form.deliveryAddress}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, deliveryAddress: e.target.value }))
+                  }
+                  placeholder="Unit / building, street, area, postcode"
+                  autoComplete="street-address"
+                  className="min-h-[100px] text-base"
+                  required
+                  maxLength={500}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="delivery-notes" className="font-display">
+                  Delivery notes{" "}
+                  <span className="font-sans text-xs font-normal text-charcoal/50">
+                    (optional)
+                  </span>
+                </Label>
+                <Textarea
+                  id="delivery-notes"
+                  name="deliveryNotes"
+                  value={form.deliveryNotes}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, deliveryNotes: e.target.value }))
+                  }
+                  placeholder="Gate code, landmark, drop-off preference…"
+                  className="min-h-[72px] text-base"
+                  maxLength={500}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
         <Button
           type="submit"

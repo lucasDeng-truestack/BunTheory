@@ -51,6 +51,10 @@ model Order {
   customerName String
   phone        String
   type         OrderType
+  /// Full street address when type is DELIVERY.
+  deliveryAddress String?
+  /// Gate, unit, landmarks (optional) when type is DELIVERY.
+  deliveryNotes   String?
   status       OrderStatus  @default(RECEIVED)
   batchId      String?
   batch        OrderBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)

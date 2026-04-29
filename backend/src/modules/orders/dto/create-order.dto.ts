@@ -4,8 +4,10 @@ import {
   IsArray,
   ValidateNested,
   MinLength,
+  MaxLength,
   Min,
   IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -53,6 +55,19 @@ export class CreateOrderDto {
 
   @IsEnum(['PICKUP', 'DELIVERY'])
   type: 'PICKUP' | 'DELIVERY';
+
+  @ValidateIf((o: CreateOrderDto) => o.type === 'DELIVERY')
+  @IsString()
+  @MinLength(5, {
+    message: 'Please enter a full delivery address (at least 5 characters).',
+  })
+  @MaxLength(500)
+  deliveryAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  deliveryNotes?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

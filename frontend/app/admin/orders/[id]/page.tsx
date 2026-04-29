@@ -165,6 +165,30 @@ export default function AdminOrderDetailPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
+            {order.type === "DELIVERY" &&
+            (order.deliveryAddress?.trim() || order.deliveryNotes?.trim()) ? (
+              <div className="rounded-xl border border-charcoal/10 bg-white/80 p-3 text-sm">
+                <p className="font-display text-sm font-semibold text-charcoal">
+                  Delivery details
+                </p>
+                {order.deliveryAddress?.trim() ? (
+                  <p className="mt-2 whitespace-pre-wrap leading-relaxed text-charcoal/85">
+                    {order.deliveryAddress.trim()}
+                  </p>
+                ) : null}
+                {order.deliveryNotes?.trim() ? (
+                  <p className="mt-2 text-charcoal/70">
+                    <span className="font-medium text-charcoal/80">Notes: </span>
+                    {order.deliveryNotes.trim()}
+                  </p>
+                ) : null}
+              </div>
+            ) : order.type === "DELIVERY" ? (
+              <p className="text-sm text-amber-800">
+                No delivery address on file for this order (placed before address
+                capture or legacy checkout).
+              </p>
+            ) : null}
             <div>
               <p className="font-display text-sm font-semibold text-charcoal/80">
                 Payment

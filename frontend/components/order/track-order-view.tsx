@@ -203,6 +203,13 @@ export function TrackOrderView() {
                       {order.customerName} ·{" "}
                       <span className="capitalize">{order.type.toLowerCase()}</span>
                     </p>
+                    {order.type === "DELIVERY" &&
+                    order.deliveryAddress?.trim() ? (
+                      <p className="text-sm leading-snug text-charcoal/75">
+                        <span className="font-medium text-charcoal/80">Deliver to: </span>
+                        {order.deliveryAddress.trim()}
+                      </p>
+                    ) : null}
                     <div className="space-y-3 text-base text-charcoal">
                       {order.orderItems.map((oi) => (
                         <div key={oi.id}>

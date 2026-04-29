@@ -10,6 +10,9 @@ export interface CreateOrderPayload {
   customerName: string;
   phone: string;
   type: "PICKUP" | "DELIVERY";
+  /** Required when type is DELIVERY */
+  deliveryAddress?: string;
+  deliveryNotes?: string;
   paymentChoice?: "PAY_LATER" | "PAY_NOW";
   /** When PAY_NOW: proof URL from POST /uploads/payment-receipt; omit if sending proof via WhatsApp. */
   receiptUrl?: string;

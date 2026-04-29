@@ -19,6 +19,9 @@ export interface Order {
   customerName: string;
   phone: string;
   type: OrderType;
+  /** Present when type is DELIVERY */
+  deliveryAddress?: string | null;
+  deliveryNotes?: string | null;
   status: OrderStatus;
   createdAt: string;
   paymentChoice?: PaymentChoice;

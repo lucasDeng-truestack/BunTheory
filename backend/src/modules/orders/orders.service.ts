@@ -274,6 +274,19 @@ export class OrdersService {
       );
     }
 
+    if (dto.type === 'DELIVERY') {
+      const addr = dto.deliveryAddress?.trim();
+      if (!addr || addr.length < 5) {
+        throw new BadRequestException(
+          'Delivery address is required for delivery orders.',
+        );
+      }
+    } else if (dto.deliveryAddress?.trim() || dto.deliveryNotes?.trim()) {
+      throw new BadRequestException(
+        'Delivery address and delivery notes are only for delivery orders.',
+      );
+    }
+
     const paymentChoice: PaymentChoice =
       dto.paymentChoice === 'PAY_NOW' ? 'PAY_NOW' : 'PAY_LATER';
     let paymentReceiptUrl: string | null = null;
@@ -337,6 +350,14 @@ export class OrdersService {
             customerName: dto.customerName,
             phone: dto.phone,
             type: dto.type,
+            deliveryAddress:
+              dto.type === 'DELIVERY'
+                ? dto.deliveryAddress!.trim()
+                : null,
+            deliveryNotes:
+              dto.type === 'DELIVERY' && dto.deliveryNotes?.trim()
+                ? dto.deliveryNotes.trim()
+                : null,
             paymentChoice,
             paymentReceiptUrl,
             batch: { connect: { id: batch.id } },

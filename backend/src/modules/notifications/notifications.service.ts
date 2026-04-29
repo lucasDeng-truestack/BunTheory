@@ -117,12 +117,20 @@ export class NotificationsService {
     }
     const items = this.formatItems(order);
     const typeLabel = order.type === 'PICKUP' ? 'Pickup' : 'Delivery';
+    const deliveryBlock =
+      order.type === 'DELIVERY' && order.deliveryAddress?.trim()
+        ? `\nDeliver to:\n${order.deliveryAddress.trim()}${
+            order.deliveryNotes?.trim()
+              ? `\nNotes: ${order.deliveryNotes.trim()}`
+              : ''
+          }`
+        : '';
     const paymentHint =
       order.paymentChoice === 'PAY_NOW'
         ? order.paymentReceiptUrl?.trim()
           ? `\nPayment: Pay now — receipt uploaded.`
           : `\nPayment: Pay now — receipt not attached (customer may WhatsApp proof).`
-        : `\nPayment: Pay later / at pickup.`;
+        : `\nPayment: Pay later.`;
     const body = `${BRAND_WHATSAPP_HEADER}
 
 New Order!
@@ -130,7 +138,7 @@ New Order!
 Order: ${order.slugId}
 Customer: ${order.customerName}
 Phone: ${order.phone}
-Type: ${typeLabel}${paymentHint}
+Type: ${typeLabel}${deliveryBlock}${paymentHint}
 
 Items:
 ${items}`;
