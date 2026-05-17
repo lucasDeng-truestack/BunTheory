@@ -1,6 +1,11 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateAdminDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  displayName?: string;
+
   @IsEmail()
   email: string;
 

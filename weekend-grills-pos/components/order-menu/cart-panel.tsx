@@ -1,0 +1,310 @@
+'use client';
+
+import { Minus, Plus, ShoppingBag, Trash2, UtensilsCrossed } from 'lucide-react';
+import { CartItem } from '@/types/pos';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { useCartStore } from '@/store/cart.store';
+import { cn } from '@/lib/utils';
+import { segmentBundledCart } from '@/lib/cart-bundles';
+
+interface CartPanelProps {
+  onReview: () => void;
+}
+
+function CartLineRow({
+  item,
+  updateQuantity,
+  updateRemarks,
+  removeItem,
+  variant = 'default',
+}: {
+  item: CartItem;
+  updateQuantity: (id: string, qty: number) => void;
+  updateRemarks: (id: string, r: string) => void;
+  removeItem: (id: string) => void;
+  variant?: 'default' | 'nested';
+}) {
+  const meta =
+    item.mealLineKind === 'SIDE'
+      ? 'Side'
+      : item.mealLineKind === 'DRINK_ADDON'
+        ? 'Drink'
+        : item.mealLineKind === 'MAIN'
+          ? 'Main'
+          : null;
+
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-2 rounded-lg bg-muted/40 p-2.5',
+        variant === 'nested' && 'bg-background/75',
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <p className="truncate font-semibold text-xs leading-tight text-foreground">
+            {item.name}
+          </p>
+          {meta ? (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-display">
+              {meta}
+            </Badge>
+          ) : null}
+        </div>
+        <label className="mt-2 block">
+          <span className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">
+            Guest note (kitchen + receipt)
+          </span>
+          <Textarea
+            value={item.remarks}
+            onChange={(e) => updateRemarks(item.id, e.target.value)}
+            placeholder="Allergies, no ice…"
+            rows={2}
+            className={cn(
+              'mt-1 resize-none font-sans text-[11px] placeholder:text-muted-foreground/70',
+              variant === 'default' ? 'min-h-[2.75rem]' : 'min-h-11',
+            )}
+          />
+        </label>
+        <p className="mt-2 text-[11px] font-bold tabular-nums text-bbq-flame">
+          RM {(item.unitPrice * item.quantity).toFixed(2)}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="h-6 w-6"
+          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+        >
+          <Minus className="h-3 w-3" />
+        </Button>
+        <span className="w-5 text-center text-xs font-bold tabular-nums">
+          {item.quantity}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="h-6 w-6"
+          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => removeItem(item.id)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function CartPanel({ onReview }: CartPanelProps) {
+  const {
+    items,
+    updateQuantity,
+    updateRemarks,
+    removeItem,
+    removeMealBundle,
+    total,
+    itemCount,
+    serviceType,
+    setServiceType,
+    customerName,
+    setCustomerName,
+    paymentMethod,
+    setPaymentMethod,
+  } = useCartStore();
+
+  const count = itemCount();
+  const cartTotal = total();
+
+  const segments = segmentBundledCart(items);
+
+  return (
+    <div className="flex h-full flex-col border-l border-border bg-card">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between bg-card px-4 py-3">
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="h-4 w-4 text-bbq-flame" />
+          <h2 className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+            Current order
+          </h2>
+        </div>
+        {count > 0 && (
+          <Badge variant="default" className="bg-bbq-flame px-1.5 py-0.5 font-display text-[10px] text-white">
+            {count}
+          </Badge>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Guest name */}
+      <div className="px-4 pt-3">
+        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+          Guest name
+        </label>
+        <input
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          placeholder="e.g. Amir"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      {/* Service */}
+      <div className="px-4 pb-1 pt-2.5">
+        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+          Service
+        </label>
+        <div className="flex overflow-hidden rounded-lg border border-input bg-muted/30">
+          {(['EAT_HERE', 'TAKEAWAY'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setServiceType(t)}
+              className={cn(
+                'flex-1 py-2 font-display text-xs font-bold transition-all',
+                serviceType === t
+                  ? 'bg-bbq-flame text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t === 'EAT_HERE' ? 'Eat here' : 'Takeaway'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Payment */}
+      <div className="px-4 pb-1 pt-2.5">
+        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+          Payment type
+        </label>
+        <div className="flex overflow-hidden rounded-lg border border-input bg-muted/30">
+          {(['CASH', 'QR'] as const).map((method) => (
+            <button
+              key={method}
+              type="button"
+              onClick={() => setPaymentMethod(method)}
+              className={cn(
+                'flex-1 py-2 font-display text-xs font-bold transition-all',
+                paymentMethod === method
+                  ? 'bg-bbq-teal text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {method === 'CASH' ? 'Cash' : 'QR Pay'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col overflow-hidden px-4 py-2.5">
+        {items.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center text-muted-foreground">
+            <ShoppingBag className="mb-2 h-6 w-6 opacity-30" />
+            <p className="font-display text-xs">No items added</p>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            {segments.map((seg, idx) =>
+              seg.type === 'bundle' ? (
+                <div
+                  key={`b-${seg.bundleId}-${idx}`}
+                  className="rounded-xl border border-bbq-flame/25 bg-accent/25 p-2"
+                >
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <UtensilsCrossed className="h-4 w-4 shrink-0 text-bbq-flame" />
+                      <Badge className="shrink-0 bg-bbq-flame font-display text-[10px] text-white">
+                        Meal
+                      </Badge>
+                      <span className="truncate font-display text-xs font-black">
+                        {seg.title}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-destructive/40 font-display text-[10px] text-destructive hover:bg-destructive/10"
+                      onClick={() => removeMealBundle(seg.bundleId)}
+                    >
+                      Remove meal
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {seg.lines.map((item) => (
+                      <CartLineRow
+                        key={item.id}
+                        item={item}
+                        variant="nested"
+                        updateQuantity={updateQuantity}
+                        updateRemarks={updateRemarks}
+                        removeItem={removeItem}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <CartLineRow
+                  key={seg.item.id}
+                  item={seg.item}
+                  updateQuantity={updateQuantity}
+                  updateRemarks={updateRemarks}
+                  removeItem={removeItem}
+                />
+              ),
+            )}
+          </div>
+        )}
+      </div>
+
+      {items.length > 0 && (
+        <div className="space-y-2.5 border-t border-border bg-card px-4 py-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="font-display">Subtotal</span>
+            <span className="tabular-nums">RM {cartTotal.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-display text-sm font-bold">TOTAL</span>
+            <span className="font-display text-base font-black tabular-nums text-bbq-flame">
+              RM {cartTotal.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              onClick={() => useCartStore.getState().clearCart()}
+              className="flex-1 border-destructive/30 font-display text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              Clear
+            </Button>
+            <Button
+              onClick={onReview}
+              disabled={!customerName.trim()}
+              className="flex-1 bg-bbq-flame font-display text-xs text-white shadow-sm hover:bg-bbq-flame/90"
+            >
+              Send order
+            </Button>
+          </div>
+          {!customerName.trim() && (
+            <p className="text-center text-[10px] text-muted-foreground">
+              Enter guest name to continue
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

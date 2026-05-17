@@ -10,6 +10,7 @@ import { OrderLineItemExtras } from "@/components/order/order-line-item-extras";
 import { OrderStatusDisplay } from "@/components/order/order-status";
 import { trackOrdersByPhone } from "@/services/orders.service";
 import type { Order } from "@/types/order";
+import { paymentChoiceLabel } from "@/lib/order-payment-labels";
 import { Loader2, PackageSearch, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -202,6 +203,12 @@ export function TrackOrderView() {
                     <p className="text-base text-charcoal/70">
                       {order.customerName} ·{" "}
                       <span className="capitalize">{order.type.toLowerCase()}</span>
+                    </p>
+                    <p className="text-sm text-charcoal/65">
+                      <span className="font-display font-semibold text-charcoal/80">
+                        Payment type ·{" "}
+                      </span>
+                      {paymentChoiceLabel(order)}
                     </p>
                     {order.type === "DELIVERY" &&
                     order.deliveryAddress?.trim() ? (

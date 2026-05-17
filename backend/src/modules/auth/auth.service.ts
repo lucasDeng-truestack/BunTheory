@@ -1,16 +1,11 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
+import { UpdateAdminDisplayNameDto } from './dto/update-admin-display-name.dto';
 
 @Injectable()
 export class AuthService {
@@ -41,6 +36,7 @@ export class AuthService {
       admin: {
         id: admin.id,
         email: admin.email,
+        displayName: admin.displayName,
       },
     };
   }
@@ -51,6 +47,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        displayName: true,
         createdAt: true,
       },
     });
@@ -67,15 +64,49 @@ export class AuthService {
       throw new ConflictException('An admin with this email already exists');
     }
 
+    const dn = dto.displayName?.trim();
     const password = await bcrypt.hash(dto.password, 10);
     return this.prisma.admin.create({
       data: {
         email,
         password,
+        displayName: dn ? dn : null,
       },
       select: {
         id: true,
         email: true,
+        displayName: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateAdminDisplayName(
+    adminId: string,
+    dto: UpdateAdminDisplayNameDto,
+  ) {
+    if (dto.displayName === undefined) {
+      throw new BadRequestException('displayName is required');
+    }
+
+    const existing = await this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Admin not found');
+    }
+
+    const trimmed = dto.displayName.trim() || null;
+
+    return this.prisma.admin.update({
+      where: { id: adminId },
+      data: { displayName: trimmed },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
         createdAt: true,
       },
     });
@@ -102,6 +133,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        displayName: true,
         createdAt: true,
       },
     });

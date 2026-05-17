@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Tropical Vibe Barbeque theme ──────────────────────────────────────── */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Default Next.js stack (Geist + Geist Mono from layout.tsx) */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  /* Alias: headings/nav/CTAs use the same family as body (Geist) */
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* BBQ brand tokens */
+  --color-bbq-charcoal: #1c1917;
+  --color-bbq-flame: #ea580c;
+  --color-bbq-red: #dc2626;
+  --color-bbq-mango: #f59e0b;
+  --color-bbq-green: #16a34a;
+  --color-bbq-lime: #84cc16;
+  --color-bbq-cream: #fef3c7;
+  --color-bbq-teal: #2d6a6a;
+  --color-bbq-teal-light: #e8f0ef;
+  --color-bbq-coral: #e07c5a;
+}
+
+:root {
+  --background: #faf8f5;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --secondary: #f0ede8;
+  --secondary-foreground: #1c1917;
+  --muted: #f0ede8;
+  --muted-foreground: #78716c;
+  --accent: #fff7ed;
+  --accent-foreground: #ea580c;
+  --destructive: #dc2626;
+  --border: #e7e5e4;
+  --input: #d6d3d1;
+  --ring: #ea580c;
+  --radius: 0.625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #78716c;
+  --sidebar-primary: #ea580c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fff7ed;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #e7e5e4;
+  --sidebar-ring: #ea580c;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ─── Kitchen queue cards ────────────────────────────────────────────────── */
+.kitchen-card-placed {
+  border-left: 5px solid #ea580c;
+}
+.kitchen-card-preparing {
+  border-left: 5px solid #f59e0b;
+}
+.kitchen-card-ready {
+  border-left: 5px solid #16a34a;
+}
+
+/* ─── Status badge utilities ─────────────────────────────────────────────── */
+.status-placed    { @apply bg-orange-100 text-orange-700 border border-orange-200; }
+.status-preparing { @apply bg-yellow-100 text-yellow-700 border border-yellow-200; }
+.status-ready     { @apply bg-green-100  text-green-700  border border-green-200; }
+.status-completed { @apply bg-gray-100   text-gray-600   border border-gray-200; }
+.status-cancelled { @apply bg-red-100    text-red-700    border border-red-200; }

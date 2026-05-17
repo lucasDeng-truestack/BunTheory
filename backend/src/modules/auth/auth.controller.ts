@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
+import { UpdateAdminDisplayNameDto } from './dto/update-admin-display-name.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -32,6 +33,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async createAdmin(@Body() dto: CreateAdminDto) {
     return this.authService.createAdmin(dto);
+  }
+
+  @Patch('admins/:id/display-name')
+  @UseGuards(JwtAuthGuard)
+  async updateAdminDisplayName(
+    @Param('id') id: string,
+    @Body() dto: UpdateAdminDisplayNameDto,
+  ) {
+    return this.authService.updateAdminDisplayName(id, dto);
   }
 
   @Patch('admins/:id/password')

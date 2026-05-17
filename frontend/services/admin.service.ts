@@ -7,12 +7,13 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   accessToken: string;
-  admin: { id: string; email: string };
+  admin: { id: string; email: string; displayName?: string | null };
 }
 
 export interface AdminUser {
   id: string;
   email: string;
+  displayName: string | null;
   createdAt: string;
 }
 
@@ -28,7 +29,7 @@ export async function getAdminUsers(token: string): Promise<AdminUser[]> {
 }
 
 export async function createAdminUser(
-  payload: LoginPayload,
+  payload: LoginPayload & { displayName?: string },
   token: string
 ): Promise<AdminUser> {
   return api<AdminUser>("/auth/admins", {

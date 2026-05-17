@@ -4,8 +4,9 @@
   "private": true,
   "description": "The Bun Theory by Bakar & Roast",
   "scripts": {
-    "dev": "concurrently -n \"backend,frontend\" -c \"blue,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently -n \"backend,frontend,pos\" -c \"blue,magenta,green\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:pos\"",
     "dev:frontend": "cd frontend && npm run dev",
+    "dev:pos": "cd weekend-grills-pos && npm run dev",
     "dev:backend": "cd backend && npm run start:dev",
     "build": "npm run build:backend && npm run build:frontend",
     "build:frontend": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build",

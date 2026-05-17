@@ -9,6 +9,14 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { BatchesModule } from './modules/batches/batches.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
+// Weekend Grills POS
+import { PosMenuModule } from './modules/pos-menu/pos-menu.module';
+import { PosOrdersModule } from './modules/pos-orders/pos-orders.module';
+import { PosKitchenModule } from './modules/pos-kitchen/pos-kitchen.module';
+import { PosRealtimeModule } from './modules/pos-realtime/pos-realtime.module';
+import { PosInventoryModule } from './modules/pos-inventory/pos-inventory.module';
+import { PosReportsModule } from './modules/pos-reports/pos-reports.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -21,6 +29,13 @@ import { FeedbackModule } from './modules/feedback/feedback.module';
     SettingsModule,
     UploadsModule,
     FeedbackModule,
+    // Weekend Grills POS modules
+    PosRealtimeModule,
+    PosMenuModule,
+    PosOrdersModule,
+    PosKitchenModule,
+    PosInventoryModule,
+    PosReportsModule,
   ],
 })
 export class AppModule {}

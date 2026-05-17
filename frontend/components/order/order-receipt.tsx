@@ -1,6 +1,10 @@
 import type { Order } from "@/types/order";
 import { OrderLineItemExtras } from "@/components/order/order-line-item-extras";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  paymentChoiceLabel,
+  receiptStatusLabel,
+} from "@/lib/order-payment-labels";
 
 function lineName(oi: Order["orderItems"][number]): string {
   return oi.menu?.name ?? "Item";
@@ -60,6 +64,19 @@ export function OrderReceipt({
             ) : null}
           </div>
         ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-charcoal/70">
+          <span className="font-display font-semibold text-charcoal/85">
+            Payment type
+          </span>
+          <span className="rounded-full border border-charcoal/10 bg-white px-2.5 py-0.5 text-xs font-medium text-charcoal">
+            {paymentChoiceLabel(order)}
+          </span>
+          {order.paymentChoice === "PAY_NOW" ? (
+            <span className="text-xs text-charcoal/55">
+              Proof: {receiptStatusLabel(order)}
+            </span>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         <ul className="space-y-4">

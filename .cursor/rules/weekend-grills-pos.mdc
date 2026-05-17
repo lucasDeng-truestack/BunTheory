@@ -1,0 +1,101 @@
+---
+description: Weekend Grills POS — Tropical Vibe Barbeque theme, responsiveness, design references
+globs: weekend-grills-pos/**/*
+alwaysApply: false
+---
+
+# Weekend Grills POS (separate app)
+
+This project lives in `weekend-grills-pos/`. Do **not** treat it like the storefront in `frontend/`: it has its own layout, UX, theme, and API usage (POS queues, kiosk-style screens).
+
+Follow workspace rules in `.cursor/rules/project.mdc` for overall architecture; branding for **this POS** overrides color/personality sections below without changing Bun Theory storefront rules elsewhere.
+
+---
+
+## Design source folder
+
+**Treat `UI Design Weekend Grills/` (repo root) as the design system reference** for Weekend Grills: layouts, component shapes, spacing rhythm, typography scale, imagery, and any exported tokens or screenshots stored there.
+
+- Before introducing new layouts or primitives, align with artifacts in **`UI Design Weekend Grills/`** (figma exports, PNGs, component notes, README if present).
+- If design assets are missing there, reuse existing POS patterns (`components/kitchen`, `components/order-menu`, `components/layout`, `app/globals.css`) rather than cloning `frontend/` customer UI.
+
+Paths with spaces: refer to `[UI Design Weekend Grills](../UI Design Weekend Grills/)` from repo root.
+
+---
+
+## Theme — Tropical Vibe Barbeque
+
+Use a warm BBQ + tropical feel; keep **kitchen and payment screens highly legible**.
+
+**Palette personality (implement in Tailwind + CSS variables — see `weekend-grills-pos/app/globals.css`):**
+
+| Role | Guidance |
+|------|-----------|
+| Charcoal | Deep surfaces (`#1C1917` range), sidebar, customer-review backdrop |
+| Flame orange | Primary actions, accents, POS brand highlights |
+| Grilled red | Destructive / cancel — use sparingly |
+| Mango yellow | “Preparing” / attention states |
+| Palm green | Ready / completed / positive confirmation |
+| Lime | Secondary accent (badges, highlights) |
+| Cream / warm ivory | Soft page backdrop (readable in daylight bazaar use) |
+
+- Prefer **rounded-2xl** card treatment and **thick status borders / strips** on kitchen cards (already aligned with globals).
+- **High contrast** for item lines, totals, customer name, order number — avoid low-contrast grey-on-cream on queue screens.
+
+### Typography & brand continuity
+
+Follow `.cursor/rules/branding-typography-nav.mdc`:
+
+- **`Comic Sans MS`** with the repo’s configured display fallback stack for: headings, navbar/shell labels, button and CTA text, POS brand wordmark contexts.
+- **Body / queue item lines / line-item detail**: readable sans (`Geist` in root layout unless design folder specifies otherwise). Keep queues scannable — don’t over-compress font size on tablet.
+
+---
+
+## Responsive strategy (tablet-centric, inclusive)
+
+**Prioritize tablet (iPad Portrait ~768×1024) and mobile** as primary POS targets — bazaar clerks often use phones/tablets.**
+
+1. **Mobile first** Tailwind breakpoints: default layout for narrow widths; progressively enhance at `sm`, `md`, `lg`, `xl`.
+2. **Tablet Portrait**
+   - Order menu + cart should work as stacked or split-pane without horizontal scroll traps.
+   - Touch targets minimum **44×44 px** equivalent (`min-h-[44px]`, `min-w-[44px]`, paddings).
+   - Customer review (`/customer-review`): full-bleed, large type, thumb-friendly confirmation buttons (`Looks Good`, `Need Changes`).
+3. **Desktop / wall display (`lg`+)**
+   - Kitchen and queue views: responsive **multi-column grids** (cards don’t balloon to unreadable widths — cap card max width where needed with `max-w-*` inside columns).
+   - Preserve large tap/click zones (staff may use touchscreen monitors).
+   - Side navigation (`components/layout/pos-shell.tsx`) can stay compact rail; optionally document wider nav for desktop if design folder shows it — don’t shrink touch targets solely for aesthetics.
+
+Avoid layouts that rely on fragile fixed pixel widths unless specified in **`UI Design Weekend Grills/`**.
+
+---
+
+## Frontend stack rules (POS app only)
+
+Stack: Next.js App Router, TypeScript, TailwindCSS v4, shadcn/ui.
+
+1. Prefer **Server Components** where possible; use `"use client"` only where needed (stores, sockets, routing hooks, interactions).
+2. Build UI from **shadcn primitives** (`components/ui/*`); compose in `components/kitchen`, `components/order-menu`, `components/layout`, etc.
+3. **HTTP API**: use `weekend-grills-pos/lib/api.ts` and `weekend-grills-pos/services/*.service.ts` — no inline `fetch` scattered in route files.
+4. Images: **`next/image`** where appropriate; POS menu images remain optional.
+5. **Loading & errors**: skeletons/spinners and toast feedback for networked actions (kitchen advance, checkout, inventory).
+6. **Real-time**: use existing socket hook/service patterns (`hooks/usePosSocket.ts`) for queue updates — don’t add duplicate listeners per card without grouping.
+
+Folder layout for new work:
+
+```
+weekend-grills-pos/
+├── app/                 # routes only
+├── components/          # feature + layout compositions
+├── components/ui/       # shadcn only
+├── services/           # POS API wrappers
+├── store/               # cart + auth stores
+├── hooks/
+├── lib/                 # api client, helpers
+├── types/
+```
+
+---
+
+## Conflict resolution
+
+When **`UI Design Weekend Grills/`** conflicts with globals or boilerplate defaults, **prioritize the design folder** after confirming it is current; otherwise keep Tropical Barbeque tokens in `globals.css` and reconcile in a PR-sized change (don’t silently revert theme).
