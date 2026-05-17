@@ -47,7 +47,10 @@ async function bootstrap() {
         return;
       }
 
-      callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      // Do not pass an Error here: the cors package treats it as a middleware failure,
+      // which yields 500 on OPTIONS preflight without Access-Control-Allow-Origin.
+      console.warn(`CORS blocked for origin: ${origin}`);
+      callback(null, false);
     },
     credentials: true,
   });
