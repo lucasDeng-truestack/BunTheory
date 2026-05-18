@@ -435,6 +435,14 @@ export function MenuItemFormDialog({
             </DialogHeader>
           </div>
 
+          {categories.length === 0 ? (
+            <div className="mx-5 mt-3 rounded-xl border border-amber-500/45 bg-amber-500/12 px-3 py-2.5 text-[12px] text-amber-950 dark:text-amber-100/95">
+              <span className="font-display font-bold">No pillar categories yet.</span> Use{' '}
+              <span className="font-semibold">Add pillar</span> on the menu page, then reopen this
+              dialog.
+            </div>
+          ) : null}
+
           <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="grid gap-6">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-bbq-flame/6 md:p-5">

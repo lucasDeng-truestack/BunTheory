@@ -4,6 +4,11 @@ import { PosCategory, PosMenuItem, PosMenuSectionHeader } from '@/types/pos';
 export const posMenuService = {
   getCategories: () => api.get<PosCategory[]>('/pos/menu/categories'),
 
+  createCategory: (data: { name: string; sortOrder?: number }) =>
+    api.post<PosCategory>('/pos/menu/categories', data),
+
+  deleteCategory: (id: string) => api.delete<void>(`/pos/menu/categories/${id}`),
+
   getSectionHeaders: (categoryId: string) =>
     api.get<PosMenuSectionHeader[]>(
       `/pos/menu/categories/${categoryId}/section-headers`,

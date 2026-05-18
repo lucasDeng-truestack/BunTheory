@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MealBundleDialog } from '@/components/order-menu/meal-bundle-dialog';
+import { AddPillarCategoryDialog } from '@/components/order-menu/add-pillar-category-dialog';
 import { PosCategory, PosMenuItem } from '@/types/pos';
 import { groupItemsBySectionHeader } from '@/lib/pos-menu';
 import {
@@ -51,6 +52,7 @@ export default function OrderMenuPage() {
   const [itemToDelete, setItemToDelete] = useState<PosMenuItem | null>(null);
   const [mealBuilderOpen, setMealBuilderOpen] = useState(false);
   const [mealBuilderMain, setMealBuilderMain] = useState<PosMenuItem | null>(null);
+  const [pillarDialogOpen, setPillarDialogOpen] = useState(false);
 
   const sortedCats = [...categories].sort(
     (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
@@ -152,15 +154,27 @@ export default function OrderMenuPage() {
             </h1>
             <div className="flex flex-wrap items-center gap-2">
               {!menuEditMode ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="font-display"
-                  onClick={() => setMenuEditMode(true)}
-                >
-                  Edit
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="font-display"
+                    onClick={() => setMenuEditMode(true)}
+                  >
+                    Edit
+                  </Button>
+                  {sortedCats.length === 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90"
+                      onClick={() => setPillarDialogOpen(true)}
+                    >
+                      Add pillar
+                    </Button>
+                  ) : null}
+                </>
               ) : (
                 <>
                   <Button
@@ -174,9 +188,24 @@ export default function OrderMenuPage() {
                   </Button>
                   <Button
                     type="button"
+                    variant="outline"
                     size="sm"
-                    className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90"
+                    className="font-display border-bbq-flame/40 text-bbq-flame"
+                    onClick={() => setPillarDialogOpen(true)}
+                  >
+                    Add pillar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90 disabled:opacity-50"
                     onClick={openCreateForm}
+                    disabled={sortedCats.length === 0}
+                    title={
+                      sortedCats.length === 0
+                        ? 'Create a pillar category first'
+                        : undefined
+                    }
                   >
                     Add menu
                   </Button>
@@ -198,7 +227,11 @@ export default function OrderMenuPage() {
               <SelectTrigger className="h-12 w-full max-w-xl font-display text-base font-black">
                 <span className="truncate">
                   {sortedCats.find((c) => c.id === pillarId)?.name ??
-                    (sortedCats.length ? 'Choose pillar…' : 'Loading…')}
+                    (loading
+                      ? 'Loading…'
+                      : sortedCats.length === 0
+                        ? 'No pillars yet — tap Add pillar'
+                        : 'Choose pillar…')}
                 </span>
               </SelectTrigger>
               <SelectContent className="max-h-[min(70vh,var(--radix-select-content-available-height))]">
@@ -209,6 +242,14 @@ export default function OrderMenuPage() {
                 ))}
               </SelectContent>
             </Select>
+            {!loading && sortedCats.length === 0 ? (
+              <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-muted-foreground">
+                Create at least one pillar (e.g. <span className="font-semibold">Mains</span>,{' '}
+                <span className="font-semibold">Sides</span>,{' '}
+                <span className="font-semibold">Drinks</span>). Then add subsection headings and
+                items under <span className="font-display font-semibold">Edit → Add menu</span>.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-5">
@@ -265,6 +306,18 @@ export default function OrderMenuPage() {
           <CartPanel onReview={() => router.push('/customer-review')} />
         </div>
       </div>
+
+      <AddPillarCategoryDialog
+        open={pillarDialogOpen}
+        onOpenChange={setPillarDialogOpen}
+        categories={categories}
+        onCreated={async (cat) => {
+          const wasFirstPillar = categories.length === 0;
+          await loadMenu();
+          setPillarId(cat.id);
+          if (wasFirstPillar) setMenuEditMode(true);
+        }}
+      />
 
       <MenuItemFormDialog
         open={formOpen}
