@@ -492,7 +492,7 @@ export function MenuItemFormDialog({
                 onValueChange={(v) =>
                   setSectionHeaderId(v === '__none__' ? null : v)
                 }
-                disabled={!categoryId || headers.length === 0}
+                disabled={!categoryId}
               >
                 <SelectTrigger className="w-full font-display">
                   <span className="flex flex-1 text-left truncate">
