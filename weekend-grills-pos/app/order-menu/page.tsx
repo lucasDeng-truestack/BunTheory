@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PosShell } from '@/components/layout/pos-shell';
-import { MenuItemCard } from '@/components/order-menu/menu-item-card';
+import { MenuSectionDragGrid } from '@/components/order-menu/menu-section-drag-grid';
 import { CartPanel } from '@/components/order-menu/cart-panel';
 import { posMenuService } from '@/services/pos-menu.service';
 import { useCartStore } from '@/store/cart.store';
@@ -140,6 +140,44 @@ export default function OrderMenuPage() {
     setFormOpen(true);
   }
 
+  const handleSectionReorder = useCallback(
+    async (sectionIndex: number, reorderedSectionItems: PosMenuItem[]) => {
+      if (!pillarId) return;
+
+      const pillarItems = items.filter((i) => i.categoryId === pillarId);
+      const groups = groupItemsBySectionHeader(pillarItems);
+
+      if (
+        sectionIndex < 0 ||
+        sectionIndex >= groups.length ||
+        reorderedSectionItems.length === 0
+      ) {
+        return;
+      }
+
+      const newGroups = groups.map((g, gi) =>
+        gi === sectionIndex ? { ...g, items: reorderedSectionItems } : g,
+      );
+      const flat = newGroups.flatMap((g) => g.items);
+
+      try {
+        await Promise.all(
+          flat.map((item, idx) =>
+            posMenuService.updateItem(item.id, { sortOrder: idx }),
+          ),
+        );
+        toast.success('Menu order saved');
+        await loadMenu();
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : 'Could not save menu order',
+        );
+        await loadMenu();
+      }
+    },
+    [pillarId, items, loadMenu],
+  );
+
   const itemsInPillar = pillarId ? items.filter((i) => i.categoryId === pillarId) : [];
   const gridForPillar = groupItemsBySectionHeader(itemsInPillar);
   const isEmpty = pillarId !== null ? itemsInPillar.length === 0 : true;
@@ -271,31 +309,21 @@ export default function OrderMenuPage() {
               </div>
             ) : (
               <div className="space-y-8">
-                {gridForPillar.map(({ title, subtitle, items: groupItems }) => (
-                  <section key={`${pillarId}-${title}`}>
-                      <div className="mb-3">
-                        <h2 className="font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                          {title}
-                        </h2>
-                        {subtitle ? (
-                          <p className="mt-1 text-[11px] text-muted-foreground/90">
-                            {subtitle}
-                          </p>
-                        ) : null}
-                      </div>
-                    <div className="grid grid-cols-2 gap-4 min-[768px]:grid-cols-2 min-[768px]:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-                      {groupItems.map((item) => (
-                        <MenuItemCard
-                          key={item.id}
-                          item={item}
-                          editMode={menuEditMode}
-                          onAdd={handleTapItemForCart}
-                          onEdit={openEditForm}
-                          onDelete={setItemToDelete}
-                        />
-                      ))}
-                    </div>
-                  </section>
+                {gridForPillar.map(({ title, subtitle, items: groupItems }, gi) => (
+                  <MenuSectionDragGrid
+                    key={`${pillarId}-${title}-${gi}`}
+                    sectionIndex={gi}
+                    title={title}
+                    subtitle={subtitle}
+                    items={groupItems}
+                    menuEditMode={menuEditMode}
+                    onReorder={(si, ordered) => {
+                      void handleSectionReorder(si, ordered);
+                    }}
+                    onTapAdd={handleTapItemForCart}
+                    onEdit={openEditForm}
+                    onDelete={setItemToDelete}
+                  />
                 ))}
               </div>
             )}

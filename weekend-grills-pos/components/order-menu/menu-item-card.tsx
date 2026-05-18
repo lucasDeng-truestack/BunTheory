@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
+import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { PosMenuItem } from '@/types/pos';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,11 @@ interface MenuItemCardProps {
   onAdd: (item: PosMenuItem) => void;
   onEdit?: (item: PosMenuItem) => void;
   onDelete?: (item: PosMenuItem) => void;
+  /** When set with edit mode, renders a grip for @dnd-kit sortable item rows. */
+  dragGrip?: {
+    attributes: DraggableAttributes;
+    listeners: DraggableSyntheticListeners;
+  };
 }
 
 function kindLabel(kind: PosMenuItem['kind']) {
@@ -28,6 +34,7 @@ export function MenuItemCard({
   onAdd,
   onEdit,
   onDelete,
+  dragGrip,
 }: MenuItemCardProps) {
   const canInteract = item.available || !!editMode;
 
@@ -62,6 +69,20 @@ export function MenuItemCard({
         >
           {kindLabel(item.kind)}
         </Badge>
+      ) : null}
+
+      {editMode && dragGrip?.listeners ? (
+        <button
+          type="button"
+          {...dragGrip.attributes}
+          {...dragGrip.listeners}
+          title="Drag to reorder · release to save"
+          aria-label={`Drag to reorder ${item.name}`}
+          className="absolute left-2 top-[5.25rem] z-20 cursor-grab touch-none rounded-lg border border-border/80 bg-card/95 p-1 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground active:cursor-grabbing md:top-[4.75rem]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-5 w-5 md:h-4 md:w-4" aria-hidden />
+        </button>
       ) : null}
 
       {!item.available ? (

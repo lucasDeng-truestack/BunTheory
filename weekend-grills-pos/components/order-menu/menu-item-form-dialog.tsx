@@ -167,7 +167,6 @@ export function MenuItemFormDialog({
   const [price, setPrice] = useState('');
   const [image, setImage] = useState('');
   const [available, setAvailable] = useState(true);
-  const [sortOrder, setSortOrder] = useState('0');
   const [categoryId, setCategoryId] = useState('');
   const [sectionHeaderId, setSectionHeaderId] = useState<string | null>(null);
   const [headers, setHeaders] = useState<
@@ -208,7 +207,6 @@ export function MenuItemFormDialog({
       setPrice(String(initialItem.price));
       setImage(initialItem.image ?? '');
       setAvailable(initialItem.available);
-      setSortOrder(String(initialItem.sortOrder));
       setCategoryId(initialItem.categoryId ?? sortedCats[0]?.id ?? '');
       setSectionHeaderId(initialItem.sectionHeaderId ?? null);
     } else {
@@ -217,7 +215,6 @@ export function MenuItemFormDialog({
       setPrice('');
       setImage('');
       setAvailable(true);
-      setSortOrder('0');
       const def =
         defaultCategoryId && sortedCats.some((c) => c.id === defaultCategoryId)
           ? defaultCategoryId
@@ -389,7 +386,6 @@ export function MenuItemFormDialog({
         available,
         categoryId,
         kind,
-        sortOrder: parseInt(sortOrder, 10) || 0,
         sectionHeaderId,
       };
 
@@ -686,6 +682,8 @@ export function MenuItemFormDialog({
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Matches the storefront card: title, optional line, RM price below the photo.
+                    Sort order uses drag-and-drop under <strong className="font-semibold text-foreground">Menu → Edit</strong>{' '}
+                    (grip icon on cards).
                   </p>
                 </div>
 
@@ -717,32 +715,19 @@ export function MenuItemFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="mi-price" className="font-display font-semibold">
-                  Price (RM)
-                </Label>
-                <Input
-                  id="mi-price"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="mi-sort" className="font-display font-semibold">
-                  Sort order
-                </Label>
-                <Input
-                  id="mi-sort"
-                  type="number"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="mi-price" className="font-display font-semibold">
+                Price (RM)
+              </Label>
+              <Input
+                id="mi-price"
+                type="number"
+                min={0}
+                step={0.01}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+              />
             </div>
 
             <div className="grid gap-2">
