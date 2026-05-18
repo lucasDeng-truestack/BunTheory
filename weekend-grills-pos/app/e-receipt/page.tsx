@@ -2,9 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Download } from 'lucide-react';
 import { fetchPublicReceipt } from '@/services/pos-public-receipt.service';
 import type { PublicPosReceipt } from '@/types/pos';
+import { Button } from '@/components/ui/button';
 
 function formatMoney(n: number) {
   return `RM ${n.toFixed(2)}`;
@@ -34,9 +35,14 @@ function EReceiptInner() {
       });
   }, [token]);
 
+  const handleSavePdf = () => {
+    if (typeof window === 'undefined' || !data) return;
+    window.print();
+  };
+
   if (!token?.trim()) {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center">
+      <div className="e-receipt-shell mx-auto max-w-md px-4 py-12 text-center">
         <AlertCircle className="mx-auto h-14 w-14 text-muted-foreground" aria-hidden />
         <p className="font-display mt-4 text-lg font-bold text-foreground">
           Missing receipt token
@@ -47,7 +53,7 @@ function EReceiptInner() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center space-y-4">
+      <div className="e-receipt-shell mx-auto max-w-md px-4 py-12 text-center space-y-4">
         <AlertCircle className="mx-auto h-14 w-14 text-destructive" aria-hidden />
         <p className="font-display text-lg font-bold text-foreground">{error}</p>
       </div>
@@ -56,15 +62,37 @@ function EReceiptInner() {
 
   if (!data) {
     return (
-      <div className="font-display px-4 py-16 text-center text-muted-foreground">
+      <div className="font-display e-receipt-shell px-4 py-16 text-center text-muted-foreground">
         Loading receipt…
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8 pb-16">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div className="e-receipt-shell mx-auto max-w-md px-4 py-6 pb-20">
+      <div className="e-receipt-toolbar sticky top-0 z-10 -mx-4 mb-6 border-b border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+        <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <p className="font-display text-center text-sm font-bold text-muted-foreground sm:text-left">
+            Your e-receipt
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            className="font-display w-full shrink-0 bg-bbq-flame font-black text-white hover:bg-bbq-flame/90 sm:w-auto sm:min-w-[200px]"
+            onClick={handleSavePdf}
+            aria-label="Download or save receipt as PDF using your browser print dialog"
+          >
+            <Download className="mr-2 h-4 w-4" aria-hidden />
+            Download receipt (PDF)
+          </Button>
+        </div>
+        <p className="mx-auto mt-2 max-w-md text-center text-[11px] leading-snug text-muted-foreground sm:text-left">
+          Opens print — choose <span className="font-semibold">Save as PDF</span> or your printer.
+          Keeps this layout and BBQ colors.
+        </p>
+      </div>
+
+      <article className="e-receipt-card rounded-2xl border border-border bg-card p-6 shadow-sm">
         <p className="font-display text-center text-xs font-bold uppercase tracking-[0.2em] text-bbq-flame">
           Weekend Grills
         </p>
@@ -83,7 +111,7 @@ function EReceiptInner() {
           {new Date(data.createdAt).toLocaleString()}
         </p>
 
-        <hr className="my-6 border-border" />
+        <hr className="my-6 border-border print:border-stone-300" />
 
         <ul className="space-y-4 text-sm">
           {data.items.map((item, idx) => (
@@ -99,20 +127,18 @@ function EReceiptInner() {
                   </p>
                 ) : null}
               </div>
-              <span className="shrink-0 font-semibold tabular-nums">
-                {formatMoney(item.lineTotal)}
-              </span>
+              <span className="shrink-0 font-semibold tabular-nums">{formatMoney(item.lineTotal)}</span>
             </li>
           ))}
         </ul>
 
         {data.notes?.trim() ? (
-          <p className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          <p className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground print:bg-stone-100">
             {data.notes.trim()}
           </p>
         ) : null}
 
-        <hr className="my-6 border-border" />
+        <hr className="my-6 border-border print:border-stone-300" />
 
         <div className="space-y-2 font-display tabular-nums">
           <div className="flex justify-between text-sm">
@@ -140,14 +166,17 @@ function EReceiptInner() {
             Payment: {data.paymentStatus}
           </p>
         )}
-      </div>
+        <p className="font-display mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Thank you — see you soon
+        </p>
+      </article>
     </div>
   );
 }
 
 function EReceiptSuspenseFallback() {
   return (
-    <div className="font-display min-h-[40vh] flex items-center justify-center text-muted-foreground">
+    <div className="font-display e-receipt-shell min-h-[40vh] flex items-center justify-center text-muted-foreground">
       Opening receipt…
     </div>
   );
@@ -155,12 +184,7 @@ function EReceiptSuspenseFallback() {
 
 export default function EReceiptPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-3">
-        <p className="font-display text-center text-sm font-bold text-muted-foreground">
-          Your e-receipt
-        </p>
-      </div>
+    <div className="e-receipt-shell min-h-screen bg-background">
       <Suspense fallback={<EReceiptSuspenseFallback />}>
         <EReceiptInner />
       </Suspense>

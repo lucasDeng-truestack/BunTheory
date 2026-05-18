@@ -974,9 +974,9 @@ export default function PaymentPage() {
                 <Button
                   type="button"
                   className="flex-1 font-display font-black py-6 bg-bbq-flame hover:bg-bbq-flame/90 text-white"
-                  onClick={() => router.push('/kitchen-queue')}
+                  onClick={() => router.push('/order-menu')}
                 >
-                  Continue to kitchen
+                  Back to menu
                 </Button>
               </div>
             </CardContent>

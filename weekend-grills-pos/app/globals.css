@@ -113,3 +113,36 @@
 .status-ready     { @apply bg-green-100  text-green-700  border border-green-200; }
 .status-completed { @apply bg-gray-100   text-gray-600   border border-gray-200; }
 .status-cancelled { @apply bg-red-100    text-red-700    border border-red-200; }
+
+/* ─── Guest e-receipt (QR) — print / Save as PDF ───────────────────────── */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  body {
+    background: #faf8f5 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  .e-receipt-toolbar {
+    display: none !important;
+  }
+  .e-receipt-shell {
+    min-height: auto !important;
+    background: transparent !important;
+    padding-bottom: 0 !important;
+  }
+  .e-receipt-card {
+    box-shadow: none !important;
+    border: 2px solid #e7e5e4 !important;
+    background: #ffffff !important;
+    page-break-inside: avoid;
+  }
+  .e-receipt-card .font-display {
+    font-family:
+      "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt", cursive !important;
+  }
+}
