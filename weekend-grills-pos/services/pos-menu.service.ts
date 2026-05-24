@@ -1,43 +1,38 @@
 import { api } from '@/lib/api';
-import { PosCategory, PosMenuItem, PosMenuSectionHeader } from '@/types/pos';
+import { PosMenuSection, PosProduct } from '@/types/pos';
 
 export const posMenuService = {
-  getCategories: () => api.get<PosCategory[]>('/pos/menu/categories'),
-
-  createCategory: (data: { name: string; sortOrder?: number }) =>
-    api.post<PosCategory>('/pos/menu/categories', data),
-
-  deleteCategory: (id: string) => api.delete<void>(`/pos/menu/categories/${id}`),
-
-  getSectionHeaders: (categoryId: string) =>
-    api.get<PosMenuSectionHeader[]>(
-      `/pos/menu/categories/${categoryId}/section-headers`,
+  getMenu: (availableOnly = true) =>
+    api.get<PosMenuSection[]>(
+      `/pos/menu${availableOnly ? '?available=true' : ''}`,
     ),
 
-  createSectionHeader: (data: {
-    categoryId: string;
-    title: string;
-    subtitle?: string | null;
-    sortOrder?: number;
-  }) => api.post<PosMenuSectionHeader>('/pos/menu/section-headers', data),
+  createSection: (data: { name: string; sortOrder?: number }) =>
+    api.post<{ id: string; name: string; sortOrder: number }>(
+      '/pos/menu/sections',
+      data,
+    ),
 
-  updateSectionHeader: (
+  updateSection: (
     id: string,
-    data: { title?: string; subtitle?: string | null; sortOrder?: number },
-  ) => api.patch<PosMenuSectionHeader>(`/pos/menu/section-headers/${id}`, data),
+    data: { name?: string; sortOrder?: number },
+  ) => api.patch(`/pos/menu/sections/${id}`, data),
 
-  deleteSectionHeader: (id: string) =>
-    api.delete<void>(`/pos/menu/section-headers/${id}`),
+  deleteSection: (id: string) => api.delete<void>(`/pos/menu/sections/${id}`),
 
-  getItems: (availableOnly = true) =>
-    api.get<PosMenuItem[]>(`/pos/menu/items${availableOnly ? '?available=true' : ''}`),
+  getProduct: (id: string) => api.get<PosProduct>(`/pos/menu/products/${id}`),
 
-  getItem: (id: string) => api.get<PosMenuItem>(`/pos/menu/items/${id}`),
+  createProduct: (data: unknown) =>
+    api.post<PosProduct>('/pos/menu/products', data),
 
-  createItem: (data: unknown) => api.post<PosMenuItem>('/pos/menu/items', data),
+  updateProduct: (id: string, data: unknown) =>
+    api.patch<PosProduct>(`/pos/menu/products/${id}`, data),
 
-  updateItem: (id: string, data: unknown) =>
-    api.patch<PosMenuItem>(`/pos/menu/items/${id}`, data),
+  deleteProduct: (id: string) => api.delete<void>(`/pos/menu/products/${id}`),
 
-  deleteItem: (id: string) => api.delete<void>(`/pos/menu/items/${id}`),
+  reorderProducts: (sectionId: string, productIds: string[]) =>
+    api.patch<PosMenuSection[]>('/pos/menu/products/reorder', {
+      sectionId,
+      productIds,
+    }),
 };

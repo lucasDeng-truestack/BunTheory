@@ -92,7 +92,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent className="p-0!">
                       {summary.topItems.map((item, i) => (
-                        <div key={item.menuItemId}>
+                        <div key={item.productId ?? item.name}>
                           <div className="flex items-center gap-3 px-4 py-2.5">
                             <span className="w-5 text-center font-display font-bold text-muted-foreground/50 tabular-nums">
                               {i + 1}

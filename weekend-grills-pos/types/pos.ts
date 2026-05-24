@@ -1,49 +1,69 @@
-export type PosMenuItemKind = 'MAIN_MEAL' | 'SIDE' | 'DRINK_ADDON';
+export type PosProductType = 'COMBO' | 'VARIANT' | 'SIMPLE';
+export type PosOrderLineType = 'COMBO' | 'VARIANT' | 'SIMPLE';
 
 export type PosServiceType = 'EAT_HERE' | 'TAKEAWAY';
 export type PosPaymentMethod = 'CASH' | 'QR';
 export type PosPaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'VOIDED';
 export type PosOrderStatus = 'PLACED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
-export type InventoryUnit = 'GRAM' | 'KG' | 'ML' | 'LITER' | 'PIECE' | 'PACK';
-export type InventoryMovementType = 'PURCHASE' | 'SALE_USAGE' | 'WASTE' | 'ADJUSTMENT';
 
-export interface PosCategory {
+export interface PosComboSlotOption {
+  id: string;
+  label: string;
+  priceDelta: number;
+  sortOrder: number;
+}
+
+export interface PosComboSlot {
+  id: string;
+  label: string;
+  sortOrder: number;
+  required: boolean;
+  options: PosComboSlotOption[];
+}
+
+export interface PosComboConfig {
+  id: string;
+  includesText: string | null;
+  slots: PosComboSlot[];
+}
+
+export interface PosProductVariant {
   id: string;
   name: string;
+  price: number;
   sortOrder: number;
 }
 
-/** Staff subsection under Mains / Sides / Drinks (menu grid headings). */
-export interface PosMenuSectionHeader {
+export interface PosProduct {
   id: string;
-  categoryId: string;
-  title: string;
-  subtitle: string | null;
-  sortOrder: number;
-}
-
-export interface PosMenuItem {
-  id: string;
-  categoryId: string | null;
-  category: { id: string; name: string } | null;
-  kind: PosMenuItemKind;
-  sectionHeaderId: string | null;
-  sectionHeader: PosMenuSectionHeader | null;
+  sectionId: string;
+  type: PosProductType;
   name: string;
   description: string | null;
-  price: number;
   image: string | null;
+  basePrice: number;
   available: boolean;
   sortOrder: number;
   createdAt: string;
+  updatedAt: string;
+  combo: PosComboConfig | null;
+  variants: PosProductVariant[];
+}
+
+export interface PosMenuSection {
+  id: string;
+  name: string;
+  sortOrder: number;
+  products: PosProduct[];
 }
 
 export interface PosOrderItem {
   id: string;
-  menuItemId: string;
-  menuItemName: string;
-  menuItemDescription: string | null;
-  menuItemImage: string | null;
+  lineType: PosOrderLineType;
+  productId: string | null;
+  variantId: string | null;
+  displayName: string;
+  choicesSummary: string | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -69,14 +89,11 @@ export interface PosOrder {
   completedAt: string | null;
   createdAt: string;
   items: PosOrderItem[];
-  /** Returned when PATCH …/payment marks PAID — HMAC e-receipt QR token only. */
   receiptToken?: string;
 }
 
-/** Response from POST /pos/orders — includes signed token for optional e-receipt QR. */
 export type PosOrderCreated = PosOrder & { receiptToken: string };
 
-/** Public guest receipt from GET /pos/public/receipt?token=… (no auth). */
 export interface PublicPosReceipt {
   orderNumber: string;
   customerName: string;
@@ -91,6 +108,7 @@ export interface PublicPosReceipt {
   paidAt: string | null;
   items: Array<{
     name: string;
+    choicesSummary: string | null;
     quantity: number;
     unitPrice: number;
     lineTotal: number;
@@ -98,52 +116,32 @@ export interface PublicPosReceipt {
   }>;
 }
 
-// ─── Cart ──────────────────────────────────────────────────────────────────
+export interface ComboSelection {
+  slotId: string;
+  optionId: string;
+}
 
 export interface CartItem {
   id: string;
-  menuItemId: string;
-  name: string;
-  description: string | null;
-  image: string | null;
+  lineType: PosOrderLineType;
+  productId: string;
+  variantId?: string;
+  displayName: string;
+  choicesSummary?: string;
+  comboSelections?: ComboSelection[];
   quantity: number;
   unitPrice: number;
   remarks: string;
-  /** When set, grouped with other lines for the same meal combo in the POS cart UI. */
-  mealBundleId?: string;
-  /** Role within the meal; undefined for standalone lines. */
-  mealLineKind?: 'MAIN' | 'SIDE' | 'DRINK_ADDON';
 }
 
-// ─── Inventory ─────────────────────────────────────────────────────────────
-
-export interface InventoryItem {
+export interface PosPurchase {
   id: string;
-  name: string;
-  unit: InventoryUnit;
-  lowStockThreshold: number | null;
-  currentStock: number;
-  totalPurchased: number;
-  totalCostPaid: number;
-  avgUnitCost: number;
-  isLowStock: boolean;
-  createdAt: string;
-}
-
-export interface InventoryPurchase {
-  id: string;
-  itemId: string;
-  itemName: string;
-  unit: InventoryUnit;
-  quantity: number;
-  totalCost: number;
-  unitCostAvg: number;
-  supplierName: string | null;
-  notes: string | null;
+  remark: string;
+  amount: number;
   purchasedAt: string;
+  createdAt: string;
+  createdBy: { id: string; email: string; displayName: string | null } | null;
 }
-
-// ─── Reports ───────────────────────────────────────────────────────────────
 
 export interface DailySummary {
   date: string;
@@ -153,7 +151,7 @@ export interface DailySummary {
   qrRevenue: number;
   eatHereOrders: number;
   takeawayOrders: number;
-  topItems: Array<{ menuItemId: string; name: string; quantitySold: number }>;
+  topItems: Array<{ productId: string | null; name: string; quantitySold: number }>;
 }
 
 export interface DashboardSummary {
@@ -164,7 +162,7 @@ export interface DashboardSummary {
     cashRevenue: number;
     qrRevenue: number;
   };
-  topItems: Array<{ menuItemId: string; name: string; quantitySold: number }>;
+  topItems: Array<{ productId: string | null; name: string; quantitySold: number }>;
   recentOrders: Array<{
     id: string;
     orderNumber: string;

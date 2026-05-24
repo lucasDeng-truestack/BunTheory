@@ -9,11 +9,26 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PosPaymentMethod, PosServiceType } from '@prisma/client';
+import { PosOrderLineType, PosPaymentMethod, PosServiceType } from '@prisma/client';
+
+export class ComboSelectionDto {
+  @IsString()
+  slotId: string;
+
+  @IsString()
+  optionId: string;
+}
 
 export class PosOrderItemDto {
+  @IsEnum(PosOrderLineType)
+  lineType: PosOrderLineType;
+
   @IsString()
-  menuItemId: string;
+  productId: string;
+
+  @IsOptional()
+  @IsString()
+  variantId?: string;
 
   @IsInt()
   @Min(1)
@@ -22,6 +37,12 @@ export class PosOrderItemDto {
   @IsOptional()
   @IsString()
   remarks?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComboSelectionDto)
+  comboSelections?: ComboSelectionDto[];
 }
 
 export class CreatePosOrderDto {

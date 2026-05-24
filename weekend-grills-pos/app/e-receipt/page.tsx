@@ -118,6 +118,9 @@ function EReceiptInner() {
             <li key={`${item.name}-${idx}`} className="flex gap-3 justify-between">
               <div className="min-w-0 flex-1">
                 <p className="font-semibold leading-snug text-foreground">{item.name}</p>
+                {item.choicesSummary ? (
+                  <p className="text-xs text-muted-foreground">{item.choicesSummary}</p>
+                ) : null}
                 <p className="text-muted-foreground tabular-nums">
                   RM {item.unitPrice.toFixed(2)} × {item.quantity}
                 </p>

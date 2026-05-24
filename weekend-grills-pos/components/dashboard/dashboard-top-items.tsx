@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Flame } from 'lucide-react';
 
 type Props = {
-  items: Array<{ menuItemId: string; name: string; quantitySold: number }>;
+  items: Array<{ productId: string | null; name: string; quantitySold: number }>;
 };
 
 export function DashboardTopItems({ items }: Props) {
@@ -26,7 +26,7 @@ export function DashboardTopItems({ items }: Props) {
         ) : (
           <ul>
             {items.map((item, idx) => (
-              <li key={item.menuItemId}>
+              <li key={item.productId ?? item.name}>
                 <div className="flex items-center gap-3 px-4 py-2.5">
                   <span className="font-display font-black text-lg text-muted-foreground/40 w-6 text-center tabular-nums">
                     {idx + 1}

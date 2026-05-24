@@ -5,9 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PosShell } from '@/components/layout/pos-shell';
-import { MenuSectionDragGrid } from '@/components/order-menu/menu-section-drag-grid';
+import { ProductDragGrid } from '@/components/order-menu/product-drag-grid';
 import { CartPanel } from '@/components/order-menu/cart-panel';
+import { ComboCardDialog } from '@/components/order-menu/combo-card-dialog';
+import { VariantPickerDialog } from '@/components/order-menu/variant-picker-dialog';
 import { posMenuService } from '@/services/pos-menu.service';
+import { posSettingsService } from '@/services/settings.service';
 import { useCartStore } from '@/store/cart.store';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,59 +23,52 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MealBundleDialog } from '@/components/order-menu/meal-bundle-dialog';
-import { AddPillarCategoryDialog } from '@/components/order-menu/add-pillar-category-dialog';
-import { PosCategory, PosMenuItem } from '@/types/pos';
-import { groupItemsBySectionHeader } from '@/lib/pos-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { PosMenuSection, PosProduct } from '@/types/pos';
+import { cn } from '@/lib/utils';
 
-const MenuItemFormDialog = dynamic(
+const ProductFormDialog = dynamic(
   () =>
-    import('@/components/order-menu/menu-item-form-dialog').then((mod) => ({
-      default: mod.MenuItemFormDialog,
+    import('@/components/order-menu/product-form-dialog').then((mod) => ({
+      default: mod.ProductFormDialog,
     })),
 );
 
 export default function OrderMenuPage() {
   const router = useRouter();
-  const addItem = useCartStore((s) => s.addItem);
-  const addMealBundle = useCartStore((s) => s.addMealBundle);
-  const [categories, setCategories] = useState<PosCategory[]>([]);
-  const [items, setItems] = useState<PosMenuItem[]>([]);
-  const [pillarId, setPillarId] = useState<string | null>(null);
+  const addLine = useCartStore((s) => s.addLine);
+  const [sections, setSections] = useState<PosMenuSection[]>([]);
+  const [sectionId, setSectionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuEditMode, setMenuEditMode] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [formInitial, setFormInitial] = useState<PosMenuItem | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<PosMenuItem | null>(null);
-  const [mealBuilderOpen, setMealBuilderOpen] = useState(false);
-  const [mealBuilderMain, setMealBuilderMain] = useState<PosMenuItem | null>(null);
-  const [pillarDialogOpen, setPillarDialogOpen] = useState(false);
+  const [formInitial, setFormInitial] = useState<PosProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<PosProduct | null>(null);
+  const [comboProduct, setComboProduct] = useState<PosProduct | null>(null);
+  const [variantProduct, setVariantProduct] = useState<PosProduct | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
-  const sortedCats = [...categories].sort(
-    (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+  const sortedSections = useMemo(
+    () =>
+      [...sections].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+      ),
+    [sections],
   );
+
+  const activeSection = sortedSections.find((s) => s.id === sectionId) ?? sortedSections[0];
+  const products = activeSection?.products ?? [];
 
   const loadMenu = useCallback(async () => {
     try {
-      const [cats, its] = await Promise.all([
-        posMenuService.getCategories(),
-        posMenuService.getItems(false),
+      const [menu, settings] = await Promise.all([
+        posMenuService.getMenu(false),
+        posSettingsService.getSettings().catch(() => null),
       ]);
-      setCategories(cats);
-      setItems(its);
-      setPillarId((prev) => {
-        if (prev && cats.some((c) => c.id === prev)) return prev;
-        const first =
-          [...cats].sort(
-            (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-          )[0]?.id ?? null;
-        return first;
+      setSections(menu);
+      setCompanyName(settings?.companyName ?? null);
+      setSectionId((prev) => {
+        if (prev && menu.some((s) => s.id === prev)) return prev;
+        return menu[0]?.id ?? null;
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to load menu');
@@ -80,54 +76,49 @@ export default function OrderMenuPage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     loadMenu().finally(() => setLoading(false));
   }, [loadMenu]);
 
-  const bundleSides = useMemo(
-    () => items.filter((i) => i.kind === 'SIDE' && i.available),
-    [items],
-  );
-  const bundleDrinks = useMemo(
-    () => items.filter((i) => i.kind === 'DRINK_ADDON' && i.available),
-    [items],
-  );
-
-  function handleAddItem(item: PosMenuItem) {
-    addItem({
-      menuItemId: item.id,
-      name: item.name,
-      description: item.description,
-      image: item.image,
-      quantity: 1,
-      unitPrice: item.price,
-      remarks: '',
-    });
-    toast.success(`${item.name} added`);
-  }
-
-  function handleTapItemForCart(item: PosMenuItem) {
+  function handleTapProduct(product: PosProduct) {
     if (menuEditMode) return;
-    if (!item.available) return;
-    if (item.kind === 'MAIN_MEAL') {
-      setMealBuilderMain(item);
-      setMealBuilderOpen(true);
+    if (!product.available) {
+      toast.error('This item is unavailable');
       return;
     }
-    handleAddItem(item);
+    if (product.type === 'COMBO') {
+      setComboProduct(product);
+      return;
+    }
+    if (product.type === 'VARIANT') {
+      setVariantProduct(product);
+      return;
+    }
+    addLine({
+      lineType: 'SIMPLE',
+      productId: product.id,
+      displayName: product.name,
+      quantity: 1,
+      unitPrice: product.basePrice,
+      remarks: '',
+    });
+    toast.success(`${product.name} added`);
   }
 
-  async function handleConfirmDelete() {
-    if (!itemToDelete) return;
-    try {
-      await posMenuService.deleteItem(itemToDelete.id);
-      toast.success('Menu item deleted');
-      await loadMenu();
-    } catch {
-      toast.error('Could not delete item');
-    } finally {
-      setItemToDelete(null);
-    }
+  function handleReorder(reordered: PosProduct[]) {
+    if (!activeSection) return;
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === activeSection.id ? { ...s, products: reordered } : s,
+      ),
+    );
+    void posMenuService
+      .reorderProducts(
+        activeSection.id,
+        reordered.map((p) => p.id),
+      )
+      .catch((e) =>
+        toast.error(e instanceof Error ? e.message : 'Failed to reorder'),
+      );
   }
 
   function openCreateForm() {
@@ -135,275 +126,174 @@ export default function OrderMenuPage() {
     setFormOpen(true);
   }
 
-  function openEditForm(item: PosMenuItem) {
-    setFormInitial(item);
+  function openEditForm(product: PosProduct) {
+    setFormInitial(product);
     setFormOpen(true);
   }
 
-  const handleSectionReorder = useCallback(
-    async (sectionIndex: number, reorderedSectionItems: PosMenuItem[]) => {
-      if (!pillarId) return;
-
-      const pillarItems = items.filter((i) => i.categoryId === pillarId);
-      const groups = groupItemsBySectionHeader(pillarItems);
-
-      if (
-        sectionIndex < 0 ||
-        sectionIndex >= groups.length ||
-        reorderedSectionItems.length === 0
-      ) {
-        return;
-      }
-
-      const newGroups = groups.map((g, gi) =>
-        gi === sectionIndex ? { ...g, items: reorderedSectionItems } : g,
-      );
-      const flat = newGroups.flatMap((g) => g.items);
-
-      try {
-        await Promise.all(
-          flat.map((item, idx) =>
-            posMenuService.updateItem(item.id, { sortOrder: idx }),
-          ),
-        );
-        toast.success('Menu order saved');
-        await loadMenu();
-      } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : 'Could not save menu order',
-        );
-        await loadMenu();
-      }
-    },
-    [pillarId, items, loadMenu],
-  );
-
-  const itemsInPillar = pillarId ? items.filter((i) => i.categoryId === pillarId) : [];
-  const gridForPillar = groupItemsBySectionHeader(itemsInPillar);
-  const isEmpty = pillarId !== null ? itemsInPillar.length === 0 : true;
+  async function confirmDeleteProduct() {
+    if (!productToDelete) return;
+    try {
+      await posMenuService.deleteProduct(productToDelete.id);
+      toast.success('Product deleted');
+      setProductToDelete(null);
+      await loadMenu();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
+    }
+  }
 
   return (
     <PosShell>
-      <div className="flex h-full">
+      <div className="flex h-[calc(100vh-3rem)] md:h-[calc(100vh-3.5rem)]">
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
-            <h1 className="font-display text-lg font-black tracking-tight">
-              Menu
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              {!menuEditMode ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="font-display"
-                    onClick={() => setMenuEditMode(true)}
-                  >
-                    Edit
-                  </Button>
-                  {sortedCats.length === 0 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90"
-                      onClick={() => setPillarDialogOpen(true)}
-                    >
-                      Add pillar
-                    </Button>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="font-display"
-                    onClick={() => setMenuEditMode(false)}
-                  >
-                    Done editing
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="font-display border-bbq-flame/40 text-bbq-flame"
-                    onClick={() => setPillarDialogOpen(true)}
-                  >
-                    Add pillar
-                  </Button>
+          <div className="shrink-0 border-b border-border bg-card px-4 py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-display text-lg font-black text-foreground">
+                  {companyName ?? 'Weekend Grillers'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Real Smoke, Bold Flavours
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={menuEditMode ? 'default' : 'outline'}
+                  size="sm"
+                  className="font-display text-xs"
+                  onClick={() => setMenuEditMode((v) => !v)}
+                >
+                  {menuEditMode ? 'Done editing' : 'Edit menu'}
+                </Button>
+                {menuEditMode ? (
                   <Button
                     type="button"
                     size="sm"
-                    className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90 disabled:opacity-50"
+                    className="bg-bbq-flame font-display text-xs text-white hover:bg-bbq-flame/90"
                     onClick={openCreateForm}
-                    disabled={sortedCats.length === 0}
-                    title={
-                      sortedCats.length === 0
-                        ? 'Create a pillar category first'
-                        : undefined
-                    }
                   >
-                    Add menu
+                    Add product
                   </Button>
-                </>
-              )}
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {sortedSections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setSectionId(section.id)}
+                  className={cn(
+                    'rounded-full px-5 py-2.5 font-display text-sm font-bold transition',
+                    activeSection?.id === section.id
+                      ? 'bg-bbq-flame text-white shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground',
+                  )}
+                >
+                  {section.name}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* McDonald&apos;s-style pillar strip — dropdown nav */}
-          <div className="shrink-0 border-b border-border bg-card px-4 py-2">
-            <label className="mb-1.5 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
-              Mains · Sides · Drinks
-            </label>
-            <Select
-              value={pillarId ?? ''}
-              onValueChange={(v) => setPillarId(v)}
-              disabled={sortedCats.length === 0}
-            >
-              <SelectTrigger className="h-12 w-full max-w-xl font-display text-base font-black">
-                <span className="truncate">
-                  {sortedCats.find((c) => c.id === pillarId)?.name ??
-                    (loading
-                      ? 'Loading…'
-                      : sortedCats.length === 0
-                        ? 'No pillars yet — tap Add pillar'
-                        : 'Choose pillar…')}
-                </span>
-              </SelectTrigger>
-              <SelectContent className="max-h-[min(70vh,var(--radix-select-content-available-height))]">
-                {sortedCats.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="font-display text-base py-3">
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!loading && sortedCats.length === 0 ? (
-              <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-muted-foreground">
-                Create at least one pillar (e.g. <span className="font-semibold">Mains</span>,{' '}
-                <span className="font-semibold">Sides</span>,{' '}
-                <span className="font-semibold">Drinks</span>). Then add subsection headings and
-                items under <span className="font-display font-semibold">Edit → Add menu</span>.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 md:p-5">
+          <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
-              <div className="grid grid-cols-2 gap-4 min-[768px]:grid-cols-2 min-[768px]:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-5/4 min-h-44 animate-pulse rounded-2xl bg-muted min-[768px]:aspect-4/3 min-[768px]:min-h-36"
-                  />
-                ))}
-              </div>
-            ) : isEmpty ? (
-              <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
-                <span className="mb-2 text-4xl">🍖</span>
-                <p className="font-display">
-                  Nothing in this pillar yet — edit menu or pick another pillar
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">Loading menu…</p>
+            ) : products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No products in this section.</p>
             ) : (
-              <div className="space-y-8">
-                {gridForPillar.map(({ title, subtitle, items: groupItems }, gi) => (
-                  <MenuSectionDragGrid
-                    key={`${pillarId}-${title}-${gi}`}
-                    sectionIndex={gi}
-                    title={title}
-                    subtitle={subtitle}
-                    items={groupItems}
-                    menuEditMode={menuEditMode}
-                    onReorder={(si, ordered) => {
-                      void handleSectionReorder(si, ordered);
-                    }}
-                    onTapAdd={handleTapItemForCart}
-                    onEdit={openEditForm}
-                    onDelete={setItemToDelete}
-                  />
-                ))}
-              </div>
+              <ProductDragGrid
+                products={products}
+                editMode={menuEditMode}
+                onReorder={handleReorder}
+                onTap={handleTapProduct}
+                onEdit={openEditForm}
+                onDelete={setProductToDelete}
+              />
             )}
+
+            <p className="mt-8 text-center font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              No Colour, No Flavour
+            </p>
           </div>
         </div>
 
-        <div className="hidden h-full w-72 shrink-0 overflow-hidden md:block lg:w-80">
-          <CartPanel onReview={() => router.push('/customer-review')} />
+        <div className="hidden w-[min(100%,22rem)] shrink-0 lg:block">
+          <CartPanel onReview={() => router.push('/payment')} />
         </div>
       </div>
 
-      <AddPillarCategoryDialog
-        open={pillarDialogOpen}
-        onOpenChange={setPillarDialogOpen}
-        categories={categories}
-        onCreated={async (cat) => {
-          const wasFirstPillar = categories.length === 0;
-          await loadMenu();
-          setPillarId(cat.id);
-          if (wasFirstPillar) setMenuEditMode(true);
+      <ComboCardDialog
+        product={comboProduct}
+        open={Boolean(comboProduct)}
+        onOpenChange={(open) => {
+          if (!open) setComboProduct(null);
+        }}
+        onConfirm={({ product, unitPrice, choicesSummary, comboSelections, remarks }) => {
+          addLine({
+            lineType: 'COMBO',
+            productId: product.id,
+            displayName: product.name,
+            choicesSummary,
+            comboSelections,
+            quantity: 1,
+            unitPrice,
+            remarks,
+          });
+          toast.success(`${product.name} added`);
         }}
       />
 
-      <MenuItemFormDialog
+      <VariantPickerDialog
+        product={variantProduct}
+        open={Boolean(variantProduct)}
+        onOpenChange={(open) => {
+          if (!open) setVariantProduct(null);
+        }}
+        onConfirm={({ product, variant }) => {
+          addLine({
+            lineType: 'VARIANT',
+            productId: product.id,
+            variantId: variant.id,
+            displayName: `${product.name} (${variant.name})`,
+            choicesSummary: variant.name,
+            quantity: 1,
+            unitPrice: variant.price,
+            remarks: '',
+          });
+          toast.success(`${product.name} added`);
+        }}
+      />
+
+      <ProductFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        categories={categories}
-        initialItem={formInitial}
-        defaultCategoryId={pillarId}
-        onSaved={() => loadMenu()}
-      />
-
-      <MealBundleDialog
-        open={mealBuilderOpen}
-        onOpenChange={(o) => {
-          setMealBuilderOpen(o);
-          if (!o) setMealBuilderMain(null);
-        }}
-        main={mealBuilderMain}
-        sides={bundleSides}
-        drinks={bundleDrinks}
-        onConfirm={(p) => {
-          if (!mealBuilderMain) return;
-          addMealBundle({
-            main: mealBuilderMain,
-            mainQuantity: p.mainQuantity,
-            mainRemarks: p.mainRemarks,
-            extras: p.extras.map((x) => ({
-              item: x.item,
-              quantity: Math.max(1, Math.floor(x.quantity)),
-            })),
-          });
-          const n = p.extras.filter((x) => x.quantity > 0).length;
-          toast.success(
-            `${mealBuilderMain.name} added${n ? ` · ${n} extra line${n > 1 ? 's' : ''}` : ''}`,
-          );
-          setMealBuilderMain(null);
-        }}
+        sectionId={activeSection?.id ?? ''}
+        initialProduct={formInitial}
+        onSaved={loadMenu}
       />
 
       <AlertDialog
-        open={!!itemToDelete}
-        onOpenChange={(o) => !o && setItemToDelete(null)}
+        open={Boolean(productToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setProductToDelete(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">
-              Delete this item?
-            </AlertDialogTitle>
+            <AlertDialogTitle className="font-display">Delete product?</AlertDialogTitle>
             <AlertDialogDescription>
-              {itemToDelete
-                ? `“${itemToDelete.name}” will be removed from the POS menu.`
-                : ''}
+              Remove &quot;{productToDelete?.name}&quot; from the menu. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="font-display">Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="font-display bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleConfirmDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={confirmDeleteProduct}
             >
               Delete
             </AlertDialogAction>

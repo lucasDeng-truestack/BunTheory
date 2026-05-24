@@ -14,7 +14,7 @@ import { PosMenuModule } from './modules/pos-menu/pos-menu.module';
 import { PosOrdersModule } from './modules/pos-orders/pos-orders.module';
 import { PosKitchenModule } from './modules/pos-kitchen/pos-kitchen.module';
 import { PosRealtimeModule } from './modules/pos-realtime/pos-realtime.module';
-import { PosInventoryModule } from './modules/pos-inventory/pos-inventory.module';
+import { PosPurchasesModule } from './modules/pos-purchases/pos-purchases.module';
 import { PosReportsModule } from './modules/pos-reports/pos-reports.module';
 
 @Module({
@@ -34,7 +34,7 @@ import { PosReportsModule } from './modules/pos-reports/pos-reports.module';
     PosMenuModule,
     PosOrdersModule,
     PosKitchenModule,
-    PosInventoryModule,
+    PosPurchasesModule,
     PosReportsModule,
   ],
 })

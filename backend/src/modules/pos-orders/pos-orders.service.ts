@@ -6,7 +6,7 @@ import {
 import { Prisma, PosOrderStatus, PosPaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PosRealtimeGateway } from '../pos-realtime/pos-realtime.gateway';
-import { CreatePosOrderDto } from './dto/create-pos-order.dto';
+import { CreatePosOrderDto, PosOrderItemDto } from './dto/create-pos-order.dto';
 import { UpdatePosPaymentDto } from './dto/update-pos-payment.dto';
 import {
   issuePosReceiptToken,
@@ -16,12 +16,22 @@ import {
 const orderInclude = {
   orderItems: {
     include: {
-      menuItem: true,
+      product: true,
+      variant: true,
     },
   },
   createdBy: { select: { id: true, email: true, displayName: true } },
   paidBy: { select: { id: true, email: true, displayName: true } },
 } satisfies Prisma.PosOrderInclude;
+
+const productInclude = {
+  combo: {
+    include: {
+      slots: { include: { options: true } },
+    },
+  },
+  variants: true,
+} satisfies Prisma.PosProductInclude;
 
 @Injectable()
 export class PosOrdersService {
@@ -48,30 +58,23 @@ export class PosOrdersService {
     let subtotal = new Prisma.Decimal(0);
 
     const resolvedItems: Array<{
-      menuItemId: string;
+      lineType: 'COMBO' | 'VARIANT' | 'SIMPLE';
+      productId: string;
+      variantId: string | null;
+      displayName: string;
+      choicesSummary: string | null;
+      choicesJson: Prisma.InputJsonValue | null;
       quantity: number;
       unitPrice: Prisma.Decimal;
       remarks: string | null;
     }> = [];
 
     for (const item of dto.items) {
-      const menuItem = await this.prisma.posMenuItem.findUnique({
-        where: { id: item.menuItemId },
-      });
-
-      if (!menuItem) {
-        throw new BadRequestException(`Menu item ${item.menuItemId} not found`);
-      }
-      if (!menuItem.available) {
-        throw new BadRequestException(`"${menuItem.name}" is not available`);
-      }
-
-      const unitPrice = new Prisma.Decimal(menuItem.price);
-      subtotal = subtotal.add(unitPrice.mul(item.quantity));
+      const resolved = await this.resolveOrderLine(item);
+      subtotal = subtotal.add(resolved.unitPrice.mul(item.quantity));
       resolvedItems.push({
-        menuItemId: item.menuItemId,
+        ...resolved,
         quantity: item.quantity,
-        unitPrice,
         remarks: item.remarks?.trim() || null,
       });
     }
@@ -92,7 +95,12 @@ export class PosOrdersService {
         createdByAdminId: adminId ?? null,
         orderItems: {
           create: resolvedItems.map((ri) => ({
-            menuItemId: ri.menuItemId,
+            lineType: ri.lineType,
+            productId: ri.productId,
+            variantId: ri.variantId,
+            displayName: ri.displayName,
+            choicesSummary: ri.choicesSummary,
+            choicesJson: ri.choicesJson ?? Prisma.JsonNull,
             quantity: ri.quantity,
             unitPrice: ri.unitPrice,
             remarks: ri.remarks,
@@ -109,8 +117,7 @@ export class PosOrdersService {
       dto.tipAmount != null && Number.isFinite(Number(dto.tipAmount))
         ? Number(dto.tipAmount)
         : 0;
-    const safeTip =
-      tipRm > 0 ? Math.round(tipRm * 100) / 100 : 0;
+    const safeTip = tipRm > 0 ? Math.round(tipRm * 100) / 100 : 0;
 
     return {
       ...mapped,
@@ -118,18 +125,124 @@ export class PosOrdersService {
     };
   }
 
+  private async resolveOrderLine(item: PosOrderItemDto) {
+    const product = await this.prisma.posProduct.findUnique({
+      where: { id: item.productId },
+      include: productInclude,
+    });
+
+    if (!product) {
+      throw new BadRequestException(`Product ${item.productId} not found`);
+    }
+    if (!product.available) {
+      throw new BadRequestException(`"${product.name}" is not available`);
+    }
+
+    if (item.lineType === 'SIMPLE') {
+      if (product.type !== 'SIMPLE') {
+        throw new BadRequestException(`"${product.name}" is not a simple product`);
+      }
+      return {
+        lineType: 'SIMPLE' as const,
+        productId: product.id,
+        variantId: null,
+        displayName: product.name,
+        choicesSummary: null,
+        choicesJson: null,
+        unitPrice: new Prisma.Decimal(product.basePrice),
+      };
+    }
+
+    if (item.lineType === 'VARIANT') {
+      if (product.type !== 'VARIANT') {
+        throw new BadRequestException(`"${product.name}" is not a variant product`);
+      }
+      if (!item.variantId) {
+        throw new BadRequestException(`Variant required for "${product.name}"`);
+      }
+      const variant = product.variants.find((v) => v.id === item.variantId);
+      if (!variant) {
+        throw new BadRequestException(`Variant not found for "${product.name}"`);
+      }
+      return {
+        lineType: 'VARIANT' as const,
+        productId: product.id,
+        variantId: variant.id,
+        displayName: `${product.name} (${variant.name})`,
+        choicesSummary: variant.name,
+        choicesJson: { variantId: variant.id, variantName: variant.name },
+        unitPrice: new Prisma.Decimal(variant.price),
+      };
+    }
+
+    if (item.lineType === 'COMBO') {
+      if (product.type !== 'COMBO' || !product.combo) {
+        throw new BadRequestException(`"${product.name}" is not a combo`);
+      }
+      const selections = item.comboSelections ?? [];
+      const slots = product.combo.slots;
+      const requiredSlots = slots.filter((s) => s.required);
+
+      for (const slot of requiredSlots) {
+        const pick = selections.find((s) => s.slotId === slot.id);
+        if (!pick) {
+          throw new BadRequestException(`Missing selection for "${slot.label}"`);
+        }
+      }
+
+      let unitPrice = new Prisma.Decimal(product.basePrice);
+      const choiceParts: string[] = [];
+      const choicesJson: Array<{
+        slotId: string;
+        slotLabel: string;
+        optionId: string;
+        optionLabel: string;
+        priceDelta: number;
+      }> = [];
+
+      for (const slot of slots.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        const pick = selections.find((s) => s.slotId === slot.id);
+        if (!pick) continue;
+        const option = slot.options.find((o) => o.id === pick.optionId);
+        if (!option) {
+          throw new BadRequestException(
+            `Invalid option for slot "${slot.label}"`,
+          );
+        }
+        unitPrice = unitPrice.add(option.priceDelta);
+        const delta = Number(option.priceDelta);
+        choiceParts.push(
+          delta > 0 ? `${option.label} (+RM${delta})` : option.label,
+        );
+        choicesJson.push({
+          slotId: slot.id,
+          slotLabel: slot.label,
+          optionId: option.id,
+          optionLabel: option.label,
+          priceDelta: delta,
+        });
+      }
+
+      return {
+        lineType: 'COMBO' as const,
+        productId: product.id,
+        variantId: null,
+        displayName: product.name,
+        choicesSummary: choiceParts.join(' · '),
+        choicesJson,
+        unitPrice,
+      };
+    }
+
+    throw new BadRequestException(`Unknown line type for "${product.name}"`);
+  }
+
   async findPublicReceiptByToken(token: string) {
     const { oid, tip } = verifyPosReceiptToken(token);
 
     const order = await this.prisma.posOrder.findUnique({
       where: { id: oid },
-      include: {
-        orderItems: {
-          include: {
-            menuItem: { select: { name: true } },
-          },
-        },
-      },
+      include: { orderItems: true },
     });
 
     if (!order) {
@@ -153,7 +266,8 @@ export class PosOrdersService {
       createdAt: order.createdAt.toISOString(),
       paidAt: order.paidAt?.toISOString() ?? null,
       items: order.orderItems.map((oi) => ({
-        name: oi.menuItem.name,
+        name: oi.displayName,
+        choicesSummary: oi.choicesSummary,
         quantity: oi.quantity,
         unitPrice: Number(oi.unitPrice),
         lineTotal: Number(oi.unitPrice) * oi.quantity,
@@ -229,10 +343,6 @@ export class PosOrdersService {
       include: orderInclude,
     });
 
-    if (next === PosOrderStatus.COMPLETED) {
-      await this.deductInventoryStock(id);
-    }
-
     this.gateway.broadcastOrderUpdated(this.mapOrder(updated));
     return this.mapOrder(updated);
   }
@@ -297,28 +407,6 @@ export class PosOrdersService {
     };
   }
 
-  private async deductInventoryStock(orderId: string) {
-    const order = await this.prisma.posOrder.findUnique({
-      where: { id: orderId },
-      include: { orderItems: { include: { menuItem: { include: { recipeIngredients: true } } } } },
-    });
-    if (!order) return;
-
-    for (const item of order.orderItems) {
-      for (const ingredient of item.menuItem.recipeIngredients) {
-        const totalDeduction = ingredient.quantityUsed.mul(item.quantity).negated();
-        await this.prisma.inventoryStockMovement.create({
-          data: {
-            itemId: ingredient.inventoryItemId,
-            type: 'SALE_USAGE',
-            quantityChange: totalDeduction,
-            referenceOrderId: orderId,
-          },
-        });
-      }
-    }
-  }
-
   private mapOrder(
     order: Prisma.PosOrderGetPayload<{ include: typeof orderInclude }>,
   ) {
@@ -342,10 +430,11 @@ export class PosOrdersService {
       createdAt: order.createdAt.toISOString(),
       items: order.orderItems.map((oi) => ({
         id: oi.id,
-        menuItemId: oi.menuItemId,
-        menuItemName: oi.menuItem.name,
-        menuItemDescription: oi.menuItem.description,
-        menuItemImage: oi.menuItem.image,
+        lineType: oi.lineType,
+        productId: oi.productId,
+        variantId: oi.variantId,
+        displayName: oi.displayName,
+        choicesSummary: oi.choicesSummary,
         quantity: oi.quantity,
         unitPrice: Number(oi.unitPrice),
         lineTotal: Number(oi.unitPrice) * oi.quantity,

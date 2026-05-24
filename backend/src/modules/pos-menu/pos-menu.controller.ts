@@ -10,11 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CreatePosCategoryDto } from './dto/create-pos-category.dto';
-import { CreatePosMenuItemDto } from './dto/create-pos-menu-item.dto';
-import { UpdatePosMenuItemDto } from './dto/update-pos-menu-item.dto';
-import { CreatePosSectionHeaderDto } from './dto/create-pos-section-header.dto';
-import { UpdatePosSectionHeaderDto } from './dto/update-pos-section-header.dto';
+import { CreatePosSectionDto } from './dto/create-pos-section.dto';
+import { UpdatePosSectionDto } from './dto/update-pos-section.dto';
+import { CreatePosProductDto } from './dto/create-pos-product.dto';
+import { UpdatePosProductDto } from './dto/update-pos-product.dto';
+import { ReorderProductsDto } from './dto/reorder-products.dto';
 import { PosMenuService } from './pos-menu.service';
 
 @Controller('pos/menu')
@@ -22,66 +22,53 @@ import { PosMenuService } from './pos-menu.service';
 export class PosMenuController {
   constructor(private readonly posMenuService: PosMenuService) {}
 
-  @Get('categories/:categoryId/section-headers')
-  listSectionHeaders(@Param('categoryId') categoryId: string) {
-    return this.posMenuService.findSectionHeadersByCategory(categoryId);
+  @Get()
+  getFullMenu(@Query('available') available?: string) {
+    return this.posMenuService.getFullMenu(available === 'true');
   }
 
-  @Post('section-headers')
-  createSectionHeader(@Body() dto: CreatePosSectionHeaderDto) {
-    return this.posMenuService.createSectionHeader(dto);
+  @Get('sections')
+  listSections() {
+    return this.posMenuService.findAllSections();
   }
 
-  @Patch('section-headers/:id')
-  updateSectionHeader(
-    @Param('id') id: string,
-    @Body() dto: UpdatePosSectionHeaderDto,
-  ) {
-    return this.posMenuService.updateSectionHeader(id, dto);
+  @Post('sections')
+  createSection(@Body() dto: CreatePosSectionDto) {
+    return this.posMenuService.createSection(dto);
   }
 
-  @Delete('section-headers/:id')
-  deleteSectionHeader(@Param('id') id: string) {
-    return this.posMenuService.deleteSectionHeader(id);
+  @Patch('sections/:id')
+  updateSection(@Param('id') id: string, @Body() dto: UpdatePosSectionDto) {
+    return this.posMenuService.updateSection(id, dto);
   }
 
-  @Get('categories')
-  listCategories() {
-    return this.posMenuService.findAllCategories();
+  @Delete('sections/:id')
+  deleteSection(@Param('id') id: string) {
+    return this.posMenuService.deleteSection(id);
   }
 
-  @Post('categories')
-  createCategory(@Body() dto: CreatePosCategoryDto) {
-    return this.posMenuService.createCategory(dto);
+  @Get('products/:id')
+  getProduct(@Param('id') id: string) {
+    return this.posMenuService.findOneProduct(id);
   }
 
-  @Delete('categories/:id')
-  deleteCategory(@Param('id') id: string) {
-    return this.posMenuService.deleteCategory(id);
+  @Post('products')
+  createProduct(@Body() dto: CreatePosProductDto) {
+    return this.posMenuService.createProduct(dto);
   }
 
-  @Get('items')
-  listItems(@Query('available') available?: string) {
-    return this.posMenuService.findAllItems(available === 'true');
+  @Patch('products/:id')
+  updateProduct(@Param('id') id: string, @Body() dto: UpdatePosProductDto) {
+    return this.posMenuService.updateProduct(id, dto);
   }
 
-  @Get('items/:id')
-  getItem(@Param('id') id: string) {
-    return this.posMenuService.findOneItem(id);
+  @Delete('products/:id')
+  deleteProduct(@Param('id') id: string) {
+    return this.posMenuService.deleteProduct(id);
   }
 
-  @Post('items')
-  createItem(@Body() dto: CreatePosMenuItemDto) {
-    return this.posMenuService.createItem(dto);
-  }
-
-  @Patch('items/:id')
-  updateItem(@Param('id') id: string, @Body() dto: UpdatePosMenuItemDto) {
-    return this.posMenuService.updateItem(id, dto);
-  }
-
-  @Delete('items/:id')
-  deleteItem(@Param('id') id: string) {
-    return this.posMenuService.deleteItem(id);
+  @Patch('products/reorder')
+  reorderProducts(@Body() dto: ReorderProductsDto) {
+    return this.posMenuService.reorderProducts(dto);
   }
 }

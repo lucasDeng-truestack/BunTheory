@@ -139,6 +139,7 @@ model Admin {
 
   posOrders         PosOrder[] @relation("CreatedByAdmin")
   posOrdersPaidBy   PosOrder[] @relation("PaidByAdmin")
+  posPurchases      PosPurchase[]
 }
 
 // ─── Weekend Grills POS ───────────────────────────────────────────────────────
@@ -168,70 +169,103 @@ enum PosOrderStatus {
   CANCELLED
 }
 
-enum InventoryUnit {
-  GRAM
-  KG
-  ML
-  LITER
-  PIECE
-  PACK
+enum PosProductType {
+  COMBO
+  VARIANT
+  SIMPLE
 }
 
-enum InventoryMovementType {
-  PURCHASE
-  SALE_USAGE
-  WASTE
-  ADJUSTMENT
+enum PosOrderLineType {
+  COMBO
+  VARIANT
+  SIMPLE
 }
 
-enum PosMenuItemKind {
-  MAIN_MEAL
-  SIDE
-  DRINK_ADDON
+/// Top-level menu tabs (Combos, À la carte).
+model PosMenuSection {
+  id        String       @id @default(cuid())
+  name      String
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  products  PosProduct[]
+
+  @@index([sortOrder])
 }
 
-model PosCategory {
-  id               String               @id @default(cuid())
-  name             String
-  sortOrder        Int                  @default(0)
-  createdAt        DateTime             @default(now())
-  items            PosMenuItem[]
-  sectionHeaders   PosMenuSectionHeader[]
+model PosProduct {
+  id          String         @id @default(cuid())
+  sectionId   String
+  section     PosMenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  type        PosProductType
+  name        String
+  description String?
+  image       String?
+  basePrice   Decimal        @db.Decimal(10, 2)
+  available   Boolean        @default(true)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  combo      PosCombo?
+  variants   PosProductVariant[]
+  orderItems PosOrderItem[]
+
+  @@index([sectionId, sortOrder])
 }
 
-/// Staff-defined subsection headers under each menu pillar category (McDonald\'s-style).
-model PosMenuSectionHeader {
-  id          String           @id @default(cuid())
-  categoryId  String
-  category    PosCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  title       String
-  subtitle    String?          /// Optional hint for staff / kitchen.
-  sortOrder   Int              @default(0)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  items       PosMenuItem[]
+model PosProductVariant {
+  id        String     @id @default(cuid())
+  productId String
+  product   PosProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  price     Decimal    @db.Decimal(10, 2)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  @@index([categoryId, sortOrder])
+  orderItems PosOrderItem[]
+
+  @@index([productId, sortOrder])
 }
 
-model PosMenuItem {
-  id               String               @id @default(cuid())
-  categoryId       String?
-  category         PosCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  kind             PosMenuItemKind      @default(MAIN_MEAL)
-  sectionHeaderId  String?
-  sectionHeader    PosMenuSectionHeader? @relation(fields: [sectionHeaderId], references: [id], onDelete: SetNull)
-  name             String
-  description      String?
-  price            Decimal              @db.Decimal(10, 2)
-  image            String?
-  available        Boolean              @default(true)
-  sortOrder        Int                  @default(0)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+model PosCombo {
+  id           String     @id @default(cuid())
+  productId    String     @unique
+  product      PosProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  includesText String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  orderItems         PosOrderItem[]
-  recipeIngredients  PosRecipeIngredient[]
+  slots PosComboSlot[]
+}
+
+model PosComboSlot {
+  id        String   @id @default(cuid())
+  comboId   String
+  combo     PosCombo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  label     String
+  sortOrder Int      @default(0)
+  required  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  options PosComboSlotOption[]
+
+  @@index([comboId, sortOrder])
+}
+
+model PosComboSlotOption {
+  id         String       @id @default(cuid())
+  slotId     String
+  slot       PosComboSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  label      String
+  priceDelta Decimal      @default(0) @db.Decimal(10, 2)
+  sortOrder  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([slotId, sortOrder])
 }
 
 model PosOrder {
@@ -259,81 +293,44 @@ model PosOrder {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  orderItems       PosOrderItem[]
-  stockMovements   InventoryStockMovement[]
+  orderItems PosOrderItem[]
 
   @@index([status])
   @@index([createdAt])
 }
 
 model PosOrderItem {
-  id         String      @id @default(cuid())
-  orderId    String
-  order      PosOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem   PosMenuItem @relation(fields: [menuItemId], references: [id])
-  quantity   Int
-  unitPrice  Decimal     @db.Decimal(10, 2)
-  remarks    String?
+  id              String            @id @default(cuid())
+  orderId         String
+  order           PosOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lineType        PosOrderLineType
+  productId       String?
+  product         PosProduct?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId       String?
+  variant         PosProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  displayName     String
+  choicesSummary  String?
+  choicesJson     Json?
+  quantity        Int
+  unitPrice       Decimal           @db.Decimal(10, 2)
+  remarks         String?
+
+  @@index([productId])
+  @@index([orderId])
 }
 
-// ─── Inventory ─────────────────────────────────────────────────────────────
+// ─── Purchases ledger ────────────────────────────────────────────────────────
 
-model InventoryItem {
-  id                String        @id @default(cuid())
-  name              String
-  unit              InventoryUnit
-  lowStockThreshold Decimal?      @db.Decimal(10, 3)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+model PosPurchase {
+  id               String   @id @default(cuid())
+  remark           String
+  amount           Decimal  @db.Decimal(10, 2)
+  purchasedAt      DateTime @default(now())
+  createdByAdminId String?
+  createdBy        Admin?   @relation(fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
 
-  purchases         InventoryPurchase[]
-  stockMovements    InventoryStockMovement[]
-  recipeIngredients PosRecipeIngredient[]
-}
-
-model InventoryPurchase {
-  id           String        @id @default(cuid())
-  itemId       String
-  item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  quantity     Decimal       @db.Decimal(10, 3)
-  totalCost    Decimal       @db.Decimal(10, 2)
-  supplierName String?
-  notes        String?
-  purchasedAt  DateTime      @default(now())
-  createdAt    DateTime      @default(now())
-
-  @@index([itemId])
   @@index([purchasedAt])
-}
-
-model InventoryStockMovement {
-  id             String                @id @default(cuid())
-  itemId         String
-  item           InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  type           InventoryMovementType
-  quantityChange Decimal               @db.Decimal(10, 3)
-  unitCost       Decimal?              @db.Decimal(10, 4)
-  referenceOrderId String?
-  referenceOrder   PosOrder?           @relation(fields: [referenceOrderId], references: [id], onDelete: SetNull)
-  notes          String?
-  createdAt      DateTime              @default(now())
-
-  @@index([itemId])
-  @@index([type])
-  @@index([referenceOrderId])
-}
-
-model PosRecipeIngredient {
-  id            String        @id @default(cuid())
-  menuItemId    String
-  menuItem      PosMenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  quantityUsed  Decimal       @db.Decimal(10, 3)
-  unit          InventoryUnit
-
-  @@unique([menuItemId, inventoryItemId])
 }
 
 model SystemSettings {

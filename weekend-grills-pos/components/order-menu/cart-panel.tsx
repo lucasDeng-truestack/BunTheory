@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus, ShoppingBag, Trash2, UtensilsCrossed } from 'lucide-react';
+import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useCartStore } from '@/store/cart.store';
 import { cn } from '@/lib/utils';
-import { segmentBundledCart } from '@/lib/cart-bundles';
 
 interface CartPanelProps {
   onReview: () => void;
@@ -19,41 +18,28 @@ function CartLineRow({
   updateQuantity,
   updateRemarks,
   removeItem,
-  variant = 'default',
 }: {
   item: CartItem;
   updateQuantity: (id: string, qty: number) => void;
   updateRemarks: (id: string, r: string) => void;
   removeItem: (id: string) => void;
-  variant?: 'default' | 'nested';
 }) {
-  const meta =
-    item.mealLineKind === 'SIDE'
-      ? 'Side'
-      : item.mealLineKind === 'DRINK_ADDON'
-        ? 'Drink'
-        : item.mealLineKind === 'MAIN'
-          ? 'Main'
-          : null;
-
   return (
-    <div
-      className={cn(
-        'flex items-start gap-2 rounded-lg bg-muted/40 p-2.5',
-        variant === 'nested' && 'bg-background/75',
-      )}
-    >
+    <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1">
           <p className="truncate font-semibold text-xs leading-tight text-foreground">
-            {item.name}
+            {item.displayName}
           </p>
-          {meta ? (
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-display">
-              {meta}
+          {item.lineType === 'COMBO' ? (
+            <Badge variant="outline" className="h-5 px-1.5 font-display text-[10px]">
+              Combo
             </Badge>
           ) : null}
         </div>
+        {item.choicesSummary ? (
+          <p className="mt-1 text-[11px] text-muted-foreground">{item.choicesSummary}</p>
+        ) : null}
         <label className="mt-2 block">
           <span className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">
             Guest note (kitchen + receipt)
@@ -63,10 +49,7 @@ function CartLineRow({
             onChange={(e) => updateRemarks(item.id, e.target.value)}
             placeholder="Allergies, no ice…"
             rows={2}
-            className={cn(
-              'mt-1 resize-none font-sans text-[11px] placeholder:text-muted-foreground/70',
-              variant === 'default' ? 'min-h-[2.75rem]' : 'min-h-11',
-            )}
+            className="mt-1 min-h-[2.75rem] resize-none font-sans text-[11px] placeholder:text-muted-foreground/70"
           />
         </label>
         <p className="mt-2 text-[11px] font-bold tabular-nums text-bbq-flame">
@@ -112,7 +95,6 @@ export function CartPanel({ onReview }: CartPanelProps) {
     updateQuantity,
     updateRemarks,
     removeItem,
-    removeMealBundle,
     total,
     itemCount,
     serviceType,
@@ -126,11 +108,8 @@ export function CartPanel({ onReview }: CartPanelProps) {
   const count = itemCount();
   const cartTotal = total();
 
-  const segments = segmentBundledCart(items);
-
   return (
     <div className="flex h-full flex-col border-l border-border bg-card">
-      {/* Header */}
       <div className="flex shrink-0 items-center justify-between bg-card px-4 py-3">
         <div className="flex items-center gap-2">
           <ShoppingBag className="h-4 w-4 text-bbq-flame" />
@@ -138,16 +117,15 @@ export function CartPanel({ onReview }: CartPanelProps) {
             Current order
           </h2>
         </div>
-        {count > 0 && (
+        {count > 0 ? (
           <Badge variant="default" className="bg-bbq-flame px-1.5 py-0.5 font-display text-[10px] text-white">
             {count}
           </Badge>
-        )}
+        ) : null}
       </div>
 
       <Separator />
 
-      {/* Guest name */}
       <div className="px-4 pt-3">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
           Guest name
@@ -160,7 +138,6 @@ export function CartPanel({ onReview }: CartPanelProps) {
         />
       </div>
 
-      {/* Service */}
       <div className="px-4 pb-1 pt-2.5">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
           Service
@@ -184,7 +161,6 @@ export function CartPanel({ onReview }: CartPanelProps) {
         </div>
       </div>
 
-      {/* Payment */}
       <div className="px-4 pb-1 pt-2.5">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
           Payment type
@@ -216,60 +192,20 @@ export function CartPanel({ onReview }: CartPanelProps) {
           </div>
         ) : (
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-            {segments.map((seg, idx) =>
-              seg.type === 'bundle' ? (
-                <div
-                  key={`b-${seg.bundleId}-${idx}`}
-                  className="rounded-xl border border-bbq-flame/25 bg-accent/25 p-2"
-                >
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <UtensilsCrossed className="h-4 w-4 shrink-0 text-bbq-flame" />
-                      <Badge className="shrink-0 bg-bbq-flame font-display text-[10px] text-white">
-                        Meal
-                      </Badge>
-                      <span className="truncate font-display text-xs font-black">
-                        {seg.title}
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 border-destructive/40 font-display text-[10px] text-destructive hover:bg-destructive/10"
-                      onClick={() => removeMealBundle(seg.bundleId)}
-                    >
-                      Remove meal
-                    </Button>
-                  </div>
-                  <div className="space-y-1.5">
-                    {seg.lines.map((item) => (
-                      <CartLineRow
-                        key={item.id}
-                        item={item}
-                        variant="nested"
-                        updateQuantity={updateQuantity}
-                        updateRemarks={updateRemarks}
-                        removeItem={removeItem}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <CartLineRow
-                  key={seg.item.id}
-                  item={seg.item}
-                  updateQuantity={updateQuantity}
-                  updateRemarks={updateRemarks}
-                  removeItem={removeItem}
-                />
-              ),
-            )}
+            {items.map((item) => (
+              <CartLineRow
+                key={item.id}
+                item={item}
+                updateQuantity={updateQuantity}
+                updateRemarks={updateRemarks}
+                removeItem={removeItem}
+              />
+            ))}
           </div>
         )}
       </div>
 
-      {items.length > 0 && (
+      {items.length > 0 ? (
         <div className="space-y-2.5 border-t border-border bg-card px-4 py-3">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="font-display">Subtotal</span>
@@ -298,13 +234,13 @@ export function CartPanel({ onReview }: CartPanelProps) {
               Send order
             </Button>
           </div>
-          {!customerName.trim() && (
+          {!customerName.trim() ? (
             <p className="text-center text-[10px] text-muted-foreground">
               Enter guest name to continue
             </p>
-          )}
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

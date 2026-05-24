@@ -14,7 +14,6 @@ import { useCartStore } from '@/store/cart.store';
 import { useAuthStore } from '@/store/auth.store';
 import { posOrdersService } from '@/services/pos-orders.service';
 import { cn } from '@/lib/utils';
-import { segmentBundledCart } from '@/lib/cart-bundles';
 import { posSettingsService } from '@/services/settings.service';
 import type { PosOrderCreated } from '@/types/pos';
 import Image from 'next/image';
@@ -66,7 +65,8 @@ function buildPrintReceiptHtml(
     createdAt: string;
     paidAt: string | null;
     items: Array<{
-      menuItemName: string;
+      displayName: string;
+      choicesSummary: string | null;
       quantity: number;
       lineTotal: number;
       remarks: string | null;
@@ -83,12 +83,16 @@ function buildPrintReceiptHtml(
       const rk = Number(oi.lineTotal).toFixed(2);
       const zebra =
         idx % 2 === 1 ? `background:${t.creamWash};border-radius:6px` : '';
-      const note = oi.remarks?.trim()
-        ? `<div class="remark">${escapeHtml(oi.remarks.trim())}</div>`
+      const noteParts = [
+        oi.choicesSummary?.trim(),
+        oi.remarks?.trim(),
+      ].filter(Boolean);
+      const note = noteParts.length
+        ? `<div class="remark">${escapeHtml(noteParts.join(' · '))}</div>`
         : '';
       return `<div class="ln-row"${zebra ? ` style="${zebra}"` : ''}>
   <div class="ln-grow">
-    <span class="item-name">${escapeHtml(oi.menuItemName)}</span>${note}
+    <span class="item-name">${escapeHtml(oi.displayName)}</span>${note}
   </div>
   <div class="ln-qty tabular">${oi.quantity}</div>
   <div class="ln-amt tabular">RM ${rk}</div>
@@ -438,7 +442,6 @@ export default function PaymentPage() {
     setPaymentMethod,
     total,
     removeItem,
-    removeMealBundle,
     clearCart,
   } = useCartStore();
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -485,8 +488,6 @@ export default function PaymentPage() {
     if (items.length === 0) router.replace('/order-menu');
   }, [checkoutPhase, items.length, router]);
 
-  const segments = segmentBundledCart(items);
-
   const cashParsed =
     paymentMethod !== 'CASH'
       ? 0
@@ -518,7 +519,8 @@ export default function PaymentPage() {
         createdAt: order.createdAt,
         paidAt: order.paidAt,
         items: order.items.map((oi) => ({
-          menuItemName: oi.menuItemName,
+          displayName: oi.displayName,
+          choicesSummary: oi.choicesSummary,
           quantity: oi.quantity,
           lineTotal: oi.lineTotal,
           remarks: oi.remarks,
@@ -602,9 +604,12 @@ export default function PaymentPage() {
         serviceType,
         paymentMethod,
         items: items.map((i) => ({
-          menuItemId: i.menuItemId,
+          lineType: i.lineType,
+          productId: i.productId,
+          variantId: i.variantId,
           quantity: i.quantity,
           remarks: i.remarks.trim() || undefined,
+          comboSelections: i.comboSelections,
         })),
       });
       const paid = await posOrdersService.updatePayment(created.id, 'PAID');
@@ -693,82 +698,33 @@ export default function PaymentPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {segments.flatMap((seg, segIdx) => {
-                    if (seg.type === 'single') {
-                      const item = seg.item;
-                      return [
-                        <tr key={item.id}>
-                          <td className="px-4 py-3">
-                            <p className="font-semibold text-foreground">{item.name}</p>
-                            {item.remarks.trim() ? (
-                              <p className="mt-1 text-[11px] font-medium text-amber-900/90 dark:text-amber-500/95">
-                                Note: {item.remarks.trim()}
-                              </p>
-                            ) : null}
-                          </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">RM {item.unitPrice.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-center tabular-nums font-semibold">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right tabular-nums font-semibold">RM {(item.unitPrice * item.quantity).toFixed(2)}</td>
-                          <td className="px-2 py-3">
-                            <Button variant="ghost" size="icon-xs" onClick={() => removeItem(item.id)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
-                            </Button>
-                          </td>
-                        </tr>,
-                      ];
-                    }
-                    const headKey = `${seg.bundleId}-head-${segIdx}`;
-                    const bundleRows = seg.lines.map((item) => (
-                      <tr key={item.id} className="bg-accent/35">
-                        <td className="px-4 py-2 pl-8">
-                          <p className="font-semibold text-foreground">{item.name}</p>
-                          {item.mealLineKind === 'MAIN' ? (
-                            <Badge className="mt-1 mr-2 bg-bbq-flame font-display text-[10px] text-white">Main</Badge>
-                          ) : null}
-                          {item.mealLineKind === 'SIDE' ? (
-                            <Badge variant="secondary" className="mt-1 mr-2 font-display text-[10px]">Side</Badge>
-                          ) : null}
-                          {item.mealLineKind === 'DRINK_ADDON' ? (
-                            <Badge variant="secondary" className="mt-1 mr-2 font-display text-[10px]">Drink</Badge>
-                          ) : null}
-                          {item.remarks.trim() ? (
-                            <p className="mt-1 text-[11px] font-medium text-amber-900/90 dark:text-amber-500/95">
-                              Note: {item.remarks.trim()}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">RM {item.unitPrice.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-center tabular-nums font-semibold">{item.quantity}</td>
-                        <td className="px-4 py-2 text-right tabular-nums font-semibold">RM {(item.unitPrice * item.quantity).toFixed(2)}</td>
-                        <td className="px-2 py-2">
-                          <Button variant="ghost" size="icon-xs" onClick={() => removeItem(item.id)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ));
-                    return [
-                      <tr key={headKey} className="border-b border-bbq-flame/25 bg-accent/55">
-                        <td colSpan={5} className="px-4 py-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-display text-xs font-black uppercase tracking-wide text-foreground">
-                              Meal · {seg.title}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 border-destructive/40 font-display text-[11px] text-destructive"
-                              onClick={() => removeMealBundle(seg.bundleId)}
-                            >
-                              Remove meal
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>,
-                      ...bundleRows,
-                    ];
-                  })}
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-foreground">{item.displayName}</p>
+                        {item.choicesSummary ? (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{item.choicesSummary}</p>
+                        ) : null}
+                        {item.remarks.trim() ? (
+                          <p className="mt-1 text-[11px] font-medium text-amber-900/90 dark:text-amber-500/95">
+                            Note: {item.remarks.trim()}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                        RM {item.unitPrice.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-center tabular-nums font-semibold">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                        RM {(item.unitPrice * item.quantity).toFixed(2)}
+                      </td>
+                      <td className="px-2 py-3">
+                        <Button variant="ghost" size="icon-xs" onClick={() => removeItem(item.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </CardContent>

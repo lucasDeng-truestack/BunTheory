@@ -30,7 +30,9 @@ function OrderRow({ order }: { order: PosOrder }) {
           <p className="text-[11px] text-muted-foreground truncate">
             {order.items
               .map((i) => {
-                const base = `${i.quantity}x ${i.menuItemName}`;
+                const base = i.choicesSummary
+                  ? `${i.quantity}x ${i.displayName} (${i.choicesSummary})`
+                  : `${i.quantity}x ${i.displayName}`;
                 const r = i.remarks?.trim();
                 return r ? `${base} — “${r}”` : base;
               })

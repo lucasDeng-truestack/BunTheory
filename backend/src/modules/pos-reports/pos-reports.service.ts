@@ -42,20 +42,13 @@ export class PosReportsService {
           where: { ...where, serviceType: 'TAKEAWAY' },
         }),
         this.prisma.posOrderItem.groupBy({
-          by: ['menuItemId'],
+          by: ['productId', 'displayName'],
           where: { order: { ...where } },
           _sum: { quantity: true },
           orderBy: { _sum: { quantity: 'desc' } },
           take: 10,
         }),
       ]);
-
-    const menuItemIds = itemGroups.map((g) => g.menuItemId);
-    const menuItems = await this.prisma.posMenuItem.findMany({
-      where: { id: { in: menuItemIds } },
-      select: { id: true, name: true },
-    });
-    const menuMap = new Map(menuItems.map((m) => [m.id, m.name]));
 
     const totalRevenue =
       Number(cashAgg._sum.total ?? 0) + Number(qrAgg._sum.total ?? 0);
@@ -69,8 +62,8 @@ export class PosReportsService {
       eatHereOrders: eatHereCount,
       takeawayOrders: takeawayCount,
       topItems: itemGroups.map((g) => ({
-        menuItemId: g.menuItemId,
-        name: menuMap.get(g.menuItemId) ?? 'Unknown',
+        productId: g.productId,
+        name: g.displayName,
         quantitySold: g._sum.quantity ?? 0,
       })),
     };
@@ -129,25 +122,22 @@ export class PosReportsService {
         take: 8,
         include: {
           orderItems: {
-            select: { quantity: true, menuItem: { select: { name: true } } },
+            select: {
+              quantity: true,
+              displayName: true,
+              choicesSummary: true,
+            },
           },
         },
       }),
       this.prisma.posOrderItem.groupBy({
-        by: ['menuItemId'],
+        by: ['productId', 'displayName'],
         where: { order: todayCompleted },
         _sum: { quantity: true },
         orderBy: { _sum: { quantity: 'desc' } },
         take: 5,
       }),
     ]);
-
-    const menuItemIds = topItemGroups.map((g) => g.menuItemId);
-    const menuItems = await this.prisma.posMenuItem.findMany({
-      where: { id: { in: menuItemIds } },
-      select: { id: true, name: true },
-    });
-    const menuMap = new Map(menuItems.map((m) => [m.id, m.name]));
 
     return {
       pipeline: { placed: placedCount, preparing: preparingCount, ready: readyCount },
@@ -158,8 +148,8 @@ export class PosReportsService {
         qrRevenue: Number(qrAgg._sum.total ?? 0),
       },
       topItems: topItemGroups.map((g) => ({
-        menuItemId: g.menuItemId,
-        name: menuMap.get(g.menuItemId) ?? 'Unknown',
+        productId: g.productId,
+        name: g.displayName,
         quantitySold: g._sum.quantity ?? 0,
       })),
       recentOrders: recentOrders.map((o) => ({
@@ -172,7 +162,12 @@ export class PosReportsService {
         total: Number(o.total),
         createdAt: o.createdAt.toISOString(),
         itemsSummary: o.orderItems
-          .map((oi) => `${oi.quantity}x ${oi.menuItem.name}`)
+          .map((oi) => {
+            const label = oi.choicesSummary
+              ? `${oi.displayName} (${oi.choicesSummary})`
+              : oi.displayName;
+            return `${oi.quantity}x ${label}`;
+          })
           .join(', '),
       })),
     };

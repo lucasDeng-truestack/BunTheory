@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Loader2, Pencil, Settings } from 'lucide-react';
+import { ExternalLink, Flame, Loader2, Pencil, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { PosShell } from '@/components/layout/pos-shell';
 import { useAuthStore } from '@/store/auth.store';
@@ -24,15 +24,22 @@ export default function SettingsPage() {
 
   const [editingCompany, setEditingCompany] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [editingQr, setEditingQr] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
+
+  function notifyBrandingUpdated() {
+    window.dispatchEvent(new CustomEvent('pos-branding-updated'));
+  }
 
   const load = useCallback(async () => {
     try {
       const s = await posSettingsService.getSettings();
       setSettings(s);
       setCompanyName(s.companyName ?? '');
+      setCompanyLogoUrl(s.companyLogoUrl ?? null);
     } catch {
       toast.error('Failed to load settings');
     } finally {
@@ -52,9 +59,42 @@ export default function SettingsPage() {
       });
       toast.success('Company name saved');
       setEditingCompany(false);
+      notifyBrandingUpdated();
       await load();
     } catch {
       toast.error('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleLogoUpload(file: File | null) {
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const { url } = await uploadImage(file);
+      setCompanyLogoUrl(url);
+      await posSettingsService.updateBranding({ companyLogoUrl: url });
+      toast.success('Logo uploaded');
+      notifyBrandingUpdated();
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    setSaving(true);
+    try {
+      setCompanyLogoUrl(null);
+      await posSettingsService.updateBranding({ companyLogoUrl: '' });
+      toast.success('Logo removed — default mark will show');
+      notifyBrandingUpdated();
+      await load();
+    } catch {
+      toast.error('Failed to remove logo');
     } finally {
       setSaving(false);
     }
@@ -152,19 +192,50 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Store name and logo appear in the POS sidebar. Leave the name empty
+                to use the default &quot;The Weekend Grills&quot;.
+              </p>
               {!editingCompany ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-display font-bold uppercase tracking-wide mb-1">
-                      Store name
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {settings?.companyName?.trim() || (
-                        <span className="text-muted-foreground">
-                          (default: The Weekend Grills)
-                        </span>
-                      )}
-                    </p>
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                    <div className="flex flex-col items-center gap-2 sm:items-start">
+                      <div className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-border">
+                        <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg sm:h-[4.5rem] sm:w-[4.5rem]">
+                          {companyLogoUrl ? (
+                            <Image
+                              src={companyLogoUrl}
+                              alt={
+                                companyName.trim() || 'The Weekend Grills'
+                              }
+                              fill
+                              className="object-contain p-1"
+                              sizes="72px"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center rounded-lg bg-bbq-flame">
+                              <Flame className="h-7 w-7 text-white opacity-90" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-center text-xs text-muted-foreground sm:text-left">
+                        {companyLogoUrl ? 'Custom logo' : 'Default logo mark'}
+                      </p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground font-display font-bold uppercase tracking-wide mb-1">
+                        Store name
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {settings?.companyName?.trim() || (
+                          <span className="text-muted-foreground">
+                            (default: The Weekend Grills)
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     type="button"
@@ -178,25 +249,82 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="company-name" className="font-display">
-                      Store name
-                    </Label>
-                    <Input
-                      id="company-name"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="The Weekend Grills"
-                      maxLength={120}
-                    />
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                    <div className="flex flex-col items-center gap-2 sm:items-start">
+                      <div className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-border">
+                        <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg sm:h-[4.5rem] sm:w-[4.5rem]">
+                          {companyLogoUrl ? (
+                            <Image
+                              src={companyLogoUrl}
+                              alt={
+                                companyName.trim() || 'The Weekend Grills'
+                              }
+                              fill
+                              className="object-contain p-1"
+                              sizes="72px"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center rounded-lg bg-bbq-flame">
+                              <Flame className="h-7 w-7 text-white opacity-90" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Label htmlFor="logo-upload" className="font-display text-sm">
+                        Logo
+                      </Label>
+                      <Input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/jpg"
+                        className="max-w-[220px] cursor-pointer text-sm"
+                        disabled={uploadingLogo || saving}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          void handleLogoUpload(f ?? null);
+                          e.target.value = '';
+                        }}
+                      />
+                      {uploadingLogo && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Uploading…
+                        </div>
+                      )}
+                      {companyLogoUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="font-display text-xs text-destructive"
+                          disabled={saving || uploadingLogo}
+                          onClick={handleRemoveLogo}
+                        >
+                          Remove custom logo
+                        </Button>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label htmlFor="company-name" className="font-display">
+                        Store name
+                      </Label>
+                      <Input
+                        id="company-name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="The Weekend Grills"
+                        maxLength={120}
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       size="sm"
                       className="font-display bg-bbq-flame text-white hover:bg-bbq-flame/90"
-                      disabled={saving}
+                      disabled={saving || uploadingLogo}
                       onClick={handleSaveCompanyName}
                     >
                       {saving ? (
@@ -210,9 +338,11 @@ export default function SettingsPage() {
                       variant="ghost"
                       size="sm"
                       className="font-display"
+                      disabled={uploadingLogo}
                       onClick={() => {
                         setEditingCompany(false);
                         setCompanyName(settings?.companyName ?? '');
+                        setCompanyLogoUrl(settings?.companyLogoUrl ?? null);
                       }}
                     >
                       Cancel

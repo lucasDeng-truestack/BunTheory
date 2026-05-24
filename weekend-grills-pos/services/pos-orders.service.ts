@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import {
   PosOrder,
   PosOrderCreated,
+  PosOrderLineType,
   PosOrderStatus,
   PosPaymentStatus,
 } from '@/types/pos';
@@ -10,13 +11,15 @@ export interface CreateOrderPayload {
   customerName: string;
   serviceType: 'EAT_HERE' | 'TAKEAWAY';
   paymentMethod: 'CASH' | 'QR';
-  /** Tip in RM — embedded in receipt token only; not stored separately in DB totals. */
   tipAmount?: number;
   notes?: string;
   items: Array<{
-    menuItemId: string;
+    lineType: PosOrderLineType;
+    productId: string;
+    variantId?: string;
     quantity: number;
     remarks?: string;
+    comboSelections?: Array<{ slotId: string; optionId: string }>;
   }>;
 }
 

@@ -92,8 +92,11 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
           <div key={item.id}>
             <p className="font-semibold text-foreground text-sm">
               <span className="text-bbq-flame font-display">{item.quantity}x</span>{' '}
-              {item.menuItemName}
+              {item.displayName}
             </p>
+            {item.choicesSummary ? (
+              <p className="text-[11px] text-muted-foreground ml-5">{item.choicesSummary}</p>
+            ) : null}
             {item.remarks?.trim() ? (
               <p className="text-[11px] font-semibold text-amber-800 ml-5">
                 Guest note · {item.remarks.trim()}

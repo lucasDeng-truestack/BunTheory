@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ChefHat,
   CheckCircle,
@@ -17,8 +18,8 @@ import {
   Search,
   ChevronsLeft,
   ChevronsRight,
-  ExternalLink,
 } from 'lucide-react';
+import { posSettingsService } from '@/services/settings.service';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -26,13 +27,15 @@ import { adminAvatarInitial, adminDisplayLabel } from '@/lib/admin-display';
 
 const ICON_COL = 'flex size-5 shrink-0 items-center justify-center';
 
+const DEFAULT_COMPANY_NAME = 'The Weekend Grills';
+
 const PRIMARY_NAV = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/order-menu', label: 'Menu', icon: Utensils },
   { href: '/kitchen-queue', label: 'Kitchen', icon: ChefHat },
   { href: '/ready-queue', label: 'Ready', icon: Bell },
   { href: '/complete-queue', label: 'Done', icon: CheckCircle },
-  { href: '/inventory', label: 'Inventory', icon: Package },
+  { href: '/purchases', label: 'Purchases', icon: Package },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
@@ -78,10 +81,37 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, hydrated, admin, logout, hydrate } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+
+  const loadBranding = useCallback(async () => {
+    try {
+      const s = await posSettingsService.getSettings();
+      setCompanyName(s.companyName?.trim() || DEFAULT_COMPANY_NAME);
+      setCompanyLogoUrl(s.companyLogoUrl ?? null);
+    } catch {
+      setCompanyName(DEFAULT_COMPANY_NAME);
+      setCompanyLogoUrl(null);
+    }
+  }, []);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated) return;
+    void loadBranding();
+  }, [hydrated, isAuthenticated, loadBranding]);
+
+  useEffect(() => {
+    const onBrandingUpdated = () => {
+      void loadBranding();
+    };
+    window.addEventListener('pos-branding-updated', onBrandingUpdated);
+    return () =>
+      window.removeEventListener('pos-branding-updated', onBrandingUpdated);
+  }, [loadBranding]);
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
@@ -125,8 +155,19 @@ export function PosShell({ children }: { children: React.ReactNode }) {
               className="shrink-0 flex items-center justify-center rounded-xl bg-white p-1.5 shadow-sm ring-1 ring-bbq-charcoal/10"
               aria-hidden
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bbq-flame">
-                <Flame className="h-5 w-5 text-white" />
+              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-bbq-flame">
+                {companyLogoUrl ? (
+                  <Image
+                    src={companyLogoUrl}
+                    alt=""
+                    fill
+                    className="object-contain p-0.5"
+                    sizes="40px"
+                    unoptimized
+                  />
+                ) : (
+                  <Flame className="h-5 w-5 text-white" />
+                )}
               </div>
             </span>
             <span
@@ -139,7 +180,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
                 POS
               </span>
               <span className="font-display block text-sm font-bold leading-snug text-bbq-charcoal">
-                The Weekend Grills
+                {companyName}
               </span>
             </span>
           </Link>
@@ -202,39 +243,6 @@ export function PosShell({ children }: { children: React.ReactNode }) {
               )}
             </button>
           </div>
-        </div>
-
-        {/* "Other" section */}
-        <div
-          className={cn(
-            'border-t border-bbq-charcoal/10 py-3',
-            collapsed ? 'px-2' : 'px-3',
-          )}
-        >
-          <p
-            className={cn(
-              'font-display mb-2 text-[10px] font-semibold uppercase tracking-wider text-bbq-charcoal/40',
-              collapsed && 'sr-only',
-            )}
-          >
-            Other
-          </p>
-          <Link
-            href="/"
-            target="_blank"
-            title={collapsed ? 'View storefront' : undefined}
-            className={cn(
-              'font-display flex min-h-10 items-center rounded-xl text-sm font-medium text-bbq-charcoal/60 transition-colors hover:bg-bbq-cream/60 hover:text-bbq-charcoal',
-              collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-3 py-2',
-            )}
-          >
-            <span className={ICON_COL}>
-              <ExternalLink className="h-4 w-4" aria-hidden />
-            </span>
-            <span className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
-              View storefront
-            </span>
-          </Link>
         </div>
 
         {/* Staff footer */}
@@ -322,7 +330,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-bbq-flame md:hidden" />
             <span className="font-display text-base font-black text-foreground tracking-tight">
-              The Weekend Grills
+              {companyName}
             </span>
             <span className="hidden text-[10px] font-display font-semibold text-bbq-flame rounded-md bg-bbq-flame/10 px-1.5 py-0.5 sm:inline-block">
               POS
