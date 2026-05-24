@@ -15,6 +15,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AdminTeamCard } from '@/components/settings/admin-team-card';
 import { adminDisplayLabel } from '@/lib/admin-display';
+import {
+  DEFAULT_COMPANY_NAME,
+  syncBrandingFromSettings,
+} from '@/store/branding.store';
 
 export default function SettingsPage() {
   const { admin } = useAuthStore();
@@ -30,16 +34,16 @@ export default function SettingsPage() {
   const [editingQr, setEditingQr] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
 
-  function notifyBrandingUpdated() {
-    window.dispatchEvent(new CustomEvent('pos-branding-updated'));
-  }
-
   const load = useCallback(async () => {
     try {
       const s = await posSettingsService.getSettings();
       setSettings(s);
       setCompanyName(s.companyName ?? '');
       setCompanyLogoUrl(s.companyLogoUrl ?? null);
+      syncBrandingFromSettings(
+        s.companyName?.trim() || DEFAULT_COMPANY_NAME,
+        s.companyLogoUrl ?? null,
+      );
     } catch {
       toast.error('Failed to load settings');
     } finally {
@@ -59,7 +63,10 @@ export default function SettingsPage() {
       });
       toast.success('Company name saved');
       setEditingCompany(false);
-      notifyBrandingUpdated();
+      syncBrandingFromSettings(
+        companyName.trim() || DEFAULT_COMPANY_NAME,
+        companyLogoUrl,
+      );
       await load();
     } catch {
       toast.error('Failed to save');
@@ -76,7 +83,10 @@ export default function SettingsPage() {
       setCompanyLogoUrl(url);
       await posSettingsService.updateBranding({ companyLogoUrl: url });
       toast.success('Logo uploaded');
-      notifyBrandingUpdated();
+      syncBrandingFromSettings(
+        companyName.trim() || DEFAULT_COMPANY_NAME,
+        url,
+      );
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
@@ -91,7 +101,7 @@ export default function SettingsPage() {
       setCompanyLogoUrl(null);
       await posSettingsService.updateBranding({ companyLogoUrl: '' });
       toast.success('Logo removed — default mark will show');
-      notifyBrandingUpdated();
+      syncBrandingFromSettings(companyName.trim() || DEFAULT_COMPANY_NAME, null);
       await load();
     } catch {
       toast.error('Failed to remove logo');

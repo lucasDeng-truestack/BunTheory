@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ChefHat,
   CheckCircle,
@@ -19,15 +19,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
-import { posSettingsService } from '@/services/settings.service';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth.store';
+import { useBrandingStore } from '@/store/branding.store';
 import { cn } from '@/lib/utils';
 import { adminAvatarInitial, adminDisplayLabel } from '@/lib/admin-display';
 
 const ICON_COL = 'flex size-5 shrink-0 items-center justify-center';
-
-const DEFAULT_COMPANY_NAME = 'The Weekend Grills';
 
 const PRIMARY_NAV = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -80,38 +78,30 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, hydrated, admin, logout, hydrate } = useAuthStore();
+  const companyName = useBrandingStore((s) => s.companyName);
+  const companyLogoUrl = useBrandingStore((s) => s.companyLogoUrl);
+  const hydrateBranding = useBrandingStore((s) => s.hydrateFromStorage);
+  const refreshBranding = useBrandingStore((s) => s.refresh);
   const [collapsed, setCollapsed] = useState(false);
-  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
-  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
-
-  const loadBranding = useCallback(async () => {
-    try {
-      const s = await posSettingsService.getSettings();
-      setCompanyName(s.companyName?.trim() || DEFAULT_COMPANY_NAME);
-      setCompanyLogoUrl(s.companyLogoUrl ?? null);
-    } catch {
-      setCompanyName(DEFAULT_COMPANY_NAME);
-      setCompanyLogoUrl(null);
-    }
-  }, []);
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    hydrateBranding();
+  }, [hydrate, hydrateBranding]);
 
   useEffect(() => {
     if (!hydrated || !isAuthenticated) return;
-    void loadBranding();
-  }, [hydrated, isAuthenticated, loadBranding]);
+    void refreshBranding();
+  }, [hydrated, isAuthenticated, refreshBranding]);
 
   useEffect(() => {
     const onBrandingUpdated = () => {
-      void loadBranding();
+      void refreshBranding();
     };
     window.addEventListener('pos-branding-updated', onBrandingUpdated);
     return () =>
       window.removeEventListener('pos-branding-updated', onBrandingUpdated);
-  }, [loadBranding]);
+  }, [refreshBranding]);
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
@@ -158,6 +148,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
               <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-bbq-flame">
                 {companyLogoUrl ? (
                   <Image
+                    key={companyLogoUrl}
                     src={companyLogoUrl}
                     alt=""
                     fill
