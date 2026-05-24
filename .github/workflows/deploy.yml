@@ -34,7 +34,9 @@ on:
         options:
           - db-migrate
           - db-seed
+          - db-seed-pos
           - db-migrate-and-seed
+          - db-migrate-and-seed-pos
 
 jobs:
   neon-db:
@@ -72,11 +74,16 @@ jobs:
         working-directory: backend
 
       - name: Apply pending migrations
-        if: github.event_name == 'push' || github.event.inputs.action == 'db-migrate' || github.event.inputs.action == 'db-migrate-and-seed'
+        if: github.event_name == 'push' || github.event.inputs.action == 'db-migrate' || github.event.inputs.action == 'db-migrate-and-seed' || github.event.inputs.action == 'db-migrate-and-seed-pos'
         run: npx prisma migrate deploy
         working-directory: backend
 
-      - name: Seed Neon database
+      - name: Seed Neon database (full — Bun Theory + POS)
         if: github.event.inputs.action == 'db-seed' || github.event.inputs.action == 'db-migrate-and-seed'
         run: npm run db:seed
+        working-directory: backend
+
+      - name: Seed Neon database (Weekend Grills POS only)
+        if: github.event.inputs.action == 'db-seed-pos' || github.event.inputs.action == 'db-migrate-and-seed-pos'
+        run: npm run db:seed:pos
         working-directory: backend
