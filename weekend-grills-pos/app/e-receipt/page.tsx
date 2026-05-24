@@ -1,10 +1,17 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AlertCircle, Download } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { fetchPublicReceipt } from '@/services/pos-public-receipt.service';
 import type { PublicPosReceipt } from '@/types/pos';
+import {
+  E_RECEIPT_BRAND_BYLINE,
+  E_RECEIPT_BRAND_NAME,
+  downloadReceiptPdf,
+} from '@/lib/e-receipt-pdf';
 import { Button } from '@/components/ui/button';
 
 function formatMoney(n: number) {
@@ -14,8 +21,10 @@ function formatMoney(n: number) {
 function EReceiptInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const isStaffPreview = searchParams.get('preview') === 'staff';
   const [data, setData] = useState<PublicPosReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!token?.trim()) {
@@ -35,10 +44,18 @@ function EReceiptInner() {
       });
   }, [token]);
 
-  const handleSavePdf = () => {
-    if (typeof window === 'undefined' || !data) return;
-    window.print();
-  };
+  async function handleSavePdf() {
+    if (!data || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadReceiptPdf(data);
+      toast.success('Receipt downloaded');
+    } catch {
+      toast.error('Could not generate PDF. Try again.');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (!token?.trim()) {
     return (
@@ -70,31 +87,56 @@ function EReceiptInner() {
 
   return (
     <div className="e-receipt-shell mx-auto max-w-md px-4 py-6 pb-20">
+      {isStaffPreview ? (
+        <div className="mb-4 rounded-xl border border-bbq-flame/25 bg-bbq-flame/10 px-4 py-3">
+          <p className="font-display text-center text-xs font-bold uppercase tracking-wide text-bbq-flame">
+            Staff preview — guest view
+          </p>
+          <p className="mt-1 text-center text-[11px] text-muted-foreground">
+            This is exactly what the customer sees after scanning the QR.
+          </p>
+          <Link
+            href="/order-menu"
+            className="font-display mt-3 flex w-full items-center justify-center rounded-lg border border-bbq-flame/30 bg-background px-3 py-2 text-sm font-bold text-bbq-flame transition hover:bg-bbq-flame/5"
+          >
+            <ArrowLeft className="mr-2 h-3.5 w-3.5" aria-hidden />
+            Back to menu
+          </Link>
+        </div>
+      ) : null}
+
       <div className="e-receipt-toolbar sticky top-0 z-10 -mx-4 mb-6 border-b border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
         <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <p className="font-display text-center text-sm font-bold text-muted-foreground sm:text-left">
-            Your e-receipt
+            {isStaffPreview ? 'Customer e-receipt preview' : 'Your e-receipt'}
           </p>
           <Button
             type="button"
             size="lg"
             className="font-display w-full shrink-0 bg-bbq-flame font-black text-white hover:bg-bbq-flame/90 sm:w-auto sm:min-w-[200px]"
             onClick={handleSavePdf}
-            aria-label="Download or save receipt as PDF using your browser print dialog"
+            disabled={downloading}
+            aria-label="Download receipt as PDF file"
           >
-            <Download className="mr-2 h-4 w-4" aria-hidden />
-            Download receipt (PDF)
+            {downloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Download className="mr-2 h-4 w-4" aria-hidden />
+            )}
+            {downloading ? 'Generating PDF…' : 'Download receipt (PDF)'}
           </Button>
         </div>
         <p className="mx-auto mt-2 max-w-md text-center text-[11px] leading-snug text-muted-foreground sm:text-left">
-          Opens print — choose <span className="font-semibold">Save as PDF</span> or your printer.
-          Keeps this layout and BBQ colors.
+          Saves a PDF file to your device — no print dialog.
         </p>
       </div>
 
-      <article className="e-receipt-card rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <article className="e-receipt-card rounded-2xl border border-border bg-card p-6 shadow-md ring-1 ring-black/5">
         <p className="font-display text-center text-xs font-bold uppercase tracking-[0.2em] text-bbq-flame">
-          Weekend Grills
+          {E_RECEIPT_BRAND_NAME}
+        </p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          {E_RECEIPT_BRAND_BYLINE}
         </p>
         <p className="font-display mt-2 text-center text-xl font-black text-foreground">
           Receipt
