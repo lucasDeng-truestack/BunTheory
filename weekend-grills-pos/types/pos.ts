@@ -1,6 +1,24 @@
 export type PosProductType = 'COMBO' | 'VARIANT' | 'SIMPLE';
 export type PosOrderLineType = 'COMBO' | 'VARIANT' | 'SIMPLE';
 
+const POS_PRODUCT_TYPE_LABELS: Record<PosProductType, string> = {
+  SIMPLE: 'Simple',
+  VARIANT: 'Variant',
+  COMBO: 'Combo',
+};
+
+export function formatPosProductType(type: PosProductType): string {
+  return POS_PRODUCT_TYPE_LABELS[type];
+}
+
+export const POS_PRODUCT_TYPE_OPTIONS: Array<{
+  value: PosProductType;
+  label: string;
+}> = (['SIMPLE', 'VARIANT', 'COMBO'] as const).map((value) => ({
+  value,
+  label: POS_PRODUCT_TYPE_LABELS[value],
+}));
+
 export type PosServiceType = 'EAT_HERE' | 'TAKEAWAY';
 export type PosPaymentMethod = 'CASH' | 'QR';
 export type PosPaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'VOIDED';

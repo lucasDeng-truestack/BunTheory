@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { PosProduct, PosProductType } from '@/types/pos';
+import { PosProduct, PosProductType, POS_PRODUCT_TYPE_OPTIONS, formatPosProductType } from '@/types/pos';
 import { posMenuService } from '@/services/pos-menu.service';
 import {
   Dialog,
@@ -169,13 +169,17 @@ export function ProductFormDialog({
             <div>
               <Label className="font-display text-xs">Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as PosProductType)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="Select type">
+                    {formatPosProductType(type)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SIMPLE">Simple item</SelectItem>
-                  <SelectItem value="VARIANT">Variants (sizes)</SelectItem>
-                  <SelectItem value="COMBO">Combo</SelectItem>
+                  {POS_PRODUCT_TYPE_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
