@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   ChefHat,
@@ -20,8 +20,8 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/auth.store';
 import { useBrandingStore } from '@/store/branding.store';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { cn } from '@/lib/utils';
 import { adminAvatarInitial, adminDisplayLabel } from '@/lib/admin-display';
 
@@ -76,8 +76,7 @@ function LiveClock() {
 
 export function PosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { isAuthenticated, hydrated, admin, logout, hydrate } = useAuthStore();
+  const { ready, logout: handleLogout, admin } = useStaffAuth();
   const companyName = useBrandingStore((s) => s.companyName);
   const companyLogoUrl = useBrandingStore((s) => s.companyLogoUrl);
   const hydrateBranding = useBrandingStore((s) => s.hydrateFromStorage);
@@ -85,14 +84,13 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    hydrate();
     hydrateBranding();
-  }, [hydrate, hydrateBranding]);
+  }, [hydrateBranding]);
 
   useEffect(() => {
-    if (!hydrated || !isAuthenticated) return;
+    if (!ready) return;
     void refreshBranding();
-  }, [hydrated, isAuthenticated, refreshBranding]);
+  }, [ready, refreshBranding]);
 
   useEffect(() => {
     const onBrandingUpdated = () => {
@@ -103,20 +101,9 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('pos-branding-updated', onBrandingUpdated);
   }, [refreshBranding]);
 
-  useEffect(() => {
-    if (hydrated && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [hydrated, isAuthenticated, router]);
-
-  if (!hydrated || !isAuthenticated) return null;
+  if (!ready) return null;
 
   const userInitial = adminAvatarInitial(admin);
-
-  function handleLogout() {
-    logout();
-    router.replace('/login');
-  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -337,8 +324,18 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 md:gap-3">
             <LiveClock />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="md:hidden shrink-0 text-muted-foreground hover:text-destructive"
+              onClick={handleLogout}
+              aria-label="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 

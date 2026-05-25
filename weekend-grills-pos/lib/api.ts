@@ -1,3 +1,5 @@
+import { handleUnauthorized } from '@/lib/auth-session';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export function getApiUrl(path: string) {
@@ -79,6 +81,9 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      handleUnauthorized();
+    }
     const body = await res.json().catch(() => ({}));
     throw new Error(formatApiMessage(body, res.status));
   }

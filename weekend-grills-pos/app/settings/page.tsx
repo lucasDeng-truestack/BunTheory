@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Flame, Loader2, Pencil, Settings } from 'lucide-react';
+import { ExternalLink, Flame, Loader2, LogOut, Pencil, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { PosShell } from '@/components/layout/pos-shell';
 import { useAuthStore } from '@/store/auth.store';
+import { useRouter } from 'next/navigation';
 import { posSettingsService, PosSettings } from '@/services/settings.service';
 import { uploadImage } from '@/services/upload.service';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,13 @@ import {
 } from '@/store/branding.store';
 
 export default function SettingsPage() {
-  const { admin } = useAuthStore();
+  const router = useRouter();
+  const { admin, logout } = useAuthStore();
+
+  function handleSignOut() {
+    logout();
+    router.replace('/login');
+  }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<PosSettings | null>(null);
@@ -189,6 +196,16 @@ export default function SettingsPage() {
                   The Weekend Grills POS · Tropical Vibe Barbeque
                 </p>
               </div>
+              <Separator />
+              <Button
+                type="button"
+                variant="outline"
+                className="font-display w-full border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" aria-hidden />
+                Sign out
+              </Button>
             </CardContent>
           </Card>
 

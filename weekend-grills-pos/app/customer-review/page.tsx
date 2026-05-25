@@ -4,29 +4,24 @@ import { useRouter } from 'next/navigation';
 import { Flame, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart.store';
-import { useAuthStore } from '@/store/auth.store';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export default function CustomerReviewPage() {
   const router = useRouter();
-  const { isAuthenticated, hydrated, hydrate } = useAuthStore();
+  const { ready } = useStaffAuth();
   const { items, customerName, serviceType, paymentMethod, total } = useCartStore();
   const cartTotal = total();
 
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  useEffect(() => {
-    if (hydrated && !isAuthenticated) router.replace('/login');
-  }, [hydrated, isAuthenticated, router]);
-
-  useEffect(() => {
+    if (!ready) return;
     if (items.length === 0) {
       router.replace('/order-menu');
     }
-  }, [items.length, router]);
+  }, [ready, items.length, router]);
+
+  if (!ready) return null;
 
   if (items.length === 0) {
     return null;

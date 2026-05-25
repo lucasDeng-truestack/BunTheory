@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Flame, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, hydrated, hydrate } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,6 +19,12 @@ export default function LoginPage() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (searchParams.get('expired') === '1') {
+      toast.error('Session expired — please sign in again.');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (hydrated && isAuthenticated) router.replace('/dashboard');
@@ -102,5 +109,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-bbq-charcoal">
+          <Loader2 className="h-8 w-8 animate-spin text-bbq-flame" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

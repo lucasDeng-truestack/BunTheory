@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/store/cart.store';
-import { useAuthStore } from '@/store/auth.store';
+import { useStaffAuth } from '@/hooks/use-staff-auth';
 import { posOrdersService } from '@/services/pos-orders.service';
 import { cn } from '@/lib/utils';
 import { posSettingsService } from '@/services/settings.service';
@@ -27,7 +27,7 @@ type CheckoutPhase = 'browse' | 'celebrate' | 'receipt';
 
 export default function PaymentPage() {
   const router = useRouter();
-  const { isAuthenticated, hydrated, hydrate } = useAuthStore();
+  const { ready } = useStaffAuth();
   const {
     items,
     customerName,
@@ -53,15 +53,7 @@ export default function PaymentPage() {
   const grandTotal = cartTotal;
 
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  useEffect(() => {
-    if (hydrated && !isAuthenticated) router.replace('/login');
-  }, [hydrated, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (!hydrated || !isAuthenticated) return;
+    if (!ready) return;
     void posSettingsService
       .getSettings()
       .then((s) => {
@@ -69,7 +61,7 @@ export default function PaymentPage() {
         setPaymentQrUrl(u && u.length > 0 ? u : null);
       })
       .catch(() => setPaymentQrUrl(null));
-  }, [hydrated, isAuthenticated]);
+  }, [ready]);
 
   useEffect(() => {
     return () => {
@@ -106,6 +98,8 @@ export default function PaymentPage() {
     }
     router.push(buildEReceiptPath(token, { staffPreview: true }));
   }
+
+  if (!ready) return null;
 
   if (checkoutPhase === 'browse' && items.length === 0) {
     return null;
