@@ -45,11 +45,19 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bbq-charcoal">
-      <div className="w-full max-w-sm space-y-8 px-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bbq-charcoal">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgb(249_115_22/0.22),transparent_55%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_50%_0%,rgb(154_52_18/0.12),transparent_50%)]"
+        aria-hidden
+      />
+      <div className="relative w-full max-w-sm space-y-8 px-6">
         {/* Brand */}
         <div className="flex flex-col items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-bbq-flame shadow-lg shadow-bbq-flame/30">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-bbq-flame to-bbq-coals shadow-[0_0_28px_rgb(249_115_22/0.45)] ring-1 ring-bbq-flame/40">
             <Flame className="h-8 w-8 text-white" />
           </div>
           <div className="text-center">
@@ -57,7 +65,7 @@ function LoginForm() {
               The Weekend Grills
             </h1>
             <p className="text-stone-500 text-sm font-display mt-1">
-              Point of Sale System
+              Backyard fire · Point of Sale
             </p>
           </div>
         </div>
@@ -104,8 +112,8 @@ function LoginForm() {
           </Button>
         </form>
 
-        <p className="text-center text-[11px] text-stone-600 font-display">
-          Tropical Vibe Barbeque
+        <p className="text-center text-[11px] text-stone-500 font-display">
+          Charcoal · Ember · Smoke
         </p>
       </div>
     </div>

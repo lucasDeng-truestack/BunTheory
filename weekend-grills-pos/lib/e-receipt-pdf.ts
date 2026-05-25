@@ -3,8 +3,8 @@ import type { PublicPosReceipt } from '@/types/pos';
 export const E_RECEIPT_BRAND_NAME = 'Weekend Grills';
 export const E_RECEIPT_BRAND_BYLINE = 'by Bakar & Roast';
 
-const FLAME_RGB: [number, number, number] = [234, 88, 12];
-const INK_RGB: [number, number, number] = [28, 28, 28];
+const FLAME_RGB: [number, number, number] = [249, 115, 22];
+const INK_RGB: [number, number, number] = [15, 14, 13];
 const MUTED_RGB: [number, number, number] = [115, 115, 115];
 const EMERALD_RGB: [number, number, number] = [5, 150, 105];
 

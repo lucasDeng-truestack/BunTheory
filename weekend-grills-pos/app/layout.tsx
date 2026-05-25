@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'The Weekend Grills POS',
-  description: 'Tropical Vibe Barbeque — Point of Sale System',
+  description: 'Classic backyard fire — charcoal & ember POS',
 };
 
 export default function RootLayout({

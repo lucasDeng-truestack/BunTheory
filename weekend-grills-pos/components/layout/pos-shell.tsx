@@ -107,17 +107,17 @@ export function PosShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* ─── Desktop sidebar (frontend-style) ─────────────────── */}
+      {/* ─── Desktop sidebar — charcoal pit ───────────────────── */}
       <aside
         className={cn(
-          'hidden md:flex flex-col bg-white border-r border-bbq-charcoal/10 transition-[width] duration-200',
+          'hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-200 shadow-[inset_-1px_0_0_rgb(249_115_22/0.08)]',
           collapsed ? 'w-[68px]' : 'w-56',
         )}
       >
         {/* Brand header */}
         <div
           className={cn(
-            'border-b border-bbq-charcoal/10 py-5',
+            'border-b border-sidebar-border py-5',
             collapsed ? 'px-2' : 'px-3',
           )}
         >
@@ -129,10 +129,10 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <span
-              className="shrink-0 flex items-center justify-center rounded-xl bg-white p-1.5 shadow-sm ring-1 ring-bbq-charcoal/10"
+              className="shrink-0 flex items-center justify-center rounded-xl bg-bbq-grate p-1.5 shadow-inner ring-1 ring-bbq-flame/25"
               aria-hidden
             >
-              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-bbq-flame">
+              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-bbq-flame to-bbq-coals shadow-[0_0_12px_rgb(249_115_22/0.35)]">
                 {companyLogoUrl ? (
                   <Image
                     key={companyLogoUrl}
@@ -154,10 +154,10 @@ export function PosShell({ children }: { children: React.ReactNode }) {
                 collapsed ? 'hidden' : 'flex',
               )}
             >
-              <span className="inline-flex w-fit items-center rounded-full bg-bbq-charcoal px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-white">
+              <span className="inline-flex w-fit items-center rounded-full border border-bbq-flame/40 bg-bbq-flame/15 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-bbq-flame">
                 POS
               </span>
-              <span className="font-display block text-sm font-bold leading-snug text-bbq-charcoal">
+              <span className="font-display block text-sm font-bold leading-snug text-sidebar-foreground">
                 {companyName}
               </span>
             </span>
@@ -185,8 +185,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
                     ? 'justify-center px-0 py-3'
                     : 'gap-3 px-3 py-2.5',
                   active
-                    ? 'bg-bbq-flame text-white shadow-sm'
-                    : 'text-bbq-charcoal/65 hover:bg-bbq-cream/60 hover:text-bbq-charcoal',
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-bbq-flame/20'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 )}
               >
                 <span className={ICON_COL}>
@@ -206,12 +206,12 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Collapse toggle */}
-        <div className="hidden shrink-0 border-t border-bbq-charcoal/10 lg:block">
+        <div className="hidden shrink-0 border-t border-sidebar-border lg:block">
           <div className="flex justify-center py-2">
             <button
               type="button"
               onClick={() => setCollapsed((v) => !v)}
-              className="rounded-lg p-2 text-bbq-charcoal/45 transition hover:bg-bbq-cream hover:text-bbq-charcoal"
+              className="rounded-lg p-2 text-sidebar-foreground/50 transition hover:bg-sidebar-accent hover:text-sidebar-foreground"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? (
@@ -226,7 +226,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         {/* Staff footer */}
         <div
           className={cn(
-            'mt-auto border-t border-bbq-charcoal/10 bg-bbq-cream/25 py-4',
+            'mt-auto border-t border-sidebar-border bg-bbq-grate/40 py-4',
             collapsed ? 'px-2' : 'px-3',
           )}
         >
@@ -237,16 +237,16 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bbq-flame/15 font-display text-sm font-bold text-bbq-flame ring-2 ring-bbq-flame/20"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bbq-flame/20 font-display text-sm font-bold text-bbq-flame ring-2 ring-bbq-flame/30"
               aria-hidden
             >
               {userInitial}
             </div>
             <div className={cn('min-w-0 flex-1', collapsed && 'hidden')}>
-              <p className="font-display truncate text-sm font-semibold text-bbq-charcoal">
+              <p className="font-display truncate text-sm font-semibold text-sidebar-foreground">
                 {adminDisplayLabel(admin)}
               </p>
-              <p className="truncate text-xs text-bbq-charcoal/50">
+              <p className="truncate text-xs text-sidebar-foreground/55">
                 {admin?.email}
               </p>
             </div>
@@ -254,7 +254,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
               type="button"
               variant="ghost"
               size="icon"
-              className="shrink-0 rounded-full text-bbq-charcoal/60 hover:text-bbq-charcoal"
+              className="shrink-0 rounded-full text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               onClick={handleLogout}
               aria-label="Sign out"
             >
@@ -264,8 +264,8 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ─── Mobile bottom nav ────────────────────────────────── */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 flex md:hidden bg-white border-t border-bbq-charcoal/10 px-1 pb-[env(safe-area-inset-bottom)]">
+      {/* ─── Mobile bottom nav — charcoal bar ─────────────────── */}
+      <nav className="fixed bottom-0 inset-x-0 z-50 flex md:hidden border-t border-sidebar-border bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgb(0_0_0/0.25)]">
         {PRIMARY_NAV.slice(0, 5).map((item) => {
           const Icon = item.icon;
           const active = navActive(pathname, item.href);
@@ -277,7 +277,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
                 'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors',
                 active
                   ? 'text-bbq-flame'
-                  : 'text-bbq-charcoal/45',
+                  : 'text-sidebar-foreground/50',
               )}
             >
               <Icon className="h-5 w-5" />
@@ -291,10 +291,10 @@ export function PosShell({ children }: { children: React.ReactNode }) {
             'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors',
             pathname.startsWith('/settings')
               ? 'text-bbq-flame'
-              : 'text-bbq-charcoal/45',
+              : 'text-sidebar-foreground/50',
           )}
         >
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-bbq-flame/15 text-bbq-flame text-[9px] font-bold font-display">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-bbq-flame/20 text-bbq-flame text-[9px] font-bold font-display ring-1 ring-bbq-flame/30">
             {userInitial}
           </div>
           <span className="font-display">More</span>
@@ -304,13 +304,13 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       {/* ─── Main content area ────────────────────────────────── */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-2 shrink-0 shadow-sm">
+        <header className="flex items-center gap-3 border-b border-border bg-card/95 px-4 py-2 shrink-0 shadow-sm backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-bbq-flame md:hidden" />
             <span className="font-display text-base font-black text-foreground tracking-tight">
               {companyName}
             </span>
-            <span className="hidden text-[10px] font-display font-semibold text-bbq-flame rounded-md bg-bbq-flame/10 px-1.5 py-0.5 sm:inline-block">
+            <span className="hidden text-[10px] font-display font-semibold text-bbq-ember rounded-md border border-bbq-flame/25 bg-bbq-flame/10 px-1.5 py-0.5 sm:inline-block">
               POS
             </span>
           </div>

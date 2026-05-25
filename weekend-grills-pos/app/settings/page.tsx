@@ -193,7 +193,7 @@ export default function SettingsPage() {
                   System
                 </p>
                 <p className="text-sm text-foreground font-display">
-                  The Weekend Grills POS · Tropical Vibe Barbeque
+                  The Weekend Grills POS · Backyard fire theme
                 </p>
               </div>
               <Separator />
