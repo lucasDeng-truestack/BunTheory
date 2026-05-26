@@ -31,15 +31,15 @@ export default function CustomerReviewPage() {
     <div className="min-h-screen bg-bbq-charcoal flex flex-col">
       <div className="flex items-center gap-2 px-6 py-2.5 border-b border-stone-700/60">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/order-menu')}
           className="text-stone-400 hover:text-white flex items-center gap-1 text-sm transition"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Cart
         </button>
-        <span className="ml-auto text-xs text-stone-500 font-display">
-          Turn iPad to customer
-        </span>
+        <Badge variant="secondary" className="ml-auto font-display">
+          Step 2 · Summary
+        </Badge>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 max-w-lg mx-auto w-full">
@@ -116,7 +116,7 @@ export default function CustomerReviewPage() {
 
         <div className="flex gap-3 w-full">
           <Button
-            onClick={() => router.back()}
+            onClick={() => router.push('/order-menu')}
             variant="outline"
             className="flex-1 rounded-xl py-7 text-base font-display font-bold border-2 border-stone-600 bg-stone-800 text-stone-200 hover:bg-stone-700"
           >

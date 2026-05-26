@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { CartItem, PosPaymentMethod, PosServiceType } from '@/types/pos';
 
+export type CartDiscountPercent = 0 | 5 | 10;
+
 interface CartState {
   items: CartItem[];
   customerName: string;
   serviceType: PosServiceType;
   paymentMethod: PosPaymentMethod;
   notes: string;
+  discountPercent: CartDiscountPercent;
 
   addLine: (item: Omit<CartItem, 'id'>) => void;
   removeItem: (id: string) => void;
@@ -16,8 +19,11 @@ interface CartState {
   setServiceType: (type: PosServiceType) => void;
   setPaymentMethod: (method: PosPaymentMethod) => void;
   setNotes: (notes: string) => void;
+  setDiscountPercent: (percent: CartDiscountPercent) => void;
   clearCart: () => void;
   total: () => number;
+  discountAmount: () => number;
+  payableTotal: () => number;
   itemCount: () => number;
 }
 
@@ -27,6 +33,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   serviceType: 'EAT_HERE',
   paymentMethod: 'CASH',
   notes: '',
+  discountPercent: 0,
 
   addLine: (item) => {
     const id = `${item.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -56,6 +63,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setNotes: (notes) => set({ notes }),
 
+  setDiscountPercent: (percent) => set({ discountPercent: percent }),
+
   clearCart: () =>
     set({
       items: [],
@@ -63,6 +72,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       serviceType: 'EAT_HERE',
       paymentMethod: 'CASH',
       notes: '',
+      discountPercent: 0,
     }),
 
   total: () =>
@@ -70,6 +80,19 @@ export const useCartStore = create<CartState>((set, get) => ({
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     ),
+
+  discountAmount: () => {
+    const subtotal = get().total();
+    const pct = get().discountPercent;
+    if (pct <= 0) return 0;
+    return Math.round(subtotal * pct) / 100;
+  },
+
+  payableTotal: () => {
+    const subtotal = get().total();
+    const discount = get().discountAmount();
+    return Math.round((subtotal - discount) * 100) / 100;
+  },
 
   itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 }));

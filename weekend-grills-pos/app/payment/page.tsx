@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Eye, Loader2, Banknote, Check, CreditCard, Trash2 } from 'lucide-react';
+import { ChevronLeft, Eye, Loader2, Banknote, Check, CreditCard, Trash2, Maximize2, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,10 @@ export default function PaymentPage() {
     paymentMethod,
     setPaymentMethod,
     total,
+    discountPercent,
+    setDiscountPercent,
+    discountAmount,
+    payableTotal,
     removeItem,
     clearCart,
   } = useCartStore();
@@ -49,8 +53,14 @@ export default function PaymentPage() {
   } | null>(null);
   /** Payment QR from Settings · shown when guest pays by QR */
   const [paymentQrUrl, setPaymentQrUrl] = useState<string | null>(null);
+  const [qrExpandedOpen, setQrExpandedOpen] = useState(false);
   const cartTotal = total();
-  const grandTotal = cartTotal;
+  const discount = discountAmount();
+  const grandTotal = payableTotal();
+
+  function toggleDiscount(percent: 5 | 10) {
+    setDiscountPercent(discountPercent === percent ? 0 : percent);
+  }
 
   useEffect(() => {
     if (!ready) return;
@@ -73,6 +83,10 @@ export default function PaymentPage() {
     if (checkoutPhase !== 'browse') return;
     if (items.length === 0) router.replace('/order-menu');
   }, [checkoutPhase, items.length, router]);
+
+  useEffect(() => {
+    if (paymentMethod !== 'QR') setQrExpandedOpen(false);
+  }, [paymentMethod]);
 
   const cashParsed =
     paymentMethod !== 'CASH'
@@ -120,6 +134,7 @@ export default function PaymentPage() {
         customerName: customerName.trim(),
         serviceType,
         paymentMethod,
+        discountPercent: discountPercent || undefined,
         items: items.map((i) => ({
           lineType: i.lineType,
           productId: i.productId,
@@ -263,9 +278,41 @@ export default function PaymentPage() {
               <CardTitle className="font-display text-lg">Payable Amount</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-3xl font-display font-black text-bbq-flame tabular-nums">RM {cartTotal.toFixed(2)}</p>
+              <p className="text-3xl font-display font-black text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</p>
 
               <p className="text-xs text-muted-foreground">Guests: {customerName || '—'}</p>
+
+              <div>
+                <p className="text-xs font-display font-bold text-muted-foreground mb-2 uppercase tracking-wide">
+                  Discount
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleDiscount(5)}
+                    className={cn(
+                      'flex-1 rounded-lg border-2 py-2.5 text-sm font-display font-bold transition',
+                      discountPercent === 5
+                        ? 'border-bbq-flame bg-accent text-bbq-flame'
+                        : 'border-border text-muted-foreground hover:border-bbq-flame/30',
+                    )}
+                  >
+                    5% off
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleDiscount(10)}
+                    className={cn(
+                      'flex-1 rounded-lg border-2 py-2.5 text-sm font-display font-bold transition',
+                      discountPercent === 10
+                        ? 'border-bbq-flame bg-accent text-bbq-flame'
+                        : 'border-border text-muted-foreground hover:border-bbq-flame/30',
+                    )}
+                  >
+                    10% off
+                  </button>
+                </div>
+              </div>
 
               {/* Payment method */}
               <div className="flex gap-2">
@@ -323,16 +370,28 @@ export default function PaymentPage() {
                       <p className="text-xs font-display font-bold uppercase tracking-wide text-muted-foreground">
                         Scan to pay
                       </p>
-                      <div className="relative mx-auto aspect-square w-full max-w-52 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setQrExpandedOpen(true)}
+                        className="group relative mx-auto aspect-square w-full max-w-56 overflow-hidden rounded-xl border-2 border-border bg-white shadow-sm transition hover:border-bbq-flame/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bbq-flame"
+                        aria-label="Enlarge payment QR code for guest to scan"
+                      >
                         <Image
                           src={paymentQrUrl}
                           alt="Transfer QR code — scan with banking app"
                           fill
-                          className="object-contain p-2"
-                          sizes="208px"
+                          className="object-contain p-3"
+                          sizes="224px"
                           unoptimized
                         />
-                      </div>
+                        <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/65 px-2 py-1 text-[10px] font-display font-bold uppercase tracking-wide text-white opacity-90 transition group-hover:opacity-100">
+                          <Maximize2 className="h-3 w-3" aria-hidden />
+                          Enlarge
+                        </span>
+                      </button>
+                      <p className="text-center font-display text-[10px] text-muted-foreground">
+                        Tap QR to show full size for guest
+                      </p>
                     </>
                   ) : (
                     <p className="text-center text-xs leading-relaxed text-muted-foreground">
@@ -359,6 +418,12 @@ export default function PaymentPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="tabular-nums">RM {cartTotal.toFixed(2)}</span>
                 </div>
+                {discount > 0 ? (
+                  <div className="flex justify-between text-sm text-emerald-700 dark:text-emerald-400">
+                    <span>Discount ({discountPercent}%)</span>
+                    <span className="tabular-nums">− RM {discount.toFixed(2)}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between text-lg font-display font-black pt-1">
                   <span>TOTAL</span>
                   <span className="text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</span>
@@ -389,6 +454,58 @@ export default function PaymentPage() {
         </>
       ) : (
         <div className="min-h-[32vh]" aria-hidden />
+      )}
+
+      {qrExpandedOpen && paymentQrUrl && checkoutPhase === 'browse' && (
+        <div
+          className="fixed inset-0 z-200 flex items-center justify-center overflow-y-auto bg-background/96 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-qr-expanded-title"
+        >
+          <Card className="relative w-full max-w-lg shadow-xl border-border">
+            <button
+              type="button"
+              onClick={() => setQrExpandedOpen(false)}
+              className="absolute top-3 right-3 rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Close enlarged QR"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <CardHeader className="text-center space-y-1 pb-2">
+              <CardTitle id="payment-qr-expanded-title" className="font-display text-xl">
+                Scan to pay
+              </CardTitle>
+              <p className="font-display text-2xl font-black text-bbq-flame tabular-nums">
+                RM {grandTotal.toFixed(2)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Turn screen toward guest · scan with banking app
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4 pb-8">
+              <div className="relative aspect-square w-full max-w-[min(85vw,22rem)] overflow-hidden rounded-2xl border border-border bg-white shadow-inner">
+                <Image
+                  src={paymentQrUrl}
+                  alt="Transfer QR code — full size for scanning"
+                  fill
+                  className="object-contain p-4"
+                  sizes="(max-width: 768px) 85vw, 352px"
+                  unoptimized
+                  priority
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full max-w-xs font-display font-bold py-6"
+                onClick={() => setQrExpandedOpen(false)}
+              >
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {checkoutPhase === 'celebrate' && lastReceipt && (

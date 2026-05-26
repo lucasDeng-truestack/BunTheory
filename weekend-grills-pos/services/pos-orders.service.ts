@@ -12,6 +12,7 @@ export interface CreateOrderPayload {
   serviceType: 'EAT_HERE' | 'TAKEAWAY';
   paymentMethod: 'CASH' | 'QR';
   tipAmount?: number;
+  discountPercent?: 0 | 5 | 10;
   notes?: string;
   items: Array<{
     lineType: PosOrderLineType;

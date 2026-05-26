@@ -81,6 +81,13 @@ export class PosOrdersService {
 
     const orderNumber = await this.generateOrderNumber();
 
+    const discountPct =
+      dto.discountPercent != null && [0, 5, 10].includes(dto.discountPercent)
+        ? dto.discountPercent
+        : 0;
+    const discountMultiplier = 1 - discountPct / 100;
+    const total = subtotal.mul(discountMultiplier).toDecimalPlaces(2);
+
     const order = await this.prisma.posOrder.create({
       data: {
         orderNumber,
@@ -90,7 +97,7 @@ export class PosOrdersService {
         paymentStatus: PosPaymentStatus.UNPAID,
         status: PosOrderStatus.PLACED,
         subtotal,
-        total: subtotal,
+        total,
         notes: dto.notes?.trim() || null,
         createdByAdminId: adminId ?? null,
         orderItems: {
@@ -391,14 +398,12 @@ export class PosOrdersService {
       return mapped;
     }
 
-    const tipEmbedded =
+    const totalDiff =
       Math.round((Number(updated.total) - Number(updated.subtotal)) * 100) /
       100;
     const tipSafe =
-      Number.isFinite(tipEmbedded) &&
-      tipEmbedded >= 0 &&
-      tipEmbedded <= 999_999.99
-        ? tipEmbedded
+      Number.isFinite(totalDiff) && totalDiff > 0 && totalDiff <= 999_999.99
+        ? totalDiff
         : 0;
 
     return {

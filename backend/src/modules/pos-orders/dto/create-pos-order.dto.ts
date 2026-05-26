@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -64,6 +65,12 @@ export class CreatePosOrderDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   tipAmount?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([0, 5, 10])
+  discountPercent?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
