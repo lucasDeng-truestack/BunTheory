@@ -193,7 +193,7 @@ export default function SettingsPage() {
                   System
                 </p>
                 <p className="text-sm text-foreground font-display">
-                  The Weekend Grills POS · Backyard fire theme
+                  The Weekend Grillers POS · Backyard fire theme
                 </p>
               </div>
               <Separator />
@@ -221,7 +221,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Store name and logo appear in the POS sidebar. Leave the name empty
-                to use the default &quot;The Weekend Grills&quot;.
+                to use the default &quot;The Weekend Grillers&quot;.
               </p>
               {!editingCompany ? (
                 <div className="space-y-4">
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                             <Image
                               src={companyLogoUrl}
                               alt={
-                                companyName.trim() || 'The Weekend Grills'
+                                companyName.trim() || 'The Weekend Grillers'
                               }
                               fill
                               className="object-contain p-1"
@@ -258,7 +258,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-medium text-foreground">
                         {settings?.companyName?.trim() || (
                           <span className="text-muted-foreground">
-                            (default: The Weekend Grills)
+                            (default: The Weekend Grillers)
                           </span>
                         )}
                       </p>
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                             <Image
                               src={companyLogoUrl}
                               alt={
-                                companyName.trim() || 'The Weekend Grills'
+                                companyName.trim() || 'The Weekend Grillers'
                               }
                               fill
                               className="object-contain p-1"
@@ -341,7 +341,7 @@ export default function SettingsPage() {
                         id="company-name"
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        placeholder="The Weekend Grills"
+                        placeholder="The Weekend Grillers"
                         maxLength={120}
                       />
                     </div>

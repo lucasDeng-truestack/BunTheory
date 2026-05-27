@@ -54,7 +54,7 @@ function LoginForm() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_50%_0%,rgb(154_52_18/0.12),transparent_50%)]"
         aria-hidden
       />
-      <div className="relative w-full max-w-sm space-y-8 px-6">
+      <div className="relative w-full max-w-sm space-y-8 px-6 pos-ui">
         {/* Brand */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-bbq-flame to-bbq-coals shadow-[0_0_28px_rgb(249_115_22/0.45)] ring-1 ring-bbq-flame/40">
@@ -62,7 +62,7 @@ function LoginForm() {
           </div>
           <div className="text-center">
             <h1 className="font-display text-2xl font-black text-white tracking-wide">
-              The Weekend Grills
+              The Weekend Grillers
             </h1>
             <p className="text-stone-500 text-sm font-display mt-1">
               Backyard fire · Point of Sale

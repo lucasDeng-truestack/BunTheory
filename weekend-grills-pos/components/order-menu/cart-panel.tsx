@@ -134,7 +134,7 @@ export function CartPanel({ onReview }: CartPanelProps) {
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           placeholder="e.g. Amir"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
@@ -222,14 +222,14 @@ export function CartPanel({ onReview }: CartPanelProps) {
             <Button
               variant="outline"
               onClick={() => useCartStore.getState().clearCart()}
-              className="flex-1 border-destructive/30 font-display text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="flex-1 border-destructive/30 font-display text-sm py-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               Clear
             </Button>
             <Button
               onClick={onReview}
               disabled={!customerName.trim()}
-              className="flex-1 bg-bbq-flame font-display text-xs text-white shadow-sm hover:bg-bbq-flame/90"
+              className="flex-1 bg-bbq-flame font-display text-sm py-5 text-white shadow-sm hover:bg-bbq-flame/90"
             >
               Send order
             </Button>

@@ -190,28 +190,28 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="pos-ui min-h-screen bg-background relative">
       {checkoutPhase === 'browse' ? (
         <>
           {/* Staff top bar */}
-          <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-card">
-            <Button variant="ghost" size="sm" onClick={() => router.back()}>
-              <ChevronLeft className="h-4 w-4" />
+          <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-card">
+            <Button variant="ghost" size="default" className="font-display" onClick={() => router.back()}>
+              <ChevronLeft className="h-5 w-5" />
               Back
             </Button>
-            <Badge variant="secondary" className="ml-auto font-display">
+            <Badge variant="secondary" className="ml-auto font-display text-xs px-2.5 py-0.5">
               Step 3 · Payment
             </Badge>
           </div>
 
-          <div className="flex flex-col lg:flex-row max-w-5xl mx-auto p-4 md:p-6 gap-6">
+          <div className="flex flex-col lg:flex-row max-w-5xl mx-auto p-6 md:p-8 gap-6">
         {/* Left: order summary table */}
         <div className="flex-1 space-y-4">
-          <div className="flex items-baseline gap-3">
-            <h1 className="font-display text-xl font-bold text-foreground">
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">
               ORDER #: {customerName || '—'}
             </h1>
-            <Badge variant={serviceType === 'EAT_HERE' ? 'secondary' : 'outline'}>
+            <Badge variant={serviceType === 'EAT_HERE' ? 'secondary' : 'outline'} className="text-xs">
               {serviceType === 'EAT_HERE' ? 'Eat Here' : 'Takeaway'}
             </Badge>
           </div>
@@ -222,37 +222,37 @@ export default function PaymentPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left px-4 py-2.5 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Item</th>
-                    <th className="text-right px-4 py-2.5 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Price</th>
-                    <th className="text-center px-4 py-2.5 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Qty</th>
-                    <th className="text-right px-4 py-2.5 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Subtotal</th>
-                    <th className="w-10"></th>
+                    <th className="text-left px-5 py-3 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Item</th>
+                    <th className="text-right px-5 py-3 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Price</th>
+                    <th className="text-center px-5 py-3 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Qty</th>
+                    <th className="text-right px-5 py-3 font-display font-bold text-muted-foreground text-xs uppercase tracking-wide">Subtotal</th>
+                    <th className="w-12"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-foreground">{item.displayName}</p>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-base text-foreground">{item.displayName}</p>
                         {item.choicesSummary ? (
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">{item.choicesSummary}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.choicesSummary}</p>
                         ) : null}
                         {item.remarks.trim() ? (
-                          <p className="mt-1 text-[11px] font-medium text-amber-900/90 dark:text-amber-500/95">
+                          <p className="mt-1 text-xs font-medium text-amber-900/90 dark:text-amber-500/95">
                             Note: {item.remarks.trim()}
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      <td className="px-5 py-4 text-right tabular-nums text-muted-foreground">
                         RM {item.unitPrice.toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-center tabular-nums font-semibold">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                      <td className="px-5 py-4 text-center tabular-nums font-semibold">{item.quantity}</td>
+                      <td className="px-5 py-4 text-right tabular-nums font-semibold">
                         RM {(item.unitPrice * item.quantity).toFixed(2)}
                       </td>
-                      <td className="px-2 py-3">
-                        <Button variant="ghost" size="icon-xs" onClick={() => removeItem(item.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
+                      <td className="px-2 py-4">
+                        <Button variant="ghost" size="icon-sm" onClick={() => removeItem(item.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive/60" />
                         </Button>
                       </td>
                     </tr>
@@ -265,20 +265,20 @@ export default function PaymentPage() {
           <Button
             variant="destructive"
             onClick={() => { clearCart(); router.replace('/order-menu'); }}
-            className="w-full rounded-xl py-5 font-display"
+            className="w-full rounded-xl py-6 font-display text-sm"
           >
             Cancel Order
           </Button>
         </div>
 
         {/* Right: payable amount panel */}
-        <div className="w-full lg:w-80 space-y-4">
+        <div className="w-full lg:w-96 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="font-display text-lg">Payable Amount</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-3xl font-display font-black text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</p>
+              <p className="text-2xl md:text-3xl font-display font-black text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</p>
 
               <p className="text-xs text-muted-foreground">Guests: {customerName || '—'}</p>
 
@@ -291,7 +291,7 @@ export default function PaymentPage() {
                     type="button"
                     onClick={() => toggleDiscount(5)}
                     className={cn(
-                      'flex-1 rounded-lg border-2 py-2.5 text-sm font-display font-bold transition',
+                      'flex-1 rounded-lg border-2 py-3 text-sm font-display font-bold transition',
                       discountPercent === 5
                         ? 'border-bbq-flame bg-accent text-bbq-flame'
                         : 'border-border text-muted-foreground hover:border-bbq-flame/30',
@@ -303,7 +303,7 @@ export default function PaymentPage() {
                     type="button"
                     onClick={() => toggleDiscount(10)}
                     className={cn(
-                      'flex-1 rounded-lg border-2 py-2.5 text-sm font-display font-bold transition',
+                      'flex-1 rounded-lg border-2 py-3 text-sm font-display font-bold transition',
                       discountPercent === 10
                         ? 'border-bbq-flame bg-accent text-bbq-flame'
                         : 'border-border text-muted-foreground hover:border-bbq-flame/30',
@@ -319,25 +319,25 @@ export default function PaymentPage() {
                 <button
                   onClick={() => setPaymentMethod('CASH')}
                   className={cn(
-                    'flex-1 flex flex-col items-center gap-1 rounded-lg py-3 border-2 transition',
+                    'flex-1 flex flex-col items-center gap-1.5 rounded-lg py-4 border-2 transition',
                     paymentMethod === 'CASH'
                       ? 'border-bbq-flame bg-accent text-bbq-flame'
                       : 'border-border text-muted-foreground hover:border-bbq-flame/30',
                   )}
                 >
-                  <Banknote className="h-5 w-5" />
+                  <Banknote className="h-6 w-6" />
                   <span className="text-xs font-display font-bold">Cash</span>
                 </button>
                 <button
                   onClick={() => setPaymentMethod('QR')}
                   className={cn(
-                    'flex-1 flex flex-col items-center gap-1 rounded-lg py-3 border-2 transition',
+                    'flex-1 flex flex-col items-center gap-1.5 rounded-lg py-4 border-2 transition',
                     paymentMethod === 'QR'
                       ? 'border-bbq-flame bg-accent text-bbq-flame'
                       : 'border-border text-muted-foreground hover:border-bbq-flame/30',
                   )}
                 >
-                  <CreditCard className="h-5 w-5" />
+                  <CreditCard className="h-6 w-6" />
                   <span className="text-xs font-display font-bold">QR Pay</span>
                 </button>
               </div>
@@ -345,8 +345,8 @@ export default function PaymentPage() {
               {/* Cash received */}
               {paymentMethod === 'CASH' && (
                 <div>
-                  <p className="text-xs font-display font-bold text-muted-foreground mb-1 uppercase tracking-wide">Cash Received</p>
-                  <div className="flex items-center gap-2 rounded-lg border border-input bg-muted/50 px-3 py-2">
+                  <p className="text-xs font-display font-bold text-muted-foreground mb-1.5 uppercase tracking-wide">Cash Received</p>
+                  <div className="flex items-center gap-2 rounded-lg border border-input bg-muted/50 px-4 py-3">
                     <span className="text-muted-foreground text-sm">RM</span>
                     <input
                       type="number"
@@ -373,7 +373,7 @@ export default function PaymentPage() {
                       <button
                         type="button"
                         onClick={() => setQrExpandedOpen(true)}
-                        className="group relative mx-auto aspect-square w-full max-w-56 overflow-hidden rounded-xl border-2 border-border bg-white shadow-sm transition hover:border-bbq-flame/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bbq-flame"
+                        className="group relative mx-auto aspect-square w-full max-w-64 overflow-hidden rounded-xl border-2 border-border bg-white shadow-sm transition hover:border-bbq-flame/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bbq-flame"
                         aria-label="Enlarge payment QR code for guest to scan"
                       >
                         <Image
@@ -424,12 +424,12 @@ export default function PaymentPage() {
                     <span className="tabular-nums">− RM {discount.toFixed(2)}</span>
                   </div>
                 ) : null}
-                <div className="flex justify-between text-lg font-display font-black pt-1">
+                <div className="flex justify-between text-xl font-display font-black pt-1">
                   <span>TOTAL</span>
                   <span className="text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</span>
                 </div>
                 {paymentMethod === 'CASH' && cashChangeAmount != null && cashChangeAmount > 0 ? (
-                  <div className="flex justify-between text-base font-display font-black pt-2 text-emerald-700 dark:text-emerald-400">
+                  <div className="flex justify-between text-lg font-display font-black pt-2 text-emerald-700 dark:text-emerald-400">
                     <span>Change</span>
                     <span className="tabular-nums">RM {cashChangeAmount.toFixed(2)}</span>
                   </div>
@@ -441,7 +441,7 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={loading || !cashSufficient}
-            className="w-full rounded-xl py-6 text-base font-display font-black bg-bbq-coral hover:bg-bbq-coral/90 text-white"
+            className="w-full rounded-xl py-8 text-sm font-display font-black bg-bbq-coral hover:bg-bbq-coral/90 text-white"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -463,7 +463,7 @@ export default function PaymentPage() {
           aria-modal="true"
           aria-labelledby="payment-qr-expanded-title"
         >
-          <Card className="relative w-full max-w-lg shadow-xl border-border">
+          <Card className="relative w-full max-w-xl shadow-xl border-border">
             <button
               type="button"
               onClick={() => setQrExpandedOpen(false)}
@@ -473,10 +473,10 @@ export default function PaymentPage() {
               <X className="h-5 w-5" />
             </button>
             <CardHeader className="text-center space-y-1 pb-2">
-              <CardTitle id="payment-qr-expanded-title" className="font-display text-xl">
+              <CardTitle id="payment-qr-expanded-title" className="font-display text-2xl">
                 Scan to pay
               </CardTitle>
-              <p className="font-display text-2xl font-black text-bbq-flame tabular-nums">
+              <p className="font-display text-3xl font-black text-bbq-flame tabular-nums">
                 RM {grandTotal.toFixed(2)}
               </p>
               <p className="text-sm text-muted-foreground">

@@ -157,6 +157,19 @@ export async function createReceiptPdfBlob(
   doc.text(formatMoney(receipt.subtotal), pageW - margin, y, { align: 'right' });
   line(6);
 
+  if (receipt.discountAmount > 0) {
+    doc.setTextColor(5, 150, 105);
+    const discountLabel =
+      receipt.discountPercent != null
+        ? `Discount (${receipt.discountPercent}%)`
+        : 'Discount';
+    doc.text(discountLabel, margin, y);
+    doc.text(`− ${formatMoney(receipt.discountAmount)}`, pageW - margin, y, {
+      align: 'right',
+    });
+    line(6);
+  }
+
   if (receipt.tip > 0) {
     doc.setTextColor(...MUTED_RGB);
     doc.text('Tip', margin, y);

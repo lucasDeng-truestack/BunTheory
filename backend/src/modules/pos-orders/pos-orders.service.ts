@@ -13,6 +13,16 @@ import {
   verifyPosReceiptToken,
 } from './pos-receipt-token.util';
 
+function inferReceiptDiscountPercent(
+  subtotal: number,
+  discountAmount: number,
+): number {
+  const pct = (discountAmount / subtotal) * 100;
+  if (Math.abs(pct - 5) < 0.51) return 5;
+  if (Math.abs(pct - 10) < 0.51) return 10;
+  return Math.round(pct * 100) / 100;
+}
+
 const orderInclude = {
   orderItems: {
     include: {
@@ -257,8 +267,17 @@ export class PosOrdersService {
     }
 
     const subtotal = Number(order.subtotal);
+    const orderTotal = Number(order.total);
     const tipAmount = tip;
-    const total = Math.round((subtotal + tipAmount) * 100) / 100;
+    const discountAmount = Math.max(
+      0,
+      Math.round((subtotal - orderTotal) * 100) / 100,
+    );
+    const discountPercent =
+      discountAmount > 0 && subtotal > 0
+        ? inferReceiptDiscountPercent(subtotal, discountAmount)
+        : null;
+    const total = Math.round((orderTotal + tipAmount) * 100) / 100;
 
     return {
       orderNumber: order.orderNumber,
@@ -267,6 +286,8 @@ export class PosOrdersService {
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
       subtotal,
+      discountAmount,
+      discountPercent,
       tip: tipAmount,
       total,
       notes: order.notes,

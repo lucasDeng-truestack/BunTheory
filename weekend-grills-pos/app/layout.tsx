@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'The Weekend Grills POS',
+  title: 'The Weekend Grillers POS',
   description: 'Classic backyard fire — charcoal & ember POS',
 };
 

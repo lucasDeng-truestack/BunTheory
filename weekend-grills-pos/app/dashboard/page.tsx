@@ -41,7 +41,7 @@ export default function DashboardPage() {
         <div className="border-b border-border bg-card px-5 py-3 flex items-center gap-3">
           <div>
             <h1 className="font-display text-lg font-bold text-foreground">Dashboard</h1>
-            <p className="text-xs text-muted-foreground">The Weekend Grills — Today&apos;s overview</p>
+            <p className="text-xs text-muted-foreground">The Weekend Grillers — Today&apos;s overview</p>
           </div>
           <Button
             variant="ghost"

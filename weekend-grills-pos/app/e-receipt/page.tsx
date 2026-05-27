@@ -190,6 +190,15 @@ function EReceiptInner() {
             <span className="text-muted-foreground">Subtotal</span>
             <span>{formatMoney(data.subtotal)}</span>
           </div>
+          {data.discountAmount > 0 ? (
+            <div className="flex justify-between text-sm text-emerald-700 dark:text-emerald-400">
+              <span>
+                Discount
+                {data.discountPercent != null ? ` (${data.discountPercent}%)` : ''}
+              </span>
+              <span>− {formatMoney(data.discountAmount)}</span>
+            </div>
+          ) : null}
           {data.tip > 0 ? (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tip</span>
@@ -229,7 +238,7 @@ function EReceiptSuspenseFallback() {
 
 export default function EReceiptPage() {
   return (
-    <div className="e-receipt-shell min-h-screen bg-background">
+    <div className="pos-ui e-receipt-shell min-h-screen bg-background">
       <Suspense fallback={<EReceiptSuspenseFallback />}>
         <EReceiptInner />
       </Suspense>

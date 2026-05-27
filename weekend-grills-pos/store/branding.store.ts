@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { posSettingsService } from '@/services/settings.service';
 
-export const DEFAULT_COMPANY_NAME = 'The Weekend Grills';
+export const DEFAULT_COMPANY_NAME = 'The Weekend Grillers';
 
 const STORAGE_KEY = 'pos_branding';
 

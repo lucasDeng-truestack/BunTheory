@@ -119,6 +119,8 @@ export interface PublicPosReceipt {
   paymentMethod: PosPaymentMethod;
   paymentStatus: PosPaymentStatus;
   subtotal: number;
+  discountAmount: number;
+  discountPercent: number | null;
   tip: number;
   total: number;
   notes: string | null;

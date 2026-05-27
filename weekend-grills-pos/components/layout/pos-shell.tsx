@@ -106,7 +106,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const userInitial = adminAvatarInitial(admin);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="pos-ui flex h-screen overflow-hidden bg-background">
       {/* ─── Desktop sidebar — charcoal pit ───────────────────── */}
       <aside
         className={cn(

@@ -174,3 +174,51 @@
       "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt", cursive !important;
   }
 }
+
+/* ─── POS touch UI — bump typography one step for iPad / counter use ─── */
+@layer utilities {
+  .pos-ui .text-\[10px\] {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  .pos-ui .text-\[11px\] {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+  .pos-ui .text-xs {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .pos-ui .text-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  .pos-ui .text-base {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .pos-ui .text-lg {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  .pos-ui .text-xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .pos-ui .text-2xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  .pos-ui .text-3xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .pos-ui .text-4xl {
+    font-size: 2.5rem;
+    line-height: 2.75rem;
+  }
+  .pos-ui .text-5xl {
+    font-size: 3rem;
+    line-height: 1.1;
+  }
+}

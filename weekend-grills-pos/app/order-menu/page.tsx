@@ -221,7 +221,7 @@ export default function OrderMenuPage() {
           </div>
         </div>
 
-        <div className="hidden w-[min(100%,22rem)] shrink-0 lg:block">
+        <div className="hidden w-[min(100%,26rem)] shrink-0 lg:block">
           <CartPanel onReview={() => router.push('/customer-review')} />
         </div>
       </div>
