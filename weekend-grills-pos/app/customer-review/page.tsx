@@ -11,8 +11,10 @@ import { Badge } from '@/components/ui/badge';
 export default function CustomerReviewPage() {
   const router = useRouter();
   const { ready } = useStaffAuth();
-  const { items, customerName, serviceType, paymentMethod, total } = useCartStore();
+  const { items, customerName, serviceType, paymentMethod, total, discountPercent, discountAmount, payableTotal } = useCartStore();
   const cartTotal = total();
+  const discount = discountAmount();
+  const orderTotal = payableTotal();
 
   useEffect(() => {
     if (!ready) return;
@@ -107,14 +109,28 @@ export default function CustomerReviewPage() {
           ))}
         </div>
 
-        <div className="w-full rounded-xl bg-bbq-flame px-6 py-5 md:px-8 md:py-6 flex justify-between items-center mb-8">
-          <span className="text-2xl md:text-3xl font-bold text-white font-display">TOTAL</span>
-          <span className="text-3xl md:text-4xl font-black text-white font-display tabular-nums">
-            RM {cartTotal.toFixed(2)}
-          </span>
+        <div className="w-full rounded-xl bg-stone-800/80 px-6 py-5 md:px-8 md:py-6 mb-8 space-y-2">
+          {discount > 0 ? (
+            <>
+              <div className="flex justify-between items-center text-lg md:text-xl text-stone-400">
+                <span className="font-display">Subtotal</span>
+                <span className="font-display tabular-nums">RM {cartTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-lg md:text-xl text-emerald-400">
+                <span className="font-display">Discount ({discountPercent}%)</span>
+                <span className="font-display tabular-nums">− RM {discount.toFixed(2)}</span>
+              </div>
+            </>
+          ) : null}
+          <div className="flex justify-between items-center rounded-xl bg-bbq-flame px-5 py-4 md:px-6 md:py-5">
+            <span className="text-2xl md:text-3xl font-bold text-white font-display">TOTAL</span>
+            <span className="text-3xl md:text-4xl font-black text-white font-display tabular-nums">
+              RM {orderTotal.toFixed(2)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <div className="flex flex-col sm:flex-row gap-3 w-full mb-0">
           <Button
             onClick={() => router.push('/order-menu')}
             variant="outline"

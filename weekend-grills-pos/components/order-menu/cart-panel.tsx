@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { useCartStore } from '@/store/cart.store';
+import { useCartStore, type CartDiscountPercent } from '@/store/cart.store';
 import { cn } from '@/lib/utils';
 
 interface CartPanelProps {
@@ -103,10 +103,21 @@ export function CartPanel({ onReview }: CartPanelProps) {
     setCustomerName,
     paymentMethod,
     setPaymentMethod,
+    discountPercent,
+    setDiscountPercent,
+    discountAmount,
+    payableTotal,
   } = useCartStore();
 
   const count = itemCount();
   const cartTotal = total();
+  const discount = discountAmount();
+  const orderTotal = payableTotal();
+
+  function toggleDiscount(percent: CartDiscountPercent) {
+    if (percent === 0) return;
+    setDiscountPercent(discountPercent === percent ? 0 : percent);
+  }
 
   return (
     <div className="flex h-full flex-col border-l border-border bg-card">
@@ -207,14 +218,52 @@ export function CartPanel({ onReview }: CartPanelProps) {
 
       {items.length > 0 ? (
         <div className="space-y-2.5 border-t border-border bg-card px-4 py-3">
+          <div>
+            <p className="mb-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+              Discount
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => toggleDiscount(5)}
+                className={cn(
+                  'flex-1 rounded-lg border-2 py-2 font-display text-xs font-bold transition',
+                  discountPercent === 5
+                    ? 'border-bbq-flame bg-accent text-bbq-flame'
+                    : 'border-border text-muted-foreground hover:border-bbq-flame/30',
+                )}
+              >
+                5% off
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleDiscount(10)}
+                className={cn(
+                  'flex-1 rounded-lg border-2 py-2 font-display text-xs font-bold transition',
+                  discountPercent === 10
+                    ? 'border-bbq-flame bg-accent text-bbq-flame'
+                    : 'border-border text-muted-foreground hover:border-bbq-flame/30',
+                )}
+              >
+                10% off
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="font-display">Subtotal</span>
             <span className="tabular-nums">RM {cartTotal.toFixed(2)}</span>
           </div>
+          {discount > 0 ? (
+            <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400">
+              <span className="font-display">Discount ({discountPercent}%)</span>
+              <span className="tabular-nums">− RM {discount.toFixed(2)}</span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between">
             <span className="font-display text-sm font-bold">TOTAL</span>
             <span className="font-display text-base font-black tabular-nums text-bbq-flame">
-              RM {cartTotal.toFixed(2)}
+              RM {orderTotal.toFixed(2)}
             </span>
           </div>
 

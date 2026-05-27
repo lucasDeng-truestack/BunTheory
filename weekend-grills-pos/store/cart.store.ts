@@ -43,15 +43,25 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   removeItem: (id) =>
-    set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
+    set((state) => {
+      const items = state.items.filter((i) => i.id !== id);
+      return {
+        items,
+        discountPercent: items.length === 0 ? 0 : state.discountPercent,
+      };
+    }),
 
   updateQuantity: (id, quantity) =>
-    set((state) => ({
-      items:
+    set((state) => {
+      const items =
         quantity <= 0
           ? state.items.filter((i) => i.id !== id)
-          : state.items.map((i) => (i.id === id ? { ...i, quantity } : i)),
-    })),
+          : state.items.map((i) => (i.id === id ? { ...i, quantity } : i));
+      return {
+        items,
+        discountPercent: items.length === 0 ? 0 : state.discountPercent,
+      };
+    }),
 
   updateRemarks: (id, remarks) =>
     set((state) => ({

@@ -36,7 +36,6 @@ export default function PaymentPage() {
     setPaymentMethod,
     total,
     discountPercent,
-    setDiscountPercent,
     discountAmount,
     payableTotal,
     removeItem,
@@ -57,10 +56,6 @@ export default function PaymentPage() {
   const cartTotal = total();
   const discount = discountAmount();
   const grandTotal = payableTotal();
-
-  function toggleDiscount(percent: 5 | 10) {
-    setDiscountPercent(discountPercent === percent ? 0 : percent);
-  }
 
   useEffect(() => {
     if (!ready) return;
@@ -281,38 +276,6 @@ export default function PaymentPage() {
               <p className="text-2xl md:text-3xl font-display font-black text-bbq-flame tabular-nums">RM {grandTotal.toFixed(2)}</p>
 
               <p className="text-xs text-muted-foreground">Guests: {customerName || '—'}</p>
-
-              <div>
-                <p className="text-xs font-display font-bold text-muted-foreground mb-2 uppercase tracking-wide">
-                  Discount
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleDiscount(5)}
-                    className={cn(
-                      'flex-1 rounded-lg border-2 py-3 text-sm font-display font-bold transition',
-                      discountPercent === 5
-                        ? 'border-bbq-flame bg-accent text-bbq-flame'
-                        : 'border-border text-muted-foreground hover:border-bbq-flame/30',
-                    )}
-                  >
-                    5% off
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleDiscount(10)}
-                    className={cn(
-                      'flex-1 rounded-lg border-2 py-3 text-sm font-display font-bold transition',
-                      discountPercent === 10
-                        ? 'border-bbq-flame bg-accent text-bbq-flame'
-                        : 'border-border text-muted-foreground hover:border-bbq-flame/30',
-                    )}
-                  >
-                    10% off
-                  </button>
-                </div>
-              </div>
 
               {/* Payment method */}
               <div className="flex gap-2">
