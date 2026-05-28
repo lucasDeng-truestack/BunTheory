@@ -12,6 +12,11 @@ import {
   issuePosReceiptToken,
   verifyPosReceiptToken,
 } from './pos-receipt-token.util';
+import {
+  createdAtFilter,
+  ordersListLimit,
+  parseReportRange,
+} from '../pos-reports/pos-report-range.util';
 
 function inferReceiptDiscountPercent(
   subtotal: number,
@@ -304,7 +309,11 @@ export class PosOrdersService {
     };
   }
 
-  async findAll(filters?: { status?: PosOrderStatus; date?: string }) {
+  async findAll(filters?: {
+    status?: PosOrderStatus;
+    date?: string;
+    range?: string;
+  }) {
     const where: Prisma.PosOrderWhereInput = {};
 
     if (filters?.status) {
@@ -317,11 +326,17 @@ export class PosOrdersService {
         gte: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
         lt: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1),
       };
+    } else if (filters?.range) {
+      where.createdAt = createdAtFilter(parseReportRange(filters.range));
     }
+
+    const range = filters?.range ? parseReportRange(filters.range) : undefined;
+    const take = range ? ordersListLimit(range) : undefined;
 
     const orders = await this.prisma.posOrder.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      take,
       include: orderInclude,
     });
 

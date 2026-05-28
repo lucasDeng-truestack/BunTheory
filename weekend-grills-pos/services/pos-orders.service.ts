@@ -5,6 +5,7 @@ import {
   PosOrderLineType,
   PosOrderStatus,
   PosPaymentStatus,
+  ReportRange,
 } from '@/types/pos';
 
 export interface CreateOrderPayload {
@@ -28,10 +29,11 @@ export const posOrdersService = {
   create: (payload: CreateOrderPayload) =>
     api.post<PosOrderCreated>('/pos/orders', payload),
 
-  list: (filters?: { status?: PosOrderStatus; date?: string }) => {
+  list: (filters?: { status?: PosOrderStatus; date?: string; range?: ReportRange }) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set('status', filters.status);
     if (filters?.date) params.set('date', filters.date);
+    if (filters?.range) params.set('range', filters.range);
     const qs = params.toString();
     return api.get<PosOrder[]>(`/pos/orders${qs ? `?${qs}` : ''}`);
   },

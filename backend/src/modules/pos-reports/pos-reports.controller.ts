@@ -12,6 +12,11 @@ export class PosReportsController {
     return this.posReportsService.getDailySummary(date);
   }
 
+  @Get('summary')
+  getPeriodSummary(@Query('range') range?: string) {
+    return this.posReportsService.getPeriodSummary(range);
+  }
+
   @Get('dashboard')
   getDashboardSummary() {
     return this.posReportsService.getDashboardSummary();

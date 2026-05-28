@@ -29,8 +29,9 @@ export class PosOrdersController {
   findAll(
     @Query('status') status?: PosOrderStatus,
     @Query('date') date?: string,
+    @Query('range') range?: string,
   ) {
-    return this.posOrdersService.findAll({ status, date });
+    return this.posOrdersService.findAll({ status, date, range });
   }
 
   @Get(':id')

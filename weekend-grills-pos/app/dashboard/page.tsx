@@ -4,10 +4,16 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
 import { PosShell } from '@/components/layout/pos-shell';
-import { DashboardKpiCards } from '@/components/dashboard/dashboard-kpi-cards';
+import { DashboardAnalyticsKpis } from '@/components/dashboard/dashboard-analytics-kpis';
+import { DashboardRevenueTrendChart } from '@/components/dashboard/dashboard-revenue-trend-chart';
+import { DashboardOrderStatusChart } from '@/components/dashboard/dashboard-order-status-chart';
+import { DashboardOrdersRevenueChart } from '@/components/dashboard/dashboard-orders-revenue-chart';
+import { DashboardKitchenLoadPanel } from '@/components/dashboard/dashboard-kitchen-load-panel';
+import { DashboardSalesBySectionTable } from '@/components/dashboard/dashboard-sales-by-section-table';
+import { DashboardPipelineBars } from '@/components/dashboard/dashboard-pipeline-bars';
 import { DashboardRecentOrders } from '@/components/dashboard/dashboard-recent-orders';
-import { DashboardTopItems } from '@/components/dashboard/dashboard-top-items';
 import { DashboardRevenueSplit } from '@/components/dashboard/dashboard-revenue-split';
+import { DashboardTopItems } from '@/components/dashboard/dashboard-top-items';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { posReportsService } from '@/services/pos-reports.service';
@@ -37,23 +43,26 @@ export default function DashboardPage() {
   return (
     <PosShell>
       <div className="flex h-full flex-col">
-        {/* Header */}
         <div className="border-b border-border bg-card px-5 py-3 flex items-center gap-3">
           <div>
             <h1 className="font-display text-lg font-bold text-foreground">Dashboard</h1>
-            <p className="text-xs text-muted-foreground">The Weekend Grillers — Today&apos;s overview</p>
+            <p className="text-xs text-muted-foreground">
+              The Weekend Grillers — Today&apos;s overview & 7-day trends
+            </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="ml-auto"
-            onClick={() => { setLoading(true); fetchDashboard(); }}
+            onClick={() => {
+              setLoading(true);
+              void fetchDashboard();
+            }}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
           {loading && !data ? (
             <div className="space-y-4">
@@ -67,14 +76,27 @@ export default function DashboardPage() {
             </div>
           ) : data ? (
             <>
-              <DashboardKpiCards pipeline={data.pipeline} today={data.today} />
-
-              <Separator />
+              <DashboardAnalyticsKpis pipeline={data.pipeline} today={data.today} />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
-                  <DashboardRecentOrders orders={data.recentOrders} />
+                  <DashboardRevenueTrendChart data={data.revenueTrend} />
                 </div>
+                <DashboardOrderStatusChart breakdown={data.statusBreakdown} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <DashboardOrdersRevenueChart data={data.revenueTrend} />
+                </div>
+                <DashboardKitchenLoadPanel load={data.kitchenLoad} pipeline={data.pipeline} />
+              </div>
+
+              <DashboardSalesBySectionTable sections={data.salesBySection} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <DashboardPipelineBars pipeline={data.pipeline} />
+                <DashboardRecentOrders orders={data.recentOrders} />
                 <div className="space-y-4">
                   <DashboardRevenueSplit
                     cashRevenue={data.today.cashRevenue}
@@ -92,7 +114,10 @@ export default function DashboardPage() {
                 variant="outline"
                 size="sm"
                 className="mt-3"
-                onClick={() => { setLoading(true); fetchDashboard(); }}
+                onClick={() => {
+                  setLoading(true);
+                  void fetchDashboard();
+                }}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Try again

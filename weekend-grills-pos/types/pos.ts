@@ -163,7 +163,10 @@ export interface PosPurchase {
   createdBy: { id: string; email: string; displayName: string | null } | null;
 }
 
+export type ReportRange = 'today' | '7d' | 'all';
+
 export interface DailySummary {
+  range?: ReportRange;
   date: string;
   totalOrders: number;
   totalRevenue: number;
@@ -174,6 +177,8 @@ export interface DailySummary {
   topItems: Array<{ productId: string | null; name: string; quantitySold: number }>;
 }
 
+export type PeriodSummary = DailySummary;
+
 export interface DashboardSummary {
   pipeline: { placed: number; preparing: number; ready: number };
   today: {
@@ -181,6 +186,8 @@ export interface DashboardSummary {
     totalRevenue: number;
     cashRevenue: number;
     qrRevenue: number;
+    activeKitchenOrders: number;
+    avgOrderValue: number;
   };
   topItems: Array<{ productId: string | null; name: string; quantitySold: number }>;
   recentOrders: Array<{
@@ -193,5 +200,22 @@ export interface DashboardSummary {
     total: number;
     createdAt: string;
     itemsSummary: string;
+  }>;
+  revenueTrend: Array<{ date: string; revenue: number; orders: number }>;
+  statusBreakdown: {
+    inProgress: number;
+    completed: number;
+    cancelled: number;
+  };
+  kitchenLoad: {
+    placedPct: number;
+    preparingPct: number;
+    readyPct: number;
+  };
+  salesBySection: Array<{
+    sectionName: string;
+    orders: number;
+    quantity: number;
+    revenue: number;
   }>;
 }
