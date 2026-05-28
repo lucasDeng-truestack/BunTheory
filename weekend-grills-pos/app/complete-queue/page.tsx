@@ -8,7 +8,6 @@ import { posOrdersService } from '@/services/pos-orders.service';
 import { usePosSocket } from '@/hooks/usePosSocket';
 import { PosOrder } from '@/types/pos';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 function OrderRow({ order }: { order: PosOrder }) {
@@ -40,9 +39,6 @@ function OrderRow({ order }: { order: PosOrder }) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
-          <Badge variant={order.serviceType === 'EAT_HERE' ? 'secondary' : 'outline'}>
-            {order.serviceType === 'EAT_HERE' ? 'Eat Here' : 'Takeaway'}
-          </Badge>
           <span className="text-[11px] text-muted-foreground tabular-nums">
             {order.paymentMethod} · RM {order.total.toFixed(2)}
           </span>

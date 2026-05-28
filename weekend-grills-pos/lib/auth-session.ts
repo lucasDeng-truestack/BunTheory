@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/lib/api';
+import { isJwtExpired } from '@/lib/jwt-utils';
 import { useAuthStore } from '@/store/auth.store';
 
 const PUBLIC_PATH_PREFIXES = ['/login', '/e-receipt'];
@@ -9,24 +10,25 @@ function isPublicRoute(pathname: string) {
   );
 }
 
-let handlingUnauthorized = false;
+let forcingLogout = false;
+
+/** Clears auth and hard-navigates staff to login. Idempotent while redirecting. */
+export function forceStaffLogout(expired = false) {
+  if (forcingLogout || typeof window === 'undefined') return;
+
+  const path = window.location.pathname;
+  if (isPublicRoute(path)) return;
+
+  forcingLogout = true;
+  useAuthStore.getState().logout();
+  window.location.replace(expired ? '/login?expired=1' : '/login');
+}
 
 /** Clears stored auth and sends staff back to login (not used on public guest pages). */
 export function handleUnauthorized() {
-  if (handlingUnauthorized || typeof window === 'undefined') return;
-
-  const hadToken = localStorage.getItem('pos_token');
-  if (!hadToken) return;
-
-  handlingUnauthorized = true;
-  useAuthStore.getState().logout();
-
-  const path = window.location.pathname;
-  if (!isPublicRoute(path)) {
-    window.location.replace('/login?expired=1');
-  }
-
-  handlingUnauthorized = false;
+  if (typeof window === 'undefined') return;
+  if (!localStorage.getItem('pos_token') && !useAuthStore.getState().token) return;
+  forceStaffLogout(true);
 }
 
 /** Returns false when the token is missing or rejected by the API. */
@@ -40,6 +42,11 @@ export async function validateAuthSession(): Promise<boolean> {
     return false;
   }
 
+  if (isJwtExpired(token)) {
+    forceStaffLogout(true);
+    return false;
+  }
+
   try {
     const res = await fetch(getApiUrl('/settings/admin'), {
       headers: {
@@ -49,7 +56,7 @@ export async function validateAuthSession(): Promise<boolean> {
     });
 
     if (res.status === 401) {
-      handleUnauthorized();
+      forceStaffLogout(true);
       return false;
     }
 
@@ -58,4 +65,18 @@ export async function validateAuthSession(): Promise<boolean> {
     // Offline or network blip — keep local session so staff can retry.
     return true;
   }
+}
+
+/** Client-side expiry guard for active staff pages. */
+export function assertStaffSessionLive(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const token =
+    useAuthStore.getState().token ?? localStorage.getItem('pos_token');
+  if (!token || isJwtExpired(token)) {
+    forceStaffLogout(true);
+    return false;
+  }
+
+  return true;
 }

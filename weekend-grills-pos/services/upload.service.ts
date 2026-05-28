@@ -1,3 +1,5 @@
+import { handleUnauthorized } from '@/lib/auth-session';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function getToken(): string | null {
@@ -18,6 +20,9 @@ export async function uploadImage(file: File): Promise<{ url: string }> {
     body: formData,
   });
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      handleUnauthorized();
+    }
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || 'Upload failed');
   }

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 export default function CustomerReviewPage() {
   const router = useRouter();
   const { ready } = useStaffAuth();
-  const { items, customerName, serviceType, paymentMethod, total, discountPercent, discountAmount, payableTotal } = useCartStore();
+  const { items, customerName, paymentMethod, total, discountPercent, discountAmount, payableTotal } = useCartStore();
   const cartTotal = total();
   const discount = discountAmount();
   const orderTotal = payableTotal();
@@ -63,12 +63,6 @@ export default function CustomerReviewPage() {
           <div className="flex-1 rounded-xl bg-stone-800/80 px-4 py-4 text-center">
             <p className="text-xs md:text-sm text-stone-500 mb-1 font-display uppercase tracking-wide">Name</p>
             <p className="text-xl md:text-2xl font-bold text-white font-display">{customerName}</p>
-          </div>
-          <div className="flex-1 rounded-xl bg-stone-800/80 px-4 py-4 text-center">
-            <p className="text-xs md:text-sm text-stone-500 mb-1 font-display uppercase tracking-wide">Service</p>
-            <p className="text-xl md:text-2xl font-bold text-bbq-coral font-display">
-              {serviceType === 'EAT_HERE' ? 'Eat Here' : 'Takeaway'}
-            </p>
           </div>
           <div className="flex-1 rounded-xl bg-stone-800/80 px-4 py-4 text-center">
             <p className="text-xs md:text-sm text-stone-500 mb-1 font-display uppercase tracking-wide">Payment</p>

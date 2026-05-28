@@ -1,12 +1,11 @@
 import { create } from 'zustand';
-import { CartItem, PosPaymentMethod, PosServiceType } from '@/types/pos';
+import { CartItem, PosPaymentMethod } from '@/types/pos';
 
 export type CartDiscountPercent = 0 | 5 | 10;
 
 interface CartState {
   items: CartItem[];
   customerName: string;
-  serviceType: PosServiceType;
   paymentMethod: PosPaymentMethod;
   notes: string;
   discountPercent: CartDiscountPercent;
@@ -16,7 +15,6 @@ interface CartState {
   updateQuantity: (id: string, quantity: number) => void;
   updateRemarks: (id: string, remarks: string) => void;
   setCustomerName: (name: string) => void;
-  setServiceType: (type: PosServiceType) => void;
   setPaymentMethod: (method: PosPaymentMethod) => void;
   setNotes: (notes: string) => void;
   setDiscountPercent: (percent: CartDiscountPercent) => void;
@@ -30,7 +28,6 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   customerName: '',
-  serviceType: 'EAT_HERE',
   paymentMethod: 'CASH',
   notes: '',
   discountPercent: 0,
@@ -69,7 +66,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     })),
 
   setCustomerName: (name) => set({ customerName: name }),
-  setServiceType: (type) => set({ serviceType: type }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setNotes: (notes) => set({ notes }),
 
@@ -79,7 +75,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({
       items: [],
       customerName: '',
-      serviceType: 'EAT_HERE',
       paymentMethod: 'CASH',
       notes: '',
       discountPercent: 0,

@@ -99,8 +99,6 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
     removeItem,
     total,
     itemCount,
-    serviceType,
-    setServiceType,
     customerName,
     setCustomerName,
     paymentMethod,
@@ -160,29 +158,6 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
           placeholder="e.g. Amir"
           className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
         />
-      </div>
-
-      <div className="px-4 pb-1 pt-2.5">
-        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
-          Service
-        </label>
-        <div className="flex overflow-hidden rounded-lg border border-input bg-muted/30">
-          {(['EAT_HERE', 'TAKEAWAY'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setServiceType(t)}
-              className={cn(
-                'flex-1 py-2 font-display text-xs font-bold transition-all',
-                serviceType === t
-                  ? 'bg-bbq-flame text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {t === 'EAT_HERE' ? 'Eat here' : 'Takeaway'}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="px-4 pb-1 pt-2.5">

@@ -59,7 +59,7 @@ export function OrdersHistoryTable({ orders, loading }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  {['Order #', 'Guest', 'Status', 'Service', 'Payment', 'Total', 'Date'].map(
+                  {['Order #', 'Guest', 'Status', 'Payment', 'Total', 'Date'].map(
                     (h) => (
                       <th
                         key={h}
@@ -83,9 +83,6 @@ export function OrdersHistoryTable({ orders, loading }: Props) {
                     <td className="px-4 py-3">{order.customerName}</td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant(order.status)}>{order.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {order.serviceType === 'EAT_HERE' ? 'Eat here' : 'Takeaway'}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {order.paymentMethod === 'CASH' ? 'Cash' : 'QR Pay'}

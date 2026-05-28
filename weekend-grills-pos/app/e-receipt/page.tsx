@@ -146,7 +146,6 @@ function EReceiptInner() {
         </p>
         <p className="text-center font-display text-lg font-bold">{data.customerName}</p>
         <p className="mt-1 text-center text-xs text-muted-foreground">
-          {data.serviceType === 'EAT_HERE' ? 'Eat here' : 'Takeaway'} ·{' '}
           {data.paymentMethod === 'CASH' ? 'Cash' : 'QR Pay'}
         </p>
         <p className="mt-2 text-center text-xs text-muted-foreground">

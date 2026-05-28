@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isJwtExpired } from '@/lib/jwt-utils';
 
 export interface Admin {
   id: string;
@@ -55,6 +56,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = localStorage.getItem('pos_token');
     const adminRaw = localStorage.getItem('pos_admin');
     if (token && adminRaw) {
+      if (isJwtExpired(token)) {
+        localStorage.removeItem('pos_token');
+        localStorage.removeItem('pos_admin');
+        set({ hydrated: true });
+        return;
+      }
       try {
         const admin = JSON.parse(adminRaw) as Admin;
         set({ token, admin, isAuthenticated: true, hydrated: true });

@@ -99,7 +99,7 @@ export default function ReportsPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-5">
           {loading && !summary ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
+              {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
               ))}
             </div>
@@ -111,8 +111,6 @@ export default function ReportsPage() {
                   { label: 'Total Revenue', value: `RM ${summary.totalRevenue.toFixed(2)}`, accent: 'text-bbq-green' },
                   { label: 'Cash', value: `RM ${summary.cashRevenue.toFixed(2)}`, accent: 'text-foreground' },
                   { label: 'QR Pay', value: `RM ${summary.qrRevenue.toFixed(2)}`, accent: 'text-bbq-flame' },
-                  { label: 'Eat Here', value: summary.eatHereOrders, accent: 'text-blue-700' },
-                  { label: 'Takeaway', value: summary.takeawayOrders, accent: 'text-amber-700' },
                 ].map((card) => (
                   <Card key={card.label} size="sm">
                     <CardContent>

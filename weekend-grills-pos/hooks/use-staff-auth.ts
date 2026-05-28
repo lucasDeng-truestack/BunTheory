@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { validateAuthSession } from '@/lib/auth-session';
+import {
+  assertStaffSessionLive,
+  forceStaffLogout,
+  validateAuthSession,
+} from '@/lib/auth-session';
 import { useAuthStore } from '@/store/auth.store';
+
+const SESSION_POLL_MS = 15_000;
 
 /**
  * Hydrates auth from storage, validates JWT with the API, and redirects to login when needed.
@@ -30,14 +36,51 @@ export function useStaffAuth() {
     }
 
     let cancelled = false;
-    void validateAuthSession().then(() => {
-      if (!cancelled) setSessionReady(true);
-    });
+
+    async function verifySession() {
+      if (!assertStaffSessionLive()) return;
+
+      const valid = await validateAuthSession();
+      if (cancelled) return;
+
+      if (!valid) {
+        forceStaffLogout(true);
+        return;
+      }
+
+      setSessionReady(true);
+    }
+
+    void verifySession();
 
     return () => {
       cancelled = true;
     };
   }, [hydrated, isAuthenticated]);
+
+  useEffect(() => {
+    if (!hydrated || !sessionReady || !isAuthenticated) return;
+
+    function guardSession() {
+      assertStaffSessionLive();
+    }
+
+    guardSession();
+    const intervalId = window.setInterval(guardSession, SESSION_POLL_MS);
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (!assertStaffSessionLive()) return;
+      void validateAuthSession();
+    }
+
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [hydrated, sessionReady, isAuthenticated]);
 
   useEffect(() => {
     if (!hydrated || !sessionReady) return;

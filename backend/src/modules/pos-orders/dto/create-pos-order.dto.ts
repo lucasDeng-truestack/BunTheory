@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PosOrderLineType, PosPaymentMethod, PosServiceType } from '@prisma/client';
+import { PosOrderLineType, PosPaymentMethod } from '@prisma/client';
 
 export class ComboSelectionDto {
   @IsString()
@@ -49,9 +49,6 @@ export class PosOrderItemDto {
 export class CreatePosOrderDto {
   @IsString()
   customerName: string;
-
-  @IsEnum(PosServiceType)
-  serviceType: PosServiceType;
 
   @IsEnum(PosPaymentMethod)
   paymentMethod: PosPaymentMethod;

@@ -10,7 +10,6 @@ import {
 
 export interface CreateOrderPayload {
   customerName: string;
-  serviceType: 'EAT_HERE' | 'TAKEAWAY';
   paymentMethod: 'CASH' | 'QR';
   tipAmount?: number;
   discountPercent?: 0 | 5 | 10;

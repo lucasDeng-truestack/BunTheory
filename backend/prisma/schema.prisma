@@ -144,11 +144,6 @@ model Admin {
 
 // ─── Weekend Grills POS ───────────────────────────────────────────────────────
 
-enum PosServiceType {
-  EAT_HERE
-  TAKEAWAY
-}
-
 enum PosPaymentMethod {
   CASH
   QR
@@ -272,7 +267,6 @@ model PosOrder {
   id              String           @id @default(cuid())
   orderNumber     String           @unique
   customerName    String
-  serviceType     PosServiceType
   status          PosOrderStatus   @default(PLACED)
   paymentMethod   PosPaymentMethod
   paymentStatus   PosPaymentStatus @default(UNPAID)

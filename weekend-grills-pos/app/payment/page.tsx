@@ -31,7 +31,6 @@ export default function PaymentPage() {
   const {
     items,
     customerName,
-    serviceType,
     paymentMethod,
     setPaymentMethod,
     total,
@@ -127,7 +126,6 @@ export default function PaymentPage() {
     try {
       const created = await posOrdersService.create({
         customerName: customerName.trim(),
-        serviceType,
         paymentMethod,
         discountPercent: discountPercent || undefined,
         items: items.map((i) => ({
@@ -202,14 +200,9 @@ export default function PaymentPage() {
           <div className="flex flex-col lg:flex-row max-w-5xl mx-auto p-6 md:p-8 gap-6">
         {/* Left: order summary table */}
         <div className="flex-1 space-y-4">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">
-              ORDER #: {customerName || '—'}
-            </h1>
-            <Badge variant={serviceType === 'EAT_HERE' ? 'secondary' : 'outline'} className="text-xs">
-              {serviceType === 'EAT_HERE' ? 'Eat Here' : 'Takeaway'}
-            </Badge>
-          </div>
+          <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">
+            ORDER #: {customerName || '—'}
+          </h1>
 
           {/* Items table */}
           <Card>

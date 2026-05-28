@@ -107,7 +107,6 @@ export class PosOrdersService {
       data: {
         orderNumber,
         customerName: dto.customerName.trim(),
-        serviceType: dto.serviceType,
         paymentMethod: dto.paymentMethod,
         paymentStatus: PosPaymentStatus.UNPAID,
         status: PosOrderStatus.PLACED,
@@ -287,7 +286,6 @@ export class PosOrdersService {
     return {
       orderNumber: order.orderNumber,
       customerName: order.customerName,
-      serviceType: order.serviceType,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
       subtotal,
@@ -455,7 +453,6 @@ export class PosOrdersService {
       id: order.id,
       orderNumber: order.orderNumber,
       customerName: order.customerName,
-      serviceType: order.serviceType,
       status: order.status,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,

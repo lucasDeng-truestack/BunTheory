@@ -6,12 +6,14 @@ import { Flame, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth.service';
+import { validateAuthSession } from '@/lib/auth-session';
+import { isJwtExpired } from '@/lib/jwt-utils';
 import { useAuthStore } from '@/store/auth.store';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, hydrated, hydrate } = useAuthStore();
+  const { login, logout, hydrated, hydrate } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,13 +29,28 @@ function LoginForm() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (hydrated && isAuthenticated) router.replace('/dashboard');
-  }, [hydrated, isAuthenticated, router]);
+    if (!hydrated) return;
+
+    const token = localStorage.getItem('pos_token');
+    if (!token || isJwtExpired(token)) return;
+
+    let cancelled = false;
+    void validateAuthSession().then((valid) => {
+      if (!cancelled && valid) {
+        router.replace('/dashboard');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
+      logout();
       const res = await authService.login({ email, password });
       login(res.accessToken, res.admin);
       router.replace('/dashboard');

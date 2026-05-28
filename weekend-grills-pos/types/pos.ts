@@ -19,7 +19,6 @@ export const POS_PRODUCT_TYPE_OPTIONS: Array<{
   label: POS_PRODUCT_TYPE_LABELS[value],
 }));
 
-export type PosServiceType = 'EAT_HERE' | 'TAKEAWAY';
 export type PosPaymentMethod = 'CASH' | 'QR';
 export type PosPaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'VOIDED';
 export type PosOrderStatus = 'PLACED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
@@ -92,7 +91,6 @@ export interface PosOrder {
   id: string;
   orderNumber: string;
   customerName: string;
-  serviceType: PosServiceType;
   status: PosOrderStatus;
   paymentMethod: PosPaymentMethod;
   paymentStatus: PosPaymentStatus;
@@ -115,7 +113,6 @@ export type PosOrderCreated = PosOrder & { receiptToken: string };
 export interface PublicPosReceipt {
   orderNumber: string;
   customerName: string;
-  serviceType: PosServiceType;
   paymentMethod: PosPaymentMethod;
   paymentStatus: PosPaymentStatus;
   subtotal: number;
@@ -172,8 +169,6 @@ export interface DailySummary {
   totalRevenue: number;
   cashRevenue: number;
   qrRevenue: number;
-  eatHereOrders: number;
-  takeawayOrders: number;
   topItems: Array<{ productId: string | null; name: string; quantitySold: number }>;
 }
 
@@ -195,7 +190,6 @@ export interface DashboardSummary {
     orderNumber: string;
     customerName: string;
     status: PosOrderStatus;
-    serviceType: PosServiceType;
     paymentMethod: PosPaymentMethod;
     total: number;
     createdAt: string;

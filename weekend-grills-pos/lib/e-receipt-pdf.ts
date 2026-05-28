@@ -17,10 +17,6 @@ function receiptFilename(orderNumber: string) {
   return `${safe}-receipt.pdf`;
 }
 
-function serviceLabel(serviceType: PublicPosReceipt['serviceType']) {
-  return serviceType === 'EAT_HERE' ? 'Eat here' : 'Takeaway';
-}
-
 function paymentLabel(method: PublicPosReceipt['paymentMethod']) {
   return method === 'CASH' ? 'Cash' : 'QR Pay';
 }
@@ -80,12 +76,9 @@ export async function createReceiptPdfBlob(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED_RGB);
-  doc.text(
-    `${serviceLabel(receipt.serviceType)} · ${paymentLabel(receipt.paymentMethod)}`,
-    pageW / 2,
-    y,
-    { align: 'center' },
-  );
+  doc.text(paymentLabel(receipt.paymentMethod), pageW / 2, y, {
+    align: 'center',
+  });
   line(5);
   doc.text(new Date(receipt.createdAt).toLocaleString(), pageW / 2, y, {
     align: 'center',

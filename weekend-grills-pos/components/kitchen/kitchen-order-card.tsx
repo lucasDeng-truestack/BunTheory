@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { PosOrder } from '@/types/pos';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -78,9 +77,6 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
           {order.customerName}
         </CardDescription>
         <CardAction className="flex flex-col items-end gap-1">
-          <Badge variant={order.serviceType === 'EAT_HERE' ? 'secondary' : 'outline'}>
-            {order.serviceType === 'EAT_HERE' ? 'Eat Here' : 'Takeaway'}
-          </Badge>
           <span className="text-[10px] text-muted-foreground font-mono">{elapsed}</span>
         </CardAction>
       </CardHeader>

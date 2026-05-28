@@ -60,8 +60,7 @@ export class PosReportsService {
       status: PosOrderStatus.COMPLETED,
     };
 
-    const [orders, cashAgg, qrAgg, eatHereCount, takeawayCount, itemGroups] =
-      await Promise.all([
+    const [orders, cashAgg, qrAgg, itemGroups] = await Promise.all([
         this.prisma.posOrder.count({ where }),
         this.prisma.posOrder.aggregate({
           where: { ...where, paymentMethod: 'CASH' },
@@ -70,12 +69,6 @@ export class PosReportsService {
         this.prisma.posOrder.aggregate({
           where: { ...where, paymentMethod: 'QR' },
           _sum: { total: true },
-        }),
-        this.prisma.posOrder.count({
-          where: { ...where, serviceType: 'EAT_HERE' },
-        }),
-        this.prisma.posOrder.count({
-          where: { ...where, serviceType: 'TAKEAWAY' },
         }),
         this.prisma.posOrderItem.groupBy({
           by: ['productId', 'displayName'],
@@ -96,8 +89,6 @@ export class PosReportsService {
       totalRevenue,
       cashRevenue: Number(cashAgg._sum.total ?? 0),
       qrRevenue: Number(qrAgg._sum.total ?? 0),
-      eatHereOrders: eatHereCount,
-      takeawayOrders: takeawayCount,
       topItems: itemGroups.map((g) => ({
         productId: g.productId,
         name: g.displayName,
@@ -326,7 +317,6 @@ export class PosReportsService {
         orderNumber: o.orderNumber,
         customerName: o.customerName,
         status: o.status,
-        serviceType: o.serviceType,
         paymentMethod: o.paymentMethod,
         total: Number(o.total),
         createdAt: o.createdAt.toISOString(),
