@@ -1,6 +1,7 @@
 'use client';
 
-import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronDown, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { CartItem } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,46 @@ interface CartPanelProps {
   variant?: 'sidebar' | 'embedded';
 }
 
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const resize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    resize();
+  }, [value, resize]);
+
+  return (
+    <Textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onInput={resize}
+      placeholder={placeholder}
+      rows={1}
+      className={cn(
+        'mt-1 min-h-[2.5rem] resize-none overflow-hidden font-sans text-[11px] placeholder:text-muted-foreground/70',
+        className,
+      )}
+    />
+  );
+}
+
 function CartLineRow({
   item,
   updateQuantity,
@@ -26,39 +67,65 @@ function CartLineRow({
   updateRemarks: (id: string, r: string) => void;
   removeItem: (id: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(true);
+
   return (
-    <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-2.5">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1">
-          <p className="font-semibold text-xs leading-snug text-foreground break-words">
-            {item.displayName}
-          </p>
-          {item.lineType === 'COMBO' ? (
-            <Badge variant="outline" className="h-5 px-1.5 font-display text-[10px]">
-              Combo
-            </Badge>
-          ) : null}
-        </div>
-        {item.choicesSummary ? (
-          <p className="mt-1 text-[11px] text-muted-foreground">{item.choicesSummary}</p>
-        ) : null}
-        <label className="mt-2 block">
-          <span className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">
-            Guest note (kitchen + receipt)
-          </span>
-          <Textarea
-            value={item.remarks}
-            onChange={(e) => updateRemarks(item.id, e.target.value)}
-            placeholder="Allergies, no ice…"
-            rows={2}
-            className="mt-1 min-h-[2.75rem] resize-none font-sans text-[11px] placeholder:text-muted-foreground/70"
+    <div className="rounded-lg bg-muted/40">
+      <div className="flex items-start gap-1.5 p-2.5">
+        <button
+          type="button"
+          onClick={() => setExpanded((open) => !open)}
+          className="mt-0.5 shrink-0 rounded-md p-0.5 text-muted-foreground transition hover:bg-background/60 hover:text-foreground"
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse item details' : 'Expand item details'}
+        >
+          <ChevronDown
+            className={cn('h-4 w-4 transition-transform duration-200', expanded && 'rotate-180')}
           />
-        </label>
-        <p className="mt-2 text-[11px] font-bold tabular-nums text-bbq-flame">
-          RM {(item.unitPrice * item.quantity).toFixed(2)}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5">
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1 pr-1">
+            <p className="font-semibold text-xs leading-snug text-foreground break-words">
+              {item.displayName}
+            </p>
+            {item.lineType === 'COMBO' ? (
+              <Badge variant="outline" className="h-5 px-1.5 font-display text-[10px]">
+                Combo
+              </Badge>
+            ) : null}
+          </div>
+
+          {!expanded ? (
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground break-words">
+              {item.choicesSummary || 'Tap to view options & guest note'}
+            </p>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {item.choicesSummary ? (
+                <p className="text-[11px] leading-snug text-muted-foreground break-words">
+                  {item.choicesSummary}
+                </p>
+              ) : null}
+              <label className="block">
+                <span className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">
+                  Guest note (kitchen + receipt)
+                </span>
+                <AutoGrowTextarea
+                  value={item.remarks}
+                  onChange={(next) => updateRemarks(item.id, next)}
+                  placeholder="Allergies, no ice…"
+                />
+              </label>
+            </div>
+          )}
+
+          <p className="mt-2 text-[11px] font-bold tabular-nums text-bbq-flame">
+            RM {(item.unitPrice * item.quantity).toFixed(2)}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-0.5">
         <Button
           variant="ghost"
           size="icon-xs"
@@ -86,6 +153,7 @@ function CartLineRow({
         >
           <Trash2 className="h-3 w-3" />
         </Button>
+        </div>
       </div>
     </div>
   );
@@ -148,61 +216,64 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
         </>
       ) : null}
 
-      <div className="px-3 pt-3">
-        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
-          Guest name
-        </label>
-        <input
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          placeholder="e.g. Amir"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="px-3 pt-3">
+            <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+              Guest name
+            </label>
+            <input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="e.g. Amir"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
 
-      <div className="px-3 pb-1 pt-2.5">
-        <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
-          Payment type
-        </label>
-        <div className="flex overflow-hidden rounded-lg border border-input bg-muted/30">
-          {(['CASH', 'QR'] as const).map((method) => (
-            <button
-              key={method}
-              type="button"
-              onClick={() => setPaymentMethod(method)}
-              className={cn(
-                'flex-1 py-2 font-display text-xs font-bold transition-all',
-                paymentMethod === method
-                  ? 'bg-bbq-teal text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {method === 'CASH' ? 'Cash' : 'QR Pay'}
-            </button>
-          ))}
+          <div className="px-3 pb-1 pt-2.5">
+            <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
+              Payment type
+            </label>
+            <div className="flex overflow-hidden rounded-lg border border-input bg-muted/30">
+              {(['CASH', 'QR'] as const).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  className={cn(
+                    'flex-1 py-2 font-display text-xs font-bold transition-all',
+                    paymentMethod === method
+                      ? 'bg-bbq-teal text-white shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {method === 'CASH' ? 'Cash' : 'QR Pay'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="px-3 py-2.5">
+            {items.length === 0 ? (
+              <div className="flex min-h-[8rem] flex-col items-center justify-center text-muted-foreground">
+                <ShoppingBag className="mb-2 h-6 w-6 opacity-30" />
+                <p className="font-display text-xs text-center">No items added</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {items.map((item) => (
+                  <CartLineRow
+                    key={item.id}
+                    item={item}
+                    updateQuantity={updateQuantity}
+                    updateRemarks={updateRemarks}
+                    removeItem={removeItem}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="flex flex-1 flex-col overflow-hidden px-3 py-2.5">
-        {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-            <ShoppingBag className="mb-2 h-6 w-6 opacity-30" />
-            <p className="font-display text-xs text-center">No items added</p>
-          </div>
-        ) : (
-          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5">
-            {items.map((item) => (
-              <CartLineRow
-                key={item.id}
-                item={item}
-                updateQuantity={updateQuantity}
-                updateRemarks={updateRemarks}
-                removeItem={removeItem}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
       {items.length > 0 ? (
         <div
@@ -283,6 +354,7 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
           ) : null}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
