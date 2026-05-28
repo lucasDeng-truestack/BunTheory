@@ -8,7 +8,6 @@ import { posOrdersService } from '@/services/pos-orders.service';
 import { usePosSocket } from '@/hooks/usePosSocket';
 import { PosOrder } from '@/types/pos';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 function OrderRow({ order }: { order: PosOrder }) {
   const time = new Date(order.createdAt).toLocaleTimeString('en-MY', {
@@ -16,34 +15,41 @@ function OrderRow({ order }: { order: PosOrder }) {
     minute: '2-digit',
   });
 
+  const itemsSummary = order.items
+    .map((i) => {
+      const base = i.choicesSummary
+        ? `${i.quantity}x ${i.displayName} (${i.choicesSummary})`
+        : `${i.quantity}x ${i.displayName}`;
+      const r = i.remarks?.trim();
+      return r ? `${base} — “${r}”` : base;
+    })
+    .join(', ');
+
   return (
-    <Card size="sm">
-      <CardContent className="flex items-center gap-3">
-        <div className="flex flex-col items-center gap-0.5 w-16 shrink-0">
-          <span className="text-[10px] font-mono text-muted-foreground">{time}</span>
-          <span className="font-display font-bold text-foreground text-sm">{order.orderNumber}</span>
+    <Card size="sm" className="min-h-[5.5rem]">
+      <CardContent className="space-y-2 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
+                {time}
+              </span>
+              <span className="font-display text-[11px] font-bold leading-tight text-bbq-flame break-all">
+                {order.orderNumber}
+              </span>
+            </div>
+            <p className="font-semibold text-sm text-foreground">{order.customerName}</p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+              {order.paymentMethod} · RM {order.total.toFixed(2)}
+            </span>
+            <CheckCircle className="h-4 w-4 text-bbq-green" aria-hidden />
+          </div>
         </div>
-        <Separator orientation="vertical" className="h-8" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground truncate text-sm">{order.customerName}</p>
-          <p className="text-[11px] text-muted-foreground truncate">
-            {order.items
-              .map((i) => {
-                const base = i.choicesSummary
-                  ? `${i.quantity}x ${i.displayName} (${i.choicesSummary})`
-                  : `${i.quantity}x ${i.displayName}`;
-                const r = i.remarks?.trim();
-                return r ? `${base} — “${r}”` : base;
-              })
-              .join(', ')}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-0.5 shrink-0">
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            {order.paymentMethod} · RM {order.total.toFixed(2)}
-          </span>
-        </div>
-        <CheckCircle className="h-4 w-4 text-bbq-green shrink-0" />
+        <p className="text-[11px] leading-snug text-muted-foreground break-words">
+          {itemsSummary}
+        </p>
       </CardContent>
     </Card>
   );
@@ -123,7 +129,7 @@ export default function CompleteQueuePage() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-2">
+        <div className="mx-auto flex-1 w-full max-w-3xl overflow-y-auto p-4 md:p-5 space-y-2.5">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
