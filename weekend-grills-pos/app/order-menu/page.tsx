@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { PosShell } from '@/components/layout/pos-shell';
 import { ProductDragGrid } from '@/components/order-menu/product-drag-grid';
 import { CartPanel } from '@/components/order-menu/cart-panel';
+import { CartDrawer } from '@/components/order-menu/cart-drawer';
+import { CartMobileBar } from '@/components/order-menu/cart-mobile-bar';
 import { ComboCardDialog } from '@/components/order-menu/combo-card-dialog';
 import { VariantPickerDialog } from '@/components/order-menu/variant-picker-dialog';
 import { posMenuService } from '@/services/pos-menu.service';
@@ -46,6 +48,7 @@ export default function OrderMenuPage() {
   const [comboProduct, setComboProduct] = useState<PosProduct | null>(null);
   const [variantProduct, setVariantProduct] = useState<PosProduct | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const sortedSections = useMemo(
     () =>
@@ -199,7 +202,7 @@ export default function OrderMenuPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 pb-28 lg:pb-4">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading menu…</p>
             ) : products.length === 0 ? (
@@ -225,6 +228,13 @@ export default function OrderMenuPage() {
           <CartPanel onReview={() => router.push('/customer-review')} />
         </div>
       </div>
+
+      <CartMobileBar onOpen={() => setCartOpen(true)} />
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        onReview={() => router.push('/customer-review')}
+      />
 
       <ComboCardDialog
         product={comboProduct}

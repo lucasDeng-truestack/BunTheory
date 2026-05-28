@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 
 interface CartPanelProps {
   onReview: () => void;
+  /** sidebar = desktop column; embedded = inside mobile full-screen drawer */
+  variant?: 'sidebar' | 'embedded';
 }
 
 function CartLineRow({
@@ -89,7 +91,7 @@ function CartLineRow({
   );
 }
 
-export function CartPanel({ onReview }: CartPanelProps) {
+export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
   const {
     items,
     updateQuantity,
@@ -119,23 +121,34 @@ export function CartPanel({ onReview }: CartPanelProps) {
     setDiscountPercent(discountPercent === percent ? 0 : percent);
   }
 
-  return (
-    <div className="flex h-full flex-col border-l border-border bg-card">
-      <div className="flex shrink-0 items-center justify-between bg-card px-4 py-3">
-        <div className="flex items-center gap-2">
-          <ShoppingBag className="h-4 w-4 text-bbq-flame" />
-          <h2 className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
-            Current order
-          </h2>
-        </div>
-        {count > 0 ? (
-          <Badge variant="default" className="bg-bbq-flame px-1.5 py-0.5 font-display text-[10px] text-white">
-            {count}
-          </Badge>
-        ) : null}
-      </div>
+  const isEmbedded = variant === 'embedded';
 
-      <Separator />
+  return (
+    <div
+      className={cn(
+        'flex h-full flex-col bg-card',
+        !isEmbedded && 'border-l border-border',
+      )}
+    >
+      {!isEmbedded ? (
+        <>
+          <div className="flex shrink-0 items-center justify-between bg-card px-4 py-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4 text-bbq-flame" />
+              <h2 className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+                Current order
+              </h2>
+            </div>
+            {count > 0 ? (
+              <Badge variant="default" className="bg-bbq-flame px-1.5 py-0.5 font-display text-[10px] text-white">
+                {count}
+              </Badge>
+            ) : null}
+          </div>
+
+          <Separator />
+        </>
+      ) : null}
 
       <div className="px-4 pt-3">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
@@ -217,7 +230,12 @@ export function CartPanel({ onReview }: CartPanelProps) {
       </div>
 
       {items.length > 0 ? (
-        <div className="space-y-2.5 border-t border-border bg-card px-4 py-3">
+        <div
+          className={cn(
+            'space-y-2.5 border-t border-border bg-card px-4 py-3',
+            isEmbedded && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
+          )}
+        >
           <div>
             <p className="mb-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
               Discount
