@@ -44,7 +44,7 @@ export default function CustomerReviewPage() {
         </Badge>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 md:px-10 md:py-10 max-w-5xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 md:px-10 md:py-10 max-w-4xl mx-auto w-full">
         <div className="flex items-center gap-4 mb-8">
           <Flame className="h-12 w-12 md:h-16 md:w-16 text-bbq-coral" />
           <span className="font-display text-3xl md:text-4xl font-black text-bbq-coral tracking-wide">

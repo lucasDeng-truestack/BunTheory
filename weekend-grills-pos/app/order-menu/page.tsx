@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PosMenuSection, PosProduct } from '@/types/pos';
 import { cn } from '@/lib/utils';
+import { useMobileCartLayout } from '@/hooks/use-mobile-cart';
 
 const ProductFormDialog = dynamic(
   () =>
@@ -49,6 +50,11 @@ export default function OrderMenuPage() {
   const [variantProduct, setVariantProduct] = useState<PosProduct | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const isMobileCart = useMobileCartLayout();
+
+  useEffect(() => {
+    if (!isMobileCart) setCartOpen(false);
+  }, [isMobileCart]);
 
   const sortedSections = useMemo(
     () =>
@@ -202,7 +208,7 @@ export default function OrderMenuPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 pb-28 lg:pb-4">
+          <div className="flex-1 overflow-y-auto p-4 pb-28 min-[701px]:pb-4">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading menu…</p>
             ) : products.length === 0 ? (
@@ -224,17 +230,21 @@ export default function OrderMenuPage() {
           </div>
         </div>
 
-        <div className="hidden w-[min(100%,26rem)] shrink-0 lg:block">
+        <div className="hidden h-full min-h-0 w-[min(100%,17.5rem)] shrink-0 min-[701px]:block">
           <CartPanel onReview={() => router.push('/customer-review')} />
         </div>
       </div>
 
-      <CartMobileBar onOpen={() => setCartOpen(true)} />
-      <CartDrawer
-        open={cartOpen}
-        onOpenChange={setCartOpen}
-        onReview={() => router.push('/customer-review')}
-      />
+      {isMobileCart ? (
+        <>
+          <CartMobileBar onOpen={() => setCartOpen(true)} />
+          <CartDrawer
+            open={cartOpen}
+            onOpenChange={setCartOpen}
+            onReview={() => router.push('/customer-review')}
+          />
+        </>
+      ) : null}
 
       <ComboCardDialog
         product={comboProduct}

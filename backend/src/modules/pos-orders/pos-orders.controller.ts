@@ -30,8 +30,9 @@ export class PosOrdersController {
     @Query('status') status?: PosOrderStatus,
     @Query('date') date?: string,
     @Query('range') range?: string,
+    @Query('sort') sort?: 'asc' | 'desc',
   ) {
-    return this.posOrdersService.findAll({ status, date, range });
+    return this.posOrdersService.findAll({ status, date, range, sort });
   }
 
   @Get(':id')

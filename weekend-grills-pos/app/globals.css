@@ -175,50 +175,50 @@
   }
 }
 
-/* ─── POS touch UI — bump typography one step for iPad / counter use ─── */
+/* ─── POS touch UI — bump typography one step for iPad / counter use (~10% below prior scale) ─── */
 @layer utilities {
   .pos-ui .text-\[10px\] {
-    font-size: 0.75rem;
-    line-height: 1rem;
+    font-size: 0.6875rem;
+    line-height: 0.9375rem;
   }
   .pos-ui .text-\[11px\] {
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
+    font-size: 0.75rem;
+    line-height: 1.0625rem;
   }
   .pos-ui .text-xs {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.1875rem;
   }
   .pos-ui .text-sm {
-    font-size: 1rem;
-    line-height: 1.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.4375rem;
   }
   .pos-ui .text-base {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
+    font-size: 1.0625rem;
+    line-height: 1.625rem;
   }
   .pos-ui .text-lg {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
+    font-size: 1.1875rem;
+    line-height: 1.6875rem;
   }
   .pos-ui .text-xl {
-    font-size: 1.5rem;
-    line-height: 2rem;
+    font-size: 1.375rem;
+    line-height: 1.875rem;
   }
   .pos-ui .text-2xl {
-    font-size: 1.875rem;
-    line-height: 2.25rem;
+    font-size: 1.6875rem;
+    line-height: 2.0625rem;
   }
   .pos-ui .text-3xl {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
+    font-size: 2.0625rem;
+    line-height: 2.3125rem;
   }
   .pos-ui .text-4xl {
-    font-size: 2.5rem;
-    line-height: 2.75rem;
+    font-size: 2.3125rem;
+    line-height: 2.5625rem;
   }
   .pos-ui .text-5xl {
-    font-size: 3rem;
+    font-size: 2.8125rem;
     line-height: 1.1;
   }
 }

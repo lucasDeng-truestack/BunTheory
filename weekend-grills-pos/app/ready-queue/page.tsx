@@ -8,6 +8,10 @@ import { KitchenOrderCard } from '@/components/kitchen/kitchen-order-card';
 import { posOrdersService } from '@/services/pos-orders.service';
 import { usePosSocket } from '@/hooks/usePosSocket';
 import { PosOrder } from '@/types/pos';
+import {
+  sortOrdersOldestFirst,
+  upsertOrderOldestFirst,
+} from '@/lib/pos-order-sort';
 
 export default function ReadyQueuePage() {
   const [orders, setOrders] = useState<PosOrder[]>([]);
@@ -15,7 +19,7 @@ export default function ReadyQueuePage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const ready = await posOrdersService.list({ status: 'READY' });
+      const ready = await posOrdersService.list({ status: 'READY', sort: 'asc' });
       setOrders(ready);
     } catch {
       toast.error('Failed to load ready queue');
@@ -33,9 +37,11 @@ export default function ReadyQueuePage() {
       if (order.status === 'READY') {
         setOrders((prev) => {
           const exists = prev.find((o) => o.id === order.id);
-          if (exists) return prev.map((o) => (o.id === order.id ? order : o));
-          toast.success(`${order.orderNumber} is ready for pickup!`);
-          return [order, ...prev];
+          const next = upsertOrderOldestFirst(prev, order);
+          if (!exists) {
+            toast.success(`${order.orderNumber} is ready for pickup!`);
+          }
+          return next;
         });
       } else {
         setOrders((prev) => prev.filter((o) => o.id !== order.id));

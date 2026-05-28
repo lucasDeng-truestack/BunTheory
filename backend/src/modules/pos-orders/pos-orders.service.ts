@@ -311,6 +311,7 @@ export class PosOrdersService {
     status?: PosOrderStatus;
     date?: string;
     range?: string;
+    sort?: 'asc' | 'desc';
   }) {
     const where: Prisma.PosOrderWhereInput = {};
 
@@ -333,7 +334,7 @@ export class PosOrdersService {
 
     const orders = await this.prisma.posOrder.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: filters?.sort === 'asc' ? 'asc' : 'desc' },
       take,
       include: orderInclude,
     });

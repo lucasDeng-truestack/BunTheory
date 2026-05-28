@@ -68,7 +68,7 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
   if (!config) return null;
 
   return (
-    <Card className={cn('overflow-hidden', config.card)} size="sm">
+    <Card className={cn('h-auto', config.card)} size="sm">
       <CardHeader>
         <CardTitle className="font-display font-black text-base">
           {order.orderNumber}
@@ -83,18 +83,18 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
 
       <Separator className="mx-3" />
 
-      <CardContent className="space-y-1.5 overflow-y-auto max-h-44">
+      <CardContent className="space-y-2">
         {order.items.map((item) => (
           <div key={item.id}>
-            <p className="font-semibold text-foreground text-sm">
+            <p className="font-semibold text-foreground text-sm leading-snug">
               <span className="text-bbq-flame font-display">{item.quantity}x</span>{' '}
               {item.displayName}
             </p>
             {item.choicesSummary ? (
-              <p className="text-[11px] text-muted-foreground ml-5">{item.choicesSummary}</p>
+              <p className="text-[11px] text-muted-foreground ml-5 leading-snug">{item.choicesSummary}</p>
             ) : null}
             {item.remarks?.trim() ? (
-              <p className="text-[11px] font-semibold text-amber-800 ml-5">
+              <p className="text-[11px] font-semibold text-amber-800 ml-5 leading-snug">
                 Guest note · {item.remarks.trim()}
               </p>
             ) : null}
@@ -102,7 +102,7 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
         ))}
 
         {order.notes && (
-          <div className="rounded-md bg-yellow-100 text-yellow-800 text-[11px] px-2 py-1 mt-1">
+          <div className="rounded-md bg-yellow-100 text-yellow-800 text-[11px] px-2 py-1.5 leading-snug">
             {order.notes}
           </div>
         )}

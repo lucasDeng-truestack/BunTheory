@@ -17,7 +17,7 @@ export function CartMobileBar({ onOpen }: CartMobileBarProps) {
       type="button"
       onClick={onOpen}
       className={cn(
-        'fixed inset-x-0 bottom-16 z-40 flex items-center gap-3 border-t border-border bg-card px-4 py-3 shadow-[0_-8px_24px_rgb(0_0_0/0.12)] lg:hidden',
+        'fixed inset-x-0 bottom-16 z-40 flex items-center gap-3 border-t border-border bg-card px-4 py-3 shadow-[0_-8px_24px_rgb(0_0_0/0.12)]',
         'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
       )}
       aria-label={

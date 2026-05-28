@@ -8,6 +8,10 @@ import { KitchenOrderCard } from '@/components/kitchen/kitchen-order-card';
 import { posOrdersService } from '@/services/pos-orders.service';
 import { usePosSocket } from '@/hooks/usePosSocket';
 import { PosOrder } from '@/types/pos';
+import {
+  sortOrdersOldestFirst,
+  upsertOrderOldestFirst,
+} from '@/lib/pos-order-sort';
 
 export default function KitchenQueuePage() {
   const [orders, setOrders] = useState<PosOrder[]>([]);
@@ -16,10 +20,10 @@ export default function KitchenQueuePage() {
   const fetchQueues = useCallback(async () => {
     try {
       const [placed, preparing] = await Promise.all([
-        posOrdersService.list({ status: 'PLACED' }),
-        posOrdersService.list({ status: 'PREPARING' }),
+        posOrdersService.list({ status: 'PLACED', sort: 'asc' }),
+        posOrdersService.list({ status: 'PREPARING', sort: 'asc' }),
       ]);
-      setOrders([...placed, ...preparing]);
+      setOrders(sortOrdersOldestFirst([...placed, ...preparing]));
     } catch {
       toast.error('Failed to load kitchen queue');
     } finally {
@@ -34,16 +38,14 @@ export default function KitchenQueuePage() {
   usePosSocket({
     onOrderCreated: (order) => {
       if (order.status === 'PLACED' || order.status === 'PREPARING') {
-        setOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
+        setOrders((prev) => upsertOrderOldestFirst(prev, order));
         toast.info(`New order: ${order.orderNumber} — ${order.customerName}`);
       }
     },
     onOrderUpdated: (order) => {
       setOrders((prev) => {
         if (order.status === 'PLACED' || order.status === 'PREPARING') {
-          const exists = prev.find((o) => o.id === order.id);
-          if (exists) return prev.map((o) => (o.id === order.id ? order : o));
-          return [order, ...prev];
+          return upsertOrderOldestFirst(prev, order);
         }
         return prev.filter((o) => o.id !== order.id);
       });
@@ -58,8 +60,10 @@ export default function KitchenQueuePage() {
     }
   }
 
-  const placed = orders.filter((o) => o.status === 'PLACED');
-  const preparing = orders.filter((o) => o.status === 'PREPARING');
+  const placed = sortOrdersOldestFirst(orders.filter((o) => o.status === 'PLACED'));
+  const preparing = sortOrdersOldestFirst(
+    orders.filter((o) => o.status === 'PREPARING'),
+  );
 
   return (
     <PosShell>
@@ -92,13 +96,13 @@ export default function KitchenQueuePage() {
                 )}
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-1 xl:grid-cols-2 gap-3 content-start">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-1 gap-3 content-start auto-rows-min">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
                 ))
               ) : placed.length === 0 ? (
-                <div className="flex flex-col items-center justify-center col-span-2 h-36 text-muted-foreground">
+                <div className="flex flex-col items-center justify-center h-36 text-muted-foreground">
                   <p className="text-sm font-display">No new orders</p>
                 </div>
               ) : (
@@ -121,13 +125,13 @@ export default function KitchenQueuePage() {
                 )}
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-1 xl:grid-cols-2 gap-3 content-start">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-1 gap-3 content-start auto-rows-min">
               {loading ? (
                 Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
                 ))
               ) : preparing.length === 0 ? (
-                <div className="flex flex-col items-center justify-center col-span-2 h-36 text-muted-foreground">
+                <div className="flex flex-col items-center justify-center h-36 text-muted-foreground">
                   <p className="text-sm font-display">Nothing cooking</p>
                 </div>
               ) : (

@@ -51,7 +51,7 @@ export function ProductDragGrid({
 
   if (!editMode) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <SortableProductCard
             key={product.id}
@@ -73,7 +73,7 @@ export function ProductDragGrid({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={products.map((p) => p.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => (
             <SortableProductCard
               key={product.id}

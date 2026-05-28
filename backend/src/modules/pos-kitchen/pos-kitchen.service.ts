@@ -13,26 +13,29 @@ export class PosKitchenService {
   async getKitchenQueue() {
     return this.posOrdersService.findAll({
       status: PosOrderStatus.PLACED,
+      sort: 'asc',
     });
   }
 
   async getPreparingQueue() {
     return this.posOrdersService.findAll({
       status: PosOrderStatus.PREPARING,
+      sort: 'asc',
     });
   }
 
   async getReadyQueue() {
     return this.posOrdersService.findAll({
       status: PosOrderStatus.READY,
+      sort: 'asc',
     });
   }
 
   async getActiveQueues() {
     const [placed, preparing, ready] = await Promise.all([
-      this.posOrdersService.findAll({ status: PosOrderStatus.PLACED }),
-      this.posOrdersService.findAll({ status: PosOrderStatus.PREPARING }),
-      this.posOrdersService.findAll({ status: PosOrderStatus.READY }),
+      this.posOrdersService.findAll({ status: PosOrderStatus.PLACED, sort: 'asc' }),
+      this.posOrdersService.findAll({ status: PosOrderStatus.PREPARING, sort: 'asc' }),
+      this.posOrdersService.findAll({ status: PosOrderStatus.READY, sort: 'asc' }),
     ]);
     return { placed, preparing, ready };
   }

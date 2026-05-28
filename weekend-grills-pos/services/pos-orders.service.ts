@@ -28,11 +28,17 @@ export const posOrdersService = {
   create: (payload: CreateOrderPayload) =>
     api.post<PosOrderCreated>('/pos/orders', payload),
 
-  list: (filters?: { status?: PosOrderStatus; date?: string; range?: ReportRange }) => {
+  list: (filters?: {
+    status?: PosOrderStatus;
+    date?: string;
+    range?: ReportRange;
+    sort?: 'asc' | 'desc';
+  }) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set('status', filters.status);
     if (filters?.date) params.set('date', filters.date);
     if (filters?.range) params.set('range', filters.range);
+    if (filters?.sort) params.set('sort', filters.sort);
     const qs = params.toString();
     return api.get<PosOrder[]>(`/pos/orders${qs ? `?${qs}` : ''}`);
   },

@@ -197,7 +197,7 @@ export default function PaymentPage() {
             </Badge>
           </div>
 
-          <div className="flex flex-col lg:flex-row max-w-5xl mx-auto p-6 md:p-8 gap-6">
+          <div className="flex flex-col lg:flex-row max-w-4xl mx-auto p-5 md:p-7 gap-5">
         {/* Left: order summary table */}
         <div className="flex-1 space-y-4">
           <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">

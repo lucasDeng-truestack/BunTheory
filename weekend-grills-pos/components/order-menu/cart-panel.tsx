@@ -30,7 +30,7 @@ function CartLineRow({
     <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1">
-          <p className="truncate font-semibold text-xs leading-tight text-foreground">
+          <p className="font-semibold text-xs leading-snug text-foreground break-words">
             {item.displayName}
           </p>
           {item.lineType === 'COMBO' ? (
@@ -124,8 +124,8 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
   return (
     <div
       className={cn(
-        'flex h-full flex-col bg-card',
-        !isEmbedded && 'border-l border-border',
+        'flex h-full min-h-0 flex-col bg-card',
+        !isEmbedded && 'border-l border-border min-[701px]:max-w-[17.5rem]',
       )}
     >
       {!isEmbedded ? (
@@ -148,7 +148,7 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
         </>
       ) : null}
 
-      <div className="px-4 pt-3">
+      <div className="px-3 pt-3">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
           Guest name
         </label>
@@ -160,7 +160,7 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
         />
       </div>
 
-      <div className="px-4 pb-1 pt-2.5">
+      <div className="px-3 pb-1 pt-2.5">
         <label className="mb-1 block text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground">
           Payment type
         </label>
@@ -183,14 +183,14 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden px-4 py-2.5">
+      <div className="flex flex-1 flex-col overflow-hidden px-3 py-2.5">
         {items.length === 0 ? (
-          <div className="flex h-32 flex-col items-center justify-center text-muted-foreground">
+          <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
             <ShoppingBag className="mb-2 h-6 w-6 opacity-30" />
-            <p className="font-display text-xs">No items added</p>
+            <p className="font-display text-xs text-center">No items added</p>
           </div>
         ) : (
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5">
             {items.map((item) => (
               <CartLineRow
                 key={item.id}
@@ -207,7 +207,7 @@ export function CartPanel({ onReview, variant = 'sidebar' }: CartPanelProps) {
       {items.length > 0 ? (
         <div
           className={cn(
-            'space-y-2.5 border-t border-border bg-card px-4 py-3',
+            'space-y-2 border-t border-border bg-card px-3 py-2.5',
             isEmbedded && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
           )}
         >
