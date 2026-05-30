@@ -69,9 +69,15 @@ export interface PosProduct {
 }
 
 export function getProductOptionSlots(product: PosProduct): PosComboSlot[] {
-  if (product.type === 'COMBO') return product.combo?.slots ?? [];
+  if (product.type === 'COMBO') {
+    return [...(product.combo?.slots ?? [])].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
+    );
+  }
   if (product.type === 'SIMPLE' || product.type === 'VARIANT') {
-    return product.optionSlots ?? [];
+    return [...(product.optionSlots ?? [])].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
+    );
   }
   return [];
 }

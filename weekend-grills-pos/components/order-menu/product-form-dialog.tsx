@@ -30,7 +30,7 @@ interface ProductFormDialogProps {
   onOpenChange: (open: boolean) => void;
   sectionId: string;
   initialProduct: PosProduct | null;
-  onSaved: () => void;
+  onSaved: (saved?: PosProduct) => void;
 }
 
 type VariantRow = { name: string; price: string };
@@ -196,13 +196,14 @@ export function ProductFormDialog({
       }
 
       if (isEdit && initialProduct) {
-        await posMenuService.updateProduct(initialProduct.id, payload);
+        const saved = await posMenuService.updateProduct(initialProduct.id, payload);
         toast.success('Product updated');
+        onSaved(saved);
       } else {
         await posMenuService.createProduct(payload);
         toast.success('Product created');
+        onSaved();
       }
-      onSaved();
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to save product');

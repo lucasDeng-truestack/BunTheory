@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { PosProduct, getProductOptionSlots } from '@/types/pos';
 import {
@@ -37,6 +37,12 @@ export function ComboCardDialog({
   const [remarks, setRemarks] = useState('');
 
   const slots = product ? getProductOptionSlots(product) : [];
+
+  useEffect(() => {
+    if (!open) return;
+    setSelections({});
+    setRemarks('');
+  }, [open, product?.id]);
 
   const { unitPrice, choicesSummary, comboSelections, complete } = useMemo(() => {
     if (!product || slots.length === 0) {

@@ -88,22 +88,43 @@ export default function OrderMenuPage() {
     loadMenu().finally(() => setLoading(false));
   }, [loadMenu]);
 
-  function handleTapProduct(product: PosProduct) {
+  function patchProductInSections(fresh: PosProduct) {
+    setSections((prev) =>
+      prev.map((section) => ({
+        ...section,
+        products: section.products.map((p) =>
+          p.id === fresh.id ? fresh : p,
+        ),
+      })),
+    );
+  }
+
+  async function resolveProductForOrder(product: PosProduct): Promise<PosProduct> {
+    try {
+      const fresh = await posMenuService.getProduct(product.id);
+      patchProductInSections(fresh);
+      return fresh;
+    } catch {
+      return product;
+    }
+  }
+
+  async function handleTapProduct(product: PosProduct) {
     if (menuEditMode) return;
     if (!product.available) {
       toast.error('This item is unavailable');
       return;
     }
     if (product.type === 'COMBO') {
-      setComboProduct(product);
+      setComboProduct(await resolveProductForOrder(product));
       return;
     }
     if (product.type === 'VARIANT') {
-      setVariantProduct(product);
+      setVariantProduct(await resolveProductForOrder(product));
       return;
     }
     if (productRequiresOptionPicker(product)) {
-      setComboProduct(product);
+      setComboProduct(await resolveProductForOrder(product));
       return;
     }
     addLine({
@@ -298,7 +319,10 @@ export default function OrderMenuPage() {
         onOpenChange={setFormOpen}
         sectionId={activeSection?.id ?? ''}
         initialProduct={formInitial}
-        onSaved={loadMenu}
+        onSaved={(saved) => {
+          if (saved) patchProductInSections(saved);
+          void loadMenu();
+        }}
       />
 
       <AlertDialog

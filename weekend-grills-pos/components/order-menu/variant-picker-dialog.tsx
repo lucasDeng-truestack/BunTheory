@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import {
   PosProduct,
@@ -53,7 +53,15 @@ export function VariantPickerDialog({
   );
 
   const slots = product ? getProductOptionSlots(product) : [];
+  const hasSlots = slots.length > 0;
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? null;
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedVariantId(null);
+    setSelections({});
+    setRemarks('');
+  }, [open, product?.id]);
 
   const { unitPrice, choicesSummary, comboSelections, complete } = useMemo(() => {
     if (!selectedVariant) {
@@ -65,7 +73,7 @@ export function VariantPickerDialog({
       };
     }
 
-    if (slots.length === 0) {
+    if (!hasSlots) {
       return {
         unitPrice: selectedVariant.price,
         choicesSummary: selectedVariant.name,
@@ -105,7 +113,7 @@ export function VariantPickerDialog({
       comboSelections: picks,
       complete: allRequired,
     };
-  }, [selectedVariant, selections, slots]);
+  }, [selectedVariant, selections, slots, hasSlots]);
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -117,7 +125,7 @@ export function VariantPickerDialog({
   }
 
   function handleVariantSelect(variant: PosProductVariant) {
-    if (slots.length === 0) {
+    if (!hasSlots) {
       if (!product) return;
       onConfirm({
         product,
@@ -146,8 +154,6 @@ export function VariantPickerDialog({
   }
 
   if (!product) return null;
-
-  const hasSlots = slots.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -201,7 +207,7 @@ export function VariantPickerDialog({
             </div>
           </div>
 
-          {hasSlots && selectedVariant
+          {hasSlots
             ? slots.map((slot) => (
                 <div key={slot.id}>
                   <p className="mb-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
@@ -222,6 +228,7 @@ export function VariantPickerDialog({
                             selected
                               ? 'border-bbq-flame bg-bbq-flame/10 text-bbq-flame'
                               : 'border-border bg-card hover:border-bbq-flame/40',
+                            !selectedVariant && 'opacity-90',
                           )}
                         >
                           {opt.label}
@@ -255,16 +262,20 @@ export function VariantPickerDialog({
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          {hasSlots && selectedVariant ? (
-            <div className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-              <span className="font-display text-sm font-bold">Total</span>
-              <span className="font-display text-lg font-black tabular-nums text-bbq-flame">
-                RM {unitPrice.toFixed(2)}
-              </span>
-            </div>
-          ) : null}
           {hasSlots ? (
             <>
+              {selectedVariant ? (
+                <div className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                  <span className="font-display text-sm font-bold">Total</span>
+                  <span className="font-display text-lg font-black tabular-nums text-bbq-flame">
+                    RM {unitPrice.toFixed(2)}
+                  </span>
+                </div>
+              ) : (
+                <p className="w-full text-center text-xs text-muted-foreground">
+                  Pick a size to see your total
+                </p>
+              )}
               <Button
                 type="button"
                 disabled={!complete}
