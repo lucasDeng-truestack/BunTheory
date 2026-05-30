@@ -202,11 +202,41 @@ model PosProduct {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  combo      PosCombo?
-  variants   PosProductVariant[]
-  orderItems PosOrderItem[]
+  combo       PosCombo?
+  variants    PosProductVariant[]
+  optionSlots PosProductOptionSlot[]
+  orderItems  PosOrderItem[]
 
   @@index([sectionId, sortOrder])
+}
+
+/// Customizable choices for à la carte (SIMPLE) items — e.g. Spicy / Non-spicy.
+model PosProductOptionSlot {
+  id        String     @id @default(cuid())
+  productId String
+  product   PosProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  sortOrder Int        @default(0)
+  required  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  options PosProductOptionSlotOption[]
+
+  @@index([productId, sortOrder])
+}
+
+model PosProductOptionSlotOption {
+  id         String               @id @default(cuid())
+  slotId     String
+  slot       PosProductOptionSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  label      String
+  priceDelta Decimal              @default(0) @db.Decimal(10, 2)
+  sortOrder  Int                  @default(0)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([slotId, sortOrder])
 }
 
 model PosProductVariant {

@@ -52,9 +52,10 @@ export function ProductFormDialog({
   const [includesText, setIncludesText] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([{ name: '', price: '0' }]);
-  const [slots, setSlots] = useState<SlotRow[]>([
+  const [comboSlots, setComboSlots] = useState<SlotRow[]>([
     { label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] },
   ]);
+  const [simpleOptionSlots, setSimpleOptionSlots] = useState<SlotRow[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export function ProductFormDialog({
             }))
           : [{ name: '', price: '0' }],
       );
-      setSlots(
+      setComboSlots(
         initialProduct.combo?.slots.length
           ? initialProduct.combo.slots.map((s) => ({
               label: s.label,
@@ -87,6 +88,18 @@ export function ProductFormDialog({
             }))
           : [{ label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] }],
       );
+      setSimpleOptionSlots(
+        initialProduct.optionSlots?.length
+          ? initialProduct.optionSlots.map((s) => ({
+              label: s.label,
+              required: s.required,
+              options: s.options.map((o) => ({
+                label: o.label,
+                priceDelta: String(o.priceDelta),
+              })),
+            }))
+          : [],
+      );
     } else {
       setType('SIMPLE');
       setName('');
@@ -96,7 +109,8 @@ export function ProductFormDialog({
       setImage(null);
       setIncludesText('');
       setVariants([{ name: '', price: '0' }]);
-      setSlots([{ label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] }]);
+      setComboSlots([{ label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] }]);
+      setSimpleOptionSlots([]);
     }
   }, [open, initialProduct]);
 
@@ -119,7 +133,7 @@ export function ProductFormDialog({
 
       if (type === 'COMBO') {
         payload.includesText = includesText.trim() || undefined;
-        payload.slots = slots.map((slot, si) => ({
+        payload.slots = comboSlots.map((slot, si) => ({
           label: slot.label.trim(),
           sortOrder: si,
           required: slot.required,
@@ -129,6 +143,23 @@ export function ProductFormDialog({
             sortOrder: oi,
           })),
         }));
+      }
+
+      if (type === 'SIMPLE') {
+        payload.optionSlots = simpleOptionSlots
+          .filter((slot) => slot.label.trim() && slot.options.some((o) => o.label.trim()))
+          .map((slot, si) => ({
+            label: slot.label.trim(),
+            sortOrder: si,
+            required: slot.required,
+            options: slot.options
+              .filter((opt) => opt.label.trim())
+              .map((opt, oi) => ({
+                label: opt.label.trim(),
+                priceDelta: Number(opt.priceDelta) || 0,
+                sortOrder: oi,
+              })),
+          }));
       }
 
       if (type === 'VARIANT') {
@@ -239,14 +270,14 @@ export function ProductFormDialog({
               </div>
               <div className="space-y-3">
                 <Label className="font-display text-xs">Combo slots</Label>
-                {slots.map((slot, si) => (
+                {comboSlots.map((slot, si) => (
                   <div key={si} className="rounded-lg border p-3 space-y-2">
                     <Input
                       value={slot.label}
                       onChange={(e) => {
-                        const next = [...slots];
+                        const next = [...comboSlots];
                         next[si] = { ...slot, label: e.target.value };
-                        setSlots(next);
+                        setComboSlots(next);
                       }}
                       placeholder="Slot label (e.g. Protein)"
                     />
@@ -255,11 +286,11 @@ export function ProductFormDialog({
                         <Input
                           value={opt.label}
                           onChange={(e) => {
-                            const next = [...slots];
+                            const next = [...comboSlots];
                             const opts = [...slot.options];
                             opts[oi] = { ...opt, label: e.target.value };
                             next[si] = { ...slot, options: opts };
-                            setSlots(next);
+                            setComboSlots(next);
                           }}
                           placeholder="Option label"
                           className="flex-1"
@@ -270,11 +301,11 @@ export function ProductFormDialog({
                           step="0.01"
                           value={opt.priceDelta}
                           onChange={(e) => {
-                            const next = [...slots];
+                            const next = [...comboSlots];
                             const opts = [...slot.options];
                             opts[oi] = { ...opt, priceDelta: e.target.value };
                             next[si] = { ...slot, options: opts };
-                            setSlots(next);
+                            setComboSlots(next);
                           }}
                           placeholder="+RM"
                           className="w-24"
@@ -287,12 +318,12 @@ export function ProductFormDialog({
                       size="sm"
                       className="font-display text-xs"
                       onClick={() => {
-                        const next = [...slots];
+                        const next = [...comboSlots];
                         next[si] = {
                           ...slot,
                           options: [...slot.options, { label: '', priceDelta: '0' }],
                         };
-                        setSlots(next);
+                        setComboSlots(next);
                       }}
                     >
                       Add option
@@ -305,8 +336,8 @@ export function ProductFormDialog({
                   size="sm"
                   className="font-display text-xs"
                   onClick={() =>
-                    setSlots([
-                      ...slots,
+                    setComboSlots([
+                      ...comboSlots,
                       {
                         label: '',
                         required: true,
@@ -319,6 +350,95 @@ export function ProductFormDialog({
                 </Button>
               </div>
             </>
+          ) : null}
+
+          {type === 'SIMPLE' ? (
+            <div className="space-y-3">
+              <div>
+                <Label className="font-display text-xs">Option slots (optional)</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Let staff pick choices like Spicy or Non-spicy when ordering.
+                </p>
+              </div>
+              {simpleOptionSlots.map((slot, si) => (
+                <div key={si} className="rounded-lg border p-3 space-y-2">
+                  <Input
+                    value={slot.label}
+                    onChange={(e) => {
+                      const next = [...simpleOptionSlots];
+                      next[si] = { ...slot, label: e.target.value };
+                      setSimpleOptionSlots(next);
+                    }}
+                    placeholder="Slot label (e.g. Spice level)"
+                  />
+                  {slot.options.map((opt, oi) => (
+                    <div key={oi} className="flex gap-2">
+                      <Input
+                        value={opt.label}
+                        onChange={(e) => {
+                          const next = [...simpleOptionSlots];
+                          const opts = [...slot.options];
+                          opts[oi] = { ...opt, label: e.target.value };
+                          next[si] = { ...slot, options: opts };
+                          setSimpleOptionSlots(next);
+                        }}
+                        placeholder="Option label"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={opt.priceDelta}
+                        onChange={(e) => {
+                          const next = [...simpleOptionSlots];
+                          const opts = [...slot.options];
+                          opts[oi] = { ...opt, priceDelta: e.target.value };
+                          next[si] = { ...slot, options: opts };
+                          setSimpleOptionSlots(next);
+                        }}
+                        placeholder="+RM"
+                        className="w-24"
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="font-display text-xs"
+                    onClick={() => {
+                      const next = [...simpleOptionSlots];
+                      next[si] = {
+                        ...slot,
+                        options: [...slot.options, { label: '', priceDelta: '0' }],
+                      };
+                      setSimpleOptionSlots(next);
+                    }}
+                  >
+                    Add option
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="font-display text-xs"
+                onClick={() =>
+                  setSimpleOptionSlots([
+                    ...simpleOptionSlots,
+                    {
+                      label: '',
+                      required: true,
+                      options: [{ label: '', priceDelta: '0' }],
+                    },
+                  ])
+                }
+              >
+                Add slot
+              </Button>
+            </div>
           ) : null}
 
           {type === 'VARIANT' ? (

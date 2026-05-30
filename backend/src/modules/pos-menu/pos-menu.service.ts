@@ -24,6 +24,14 @@ const productInclude = {
       },
     },
   },
+  optionSlots: {
+    orderBy: [{ sortOrder: 'asc' as const }, { label: 'asc' as const }],
+    include: {
+      options: {
+        orderBy: [{ sortOrder: 'asc' as const }, { label: 'asc' as const }],
+      },
+    },
+  },
   variants: {
     orderBy: [{ sortOrder: 'asc' as const }, { name: 'asc' as const }],
   },
@@ -155,6 +163,24 @@ export class PosMenuService {
               },
             }
           : {}),
+        ...(dto.type === 'SIMPLE' && dto.optionSlots?.length
+          ? {
+              optionSlots: {
+                create: dto.optionSlots.map((slot, si) => ({
+                  label: slot.label.trim(),
+                  sortOrder: slot.sortOrder ?? si,
+                  required: slot.required ?? true,
+                  options: {
+                    create: slot.options.map((opt, oi) => ({
+                      label: opt.label.trim(),
+                      priceDelta: new Prisma.Decimal(opt.priceDelta ?? 0),
+                      sortOrder: opt.sortOrder ?? oi,
+                    })),
+                  },
+                })),
+              },
+            }
+          : {}),
       },
       include: productInclude,
     });
@@ -241,7 +267,44 @@ export class PosMenuService {
       }
     }
 
+    if (current.type === 'SIMPLE' && dto.optionSlots) {
+      await this.replaceSimpleOptionSlots(id, dto.optionSlots);
+    }
+
     return this.findOneProduct(id);
+  }
+
+  private async replaceSimpleOptionSlots(
+    productId: string,
+    slots: NonNullable<UpdatePosProductDto['optionSlots']>,
+  ) {
+    const existing = await this.prisma.posProductOptionSlot.findMany({
+      where: { productId },
+      select: { id: true },
+    });
+    for (const slot of existing) {
+      await this.prisma.posProductOptionSlotOption.deleteMany({
+        where: { slotId: slot.id },
+      });
+    }
+    await this.prisma.posProductOptionSlot.deleteMany({ where: { productId } });
+    for (const [si, slot] of slots.entries()) {
+      await this.prisma.posProductOptionSlot.create({
+        data: {
+          productId,
+          label: slot.label.trim(),
+          sortOrder: slot.sortOrder ?? si,
+          required: slot.required ?? true,
+          options: {
+            create: slot.options.map((opt, oi) => ({
+              label: opt.label.trim(),
+              priceDelta: new Prisma.Decimal(opt.priceDelta ?? 0),
+              sortOrder: opt.sortOrder ?? oi,
+            })),
+          },
+        },
+      });
+    }
   }
 
   async deleteProduct(id: string) {
@@ -274,6 +337,25 @@ export class PosMenuService {
     if (type === 'VARIANT' && (!dto.variants || dto.variants.length === 0)) {
       throw new BadRequestException('Variant products require at least one variant');
     }
+  }
+
+  private mapOptionSlots(
+    slots: Prisma.PosProductGetPayload<{
+      include: { optionSlots: { include: { options: true } } };
+    }>['optionSlots'],
+  ) {
+    return slots.map((slot) => ({
+      id: slot.id,
+      label: slot.label,
+      sortOrder: slot.sortOrder,
+      required: slot.required,
+      options: slot.options.map((opt) => ({
+        id: opt.id,
+        label: opt.label,
+        priceDelta: Number(opt.priceDelta),
+        sortOrder: opt.sortOrder,
+      })),
+    }));
   }
 
   private mapProduct(
@@ -315,6 +397,7 @@ export class PosMenuService {
         price: Number(v.price),
         sortOrder: v.sortOrder,
       })),
+      optionSlots: this.mapOptionSlots(product.optionSlots),
     };
   }
 }

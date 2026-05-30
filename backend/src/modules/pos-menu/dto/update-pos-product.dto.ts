@@ -56,6 +56,12 @@ export class UpdatePosProductDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
+  @Type(() => ComboSlotDto)
+  optionSlots?: ComboSlotDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
   @Type(() => ProductVariantDto)
   variants?: ProductVariantDto[];
 }

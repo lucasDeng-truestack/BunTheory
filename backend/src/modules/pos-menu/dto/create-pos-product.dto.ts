@@ -57,6 +57,13 @@ export class CreatePosProductDto {
   @Type(() => ComboSlotDto)
   slots?: ComboSlotDto[];
 
+  @ValidateIf((o: CreatePosProductDto) => o.type === 'SIMPLE')
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComboSlotDto)
+  optionSlots?: ComboSlotDto[];
+
   @ValidateIf((o: CreatePosProductDto) => o.type === 'VARIANT')
   @IsArray()
   @ValidateNested({ each: true })

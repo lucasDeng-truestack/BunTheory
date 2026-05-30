@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { PosProduct } from '@/types/pos';
+import { PosProduct, getProductOptionSlots } from '@/types/pos';
 import {
   Dialog,
   DialogContent,
@@ -36,10 +36,10 @@ export function ComboCardDialog({
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [remarks, setRemarks] = useState('');
 
-  const slots = product?.combo?.slots ?? [];
+  const slots = product ? getProductOptionSlots(product) : [];
 
   const { unitPrice, choicesSummary, comboSelections, complete } = useMemo(() => {
-    if (!product?.combo) {
+    if (!product || slots.length === 0) {
       return {
         unitPrice: 0,
         choicesSummary: '',

@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PosMenuSection, PosProduct } from '@/types/pos';
+import { PosMenuSection, PosProduct, productRequiresOptionPicker } from '@/types/pos';
 import { cn } from '@/lib/utils';
 import { useMobileCartLayout } from '@/hooks/use-mobile-cart';
 
@@ -94,7 +94,7 @@ export default function OrderMenuPage() {
       toast.error('This item is unavailable');
       return;
     }
-    if (product.type === 'COMBO') {
+    if (product.type === 'COMBO' || productRequiresOptionPicker(product)) {
       setComboProduct(product);
       return;
     }
@@ -254,7 +254,7 @@ export default function OrderMenuPage() {
         }}
         onConfirm={({ product, unitPrice, choicesSummary, comboSelections, remarks }) => {
           addLine({
-            lineType: 'COMBO',
+            lineType: product.type === 'COMBO' ? 'COMBO' : 'SIMPLE',
             productId: product.id,
             displayName: product.name,
             choicesSummary,

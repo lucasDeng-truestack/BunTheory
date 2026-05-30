@@ -65,6 +65,17 @@ export interface PosProduct {
   updatedAt: string;
   combo: PosComboConfig | null;
   variants: PosProductVariant[];
+  optionSlots: PosComboSlot[];
+}
+
+export function getProductOptionSlots(product: PosProduct): PosComboSlot[] {
+  if (product.type === 'COMBO') return product.combo?.slots ?? [];
+  if (product.type === 'SIMPLE') return product.optionSlots ?? [];
+  return [];
+}
+
+export function productRequiresOptionPicker(product: PosProduct): boolean {
+  return getProductOptionSlots(product).length > 0;
 }
 
 export interface PosMenuSection {

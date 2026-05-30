@@ -45,6 +45,7 @@ const productInclude = {
       slots: { include: { options: true } },
     },
   },
+  optionSlots: { include: { options: true } },
   variants: true,
 } satisfies Prisma.PosProductInclude;
 
@@ -163,14 +164,34 @@ export class PosOrdersService {
       if (product.type !== 'SIMPLE') {
         throw new BadRequestException(`"${product.name}" is not a simple product`);
       }
+
+      const slots = product.optionSlots ?? [];
+      if (slots.length === 0) {
+        return {
+          lineType: 'SIMPLE' as const,
+          productId: product.id,
+          variantId: null,
+          displayName: product.name,
+          choicesSummary: null,
+          choicesJson: null,
+          unitPrice: new Prisma.Decimal(product.basePrice),
+        };
+      }
+
+      const resolved = this.resolveSlotSelections(
+        product.basePrice,
+        slots,
+        item.comboSelections ?? [],
+      );
+
       return {
         lineType: 'SIMPLE' as const,
         productId: product.id,
         variantId: null,
         displayName: product.name,
-        choicesSummary: null,
-        choicesJson: null,
-        unitPrice: new Prisma.Decimal(product.basePrice),
+        choicesSummary: resolved.choicesSummary,
+        choicesJson: resolved.choicesJson,
+        unitPrice: resolved.unitPrice,
       };
     }
 
@@ -202,60 +223,88 @@ export class PosOrdersService {
       }
       const selections = item.comboSelections ?? [];
       const slots = product.combo.slots;
-      const requiredSlots = slots.filter((s) => s.required);
-
-      for (const slot of requiredSlots) {
-        const pick = selections.find((s) => s.slotId === slot.id);
-        if (!pick) {
-          throw new BadRequestException(`Missing selection for "${slot.label}"`);
-        }
-      }
-
-      let unitPrice = new Prisma.Decimal(product.basePrice);
-      const choiceParts: string[] = [];
-      const choicesJson: Array<{
-        slotId: string;
-        slotLabel: string;
-        optionId: string;
-        optionLabel: string;
-        priceDelta: number;
-      }> = [];
-
-      for (const slot of slots.sort((a, b) => a.sortOrder - b.sortOrder)) {
-        const pick = selections.find((s) => s.slotId === slot.id);
-        if (!pick) continue;
-        const option = slot.options.find((o) => o.id === pick.optionId);
-        if (!option) {
-          throw new BadRequestException(
-            `Invalid option for slot "${slot.label}"`,
-          );
-        }
-        unitPrice = unitPrice.add(option.priceDelta);
-        const delta = Number(option.priceDelta);
-        choiceParts.push(
-          delta > 0 ? `${option.label} (+RM${delta})` : option.label,
-        );
-        choicesJson.push({
-          slotId: slot.id,
-          slotLabel: slot.label,
-          optionId: option.id,
-          optionLabel: option.label,
-          priceDelta: delta,
-        });
-      }
+      const resolved = this.resolveSlotSelections(
+        product.basePrice,
+        slots,
+        selections,
+      );
 
       return {
         lineType: 'COMBO' as const,
         productId: product.id,
         variantId: null,
         displayName: product.name,
-        choicesSummary: choiceParts.join(' · '),
-        choicesJson,
-        unitPrice,
+        choicesSummary: resolved.choicesSummary,
+        choicesJson: resolved.choicesJson,
+        unitPrice: resolved.unitPrice,
       };
     }
 
     throw new BadRequestException(`Unknown line type for "${product.name}"`);
+  }
+
+  private resolveSlotSelections(
+    basePrice: Prisma.Decimal,
+    slots: Array<{
+      id: string;
+      label: string;
+      sortOrder: number;
+      required: boolean;
+      options: Array<{
+        id: string;
+        label: string;
+        priceDelta: Prisma.Decimal;
+      }>;
+    }>,
+    selections: Array<{ slotId: string; optionId: string }>,
+  ) {
+    const requiredSlots = slots.filter((s) => s.required);
+
+    for (const slot of requiredSlots) {
+      const pick = selections.find((s) => s.slotId === slot.id);
+      if (!pick) {
+        throw new BadRequestException(`Missing selection for "${slot.label}"`);
+      }
+    }
+
+    let unitPrice = new Prisma.Decimal(basePrice);
+    const choiceParts: string[] = [];
+    const choicesJson: Array<{
+      slotId: string;
+      slotLabel: string;
+      optionId: string;
+      optionLabel: string;
+      priceDelta: number;
+    }> = [];
+
+    for (const slot of slots.sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const pick = selections.find((s) => s.slotId === slot.id);
+      if (!pick) continue;
+      const option = slot.options.find((o) => o.id === pick.optionId);
+      if (!option) {
+        throw new BadRequestException(
+          `Invalid option for slot "${slot.label}"`,
+        );
+      }
+      unitPrice = unitPrice.add(option.priceDelta);
+      const delta = Number(option.priceDelta);
+      choiceParts.push(
+        delta > 0 ? `${option.label} (+RM${delta})` : option.label,
+      );
+      choicesJson.push({
+        slotId: slot.id,
+        slotLabel: slot.label,
+        optionId: option.id,
+        optionLabel: option.label,
+        priceDelta: delta,
+      });
+    }
+
+    return {
+      unitPrice,
+      choicesSummary: choiceParts.join(' · '),
+      choicesJson,
+    };
   }
 
   async findPublicReceiptByToken(token: string) {
