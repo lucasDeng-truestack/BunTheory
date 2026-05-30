@@ -206,14 +206,42 @@ export class PosOrdersService {
       if (!variant) {
         throw new BadRequestException(`Variant not found for "${product.name}"`);
       }
+
+      const slots = product.optionSlots ?? [];
+      if (slots.length === 0) {
+        return {
+          lineType: 'VARIANT' as const,
+          productId: product.id,
+          variantId: variant.id,
+          displayName: `${product.name} (${variant.name})`,
+          choicesSummary: variant.name,
+          choicesJson: { variantId: variant.id, variantName: variant.name },
+          unitPrice: new Prisma.Decimal(variant.price),
+        };
+      }
+
+      const resolved = this.resolveSlotSelections(
+        variant.price,
+        slots,
+        item.comboSelections ?? [],
+      );
+      const slotSummary = resolved.choicesSummary;
+      const choicesSummary = slotSummary
+        ? `${variant.name} · ${slotSummary}`
+        : variant.name;
+
       return {
         lineType: 'VARIANT' as const,
         productId: product.id,
         variantId: variant.id,
         displayName: `${product.name} (${variant.name})`,
-        choicesSummary: variant.name,
-        choicesJson: { variantId: variant.id, variantName: variant.name },
-        unitPrice: new Prisma.Decimal(variant.price),
+        choicesSummary,
+        choicesJson: {
+          variantId: variant.id,
+          variantName: variant.name,
+          slots: resolved.choicesJson,
+        },
+        unitPrice: resolved.unitPrice,
       };
     }
 

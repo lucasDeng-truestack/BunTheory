@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PosProduct, PosProductType, POS_PRODUCT_TYPE_OPTIONS, formatPosProductType } from '@/types/pos';
 import { posMenuService } from '@/services/pos-menu.service';
@@ -36,6 +37,30 @@ type VariantRow = { name: string; price: string };
 type OptionRow = { label: string; priceDelta: string };
 type SlotRow = { label: string; required: boolean; options: OptionRow[] };
 
+function RemoveRowButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      disabled={disabled}
+      onClick={onClick}
+      className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      aria-label={label}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+}
+
 export function ProductFormDialog({
   open,
   onOpenChange,
@@ -55,7 +80,7 @@ export function ProductFormDialog({
   const [comboSlots, setComboSlots] = useState<SlotRow[]>([
     { label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] },
   ]);
-  const [simpleOptionSlots, setSimpleOptionSlots] = useState<SlotRow[]>([]);
+  const [optionSlots, setOptionSlots] = useState<SlotRow[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -88,7 +113,7 @@ export function ProductFormDialog({
             }))
           : [{ label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] }],
       );
-      setSimpleOptionSlots(
+      setOptionSlots(
         initialProduct.optionSlots?.length
           ? initialProduct.optionSlots.map((s) => ({
               label: s.label,
@@ -110,7 +135,7 @@ export function ProductFormDialog({
       setIncludesText('');
       setVariants([{ name: '', price: '0' }]);
       setComboSlots([{ label: 'Choice', required: true, options: [{ label: '', priceDelta: '0' }] }]);
-      setSimpleOptionSlots([]);
+      setOptionSlots([]);
     }
   }, [open, initialProduct]);
 
@@ -145,8 +170,8 @@ export function ProductFormDialog({
         }));
       }
 
-      if (type === 'SIMPLE') {
-        payload.optionSlots = simpleOptionSlots
+      if (type === 'SIMPLE' || type === 'VARIANT') {
+        payload.optionSlots = optionSlots
           .filter((slot) => slot.label.trim() && slot.options.some((o) => o.label.trim()))
           .map((slot, si) => ({
             label: slot.label.trim(),
@@ -272,15 +297,23 @@ export function ProductFormDialog({
                 <Label className="font-display text-xs">Combo slots</Label>
                 {comboSlots.map((slot, si) => (
                   <div key={si} className="rounded-lg border p-3 space-y-2">
-                    <Input
-                      value={slot.label}
-                      onChange={(e) => {
-                        const next = [...comboSlots];
-                        next[si] = { ...slot, label: e.target.value };
-                        setComboSlots(next);
-                      }}
-                      placeholder="Slot label (e.g. Protein)"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={slot.label}
+                        onChange={(e) => {
+                          const next = [...comboSlots];
+                          next[si] = { ...slot, label: e.target.value };
+                          setComboSlots(next);
+                        }}
+                        placeholder="Slot label (e.g. Protein)"
+                        className="flex-1"
+                      />
+                      <RemoveRowButton
+                        label="Remove combo slot"
+                        disabled={comboSlots.length <= 1}
+                        onClick={() => setComboSlots(comboSlots.filter((_, i) => i !== si))}
+                      />
+                    </div>
                     {slot.options.map((opt, oi) => (
                       <div key={oi} className="flex gap-2">
                         <Input
@@ -309,6 +342,18 @@ export function ProductFormDialog({
                           }}
                           placeholder="+RM"
                           className="w-24"
+                        />
+                        <RemoveRowButton
+                          label="Remove option"
+                          disabled={slot.options.length <= 1}
+                          onClick={() => {
+                            const next = [...comboSlots];
+                            next[si] = {
+                              ...slot,
+                              options: slot.options.filter((_, i) => i !== oi),
+                            };
+                            setComboSlots(next);
+                          }}
                         />
                       </div>
                     ))}
@@ -352,95 +397,6 @@ export function ProductFormDialog({
             </>
           ) : null}
 
-          {type === 'SIMPLE' ? (
-            <div className="space-y-3">
-              <div>
-                <Label className="font-display text-xs">Option slots (optional)</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Let staff pick choices like Spicy or Non-spicy when ordering.
-                </p>
-              </div>
-              {simpleOptionSlots.map((slot, si) => (
-                <div key={si} className="rounded-lg border p-3 space-y-2">
-                  <Input
-                    value={slot.label}
-                    onChange={(e) => {
-                      const next = [...simpleOptionSlots];
-                      next[si] = { ...slot, label: e.target.value };
-                      setSimpleOptionSlots(next);
-                    }}
-                    placeholder="Slot label (e.g. Spice level)"
-                  />
-                  {slot.options.map((opt, oi) => (
-                    <div key={oi} className="flex gap-2">
-                      <Input
-                        value={opt.label}
-                        onChange={(e) => {
-                          const next = [...simpleOptionSlots];
-                          const opts = [...slot.options];
-                          opts[oi] = { ...opt, label: e.target.value };
-                          next[si] = { ...slot, options: opts };
-                          setSimpleOptionSlots(next);
-                        }}
-                        placeholder="Option label"
-                        className="flex-1"
-                      />
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={opt.priceDelta}
-                        onChange={(e) => {
-                          const next = [...simpleOptionSlots];
-                          const opts = [...slot.options];
-                          opts[oi] = { ...opt, priceDelta: e.target.value };
-                          next[si] = { ...slot, options: opts };
-                          setSimpleOptionSlots(next);
-                        }}
-                        placeholder="+RM"
-                        className="w-24"
-                      />
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="font-display text-xs"
-                    onClick={() => {
-                      const next = [...simpleOptionSlots];
-                      next[si] = {
-                        ...slot,
-                        options: [...slot.options, { label: '', priceDelta: '0' }],
-                      };
-                      setSimpleOptionSlots(next);
-                    }}
-                  >
-                    Add option
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="font-display text-xs"
-                onClick={() =>
-                  setSimpleOptionSlots([
-                    ...simpleOptionSlots,
-                    {
-                      label: '',
-                      required: true,
-                      options: [{ label: '', priceDelta: '0' }],
-                    },
-                  ])
-                }
-              >
-                Add slot
-              </Button>
-            </div>
-          ) : null}
-
           {type === 'VARIANT' ? (
             <div className="space-y-2">
               <Label className="font-display text-xs">Variants</Label>
@@ -468,6 +424,11 @@ export function ProductFormDialog({
                     }}
                     className="w-28"
                   />
+                  <RemoveRowButton
+                    label="Remove variant"
+                    disabled={variants.length <= 1}
+                    onClick={() => setVariants(variants.filter((_, i) => i !== vi))}
+                  />
                 </div>
               ))}
               <Button
@@ -478,6 +439,114 @@ export function ProductFormDialog({
                 onClick={() => setVariants([...variants, { name: '', price: '0' }])}
               >
                 Add variant
+              </Button>
+            </div>
+          ) : null}
+
+          {type === 'SIMPLE' || type === 'VARIANT' ? (
+            <div className="space-y-3">
+              <div>
+                <Label className="font-display text-xs">Option slots (optional)</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Let staff pick choices like Spicy or Non-spicy when ordering.
+                </p>
+              </div>
+              {optionSlots.map((slot, si) => (
+                <div key={si} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={slot.label}
+                      onChange={(e) => {
+                        const next = [...optionSlots];
+                        next[si] = { ...slot, label: e.target.value };
+                        setOptionSlots(next);
+                      }}
+                      placeholder="Slot label (e.g. Spice level)"
+                      className="flex-1"
+                    />
+                    <RemoveRowButton
+                      label="Remove option slot"
+                      onClick={() => setOptionSlots(optionSlots.filter((_, i) => i !== si))}
+                    />
+                  </div>
+                  {slot.options.map((opt, oi) => (
+                    <div key={oi} className="flex gap-2">
+                      <Input
+                        value={opt.label}
+                        onChange={(e) => {
+                          const next = [...optionSlots];
+                          const opts = [...slot.options];
+                          opts[oi] = { ...opt, label: e.target.value };
+                          next[si] = { ...slot, options: opts };
+                          setOptionSlots(next);
+                        }}
+                        placeholder="Option label"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={opt.priceDelta}
+                        onChange={(e) => {
+                          const next = [...optionSlots];
+                          const opts = [...slot.options];
+                          opts[oi] = { ...opt, priceDelta: e.target.value };
+                          next[si] = { ...slot, options: opts };
+                          setOptionSlots(next);
+                        }}
+                        placeholder="+RM"
+                        className="w-24"
+                      />
+                      <RemoveRowButton
+                        label="Remove option"
+                        disabled={slot.options.length <= 1}
+                        onClick={() => {
+                          const next = [...optionSlots];
+                          next[si] = {
+                            ...slot,
+                            options: slot.options.filter((_, i) => i !== oi),
+                          };
+                          setOptionSlots(next);
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="font-display text-xs"
+                    onClick={() => {
+                      const next = [...optionSlots];
+                      next[si] = {
+                        ...slot,
+                        options: [...slot.options, { label: '', priceDelta: '0' }],
+                      };
+                      setOptionSlots(next);
+                    }}
+                  >
+                    Add option
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="font-display text-xs"
+                onClick={() =>
+                  setOptionSlots([
+                    ...optionSlots,
+                    {
+                      label: '',
+                      required: true,
+                      options: [{ label: '', priceDelta: '0' }],
+                    },
+                  ])
+                }
+              >
+                Add slot
               </Button>
             </div>
           ) : null}

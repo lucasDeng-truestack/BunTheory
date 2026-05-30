@@ -94,12 +94,16 @@ export default function OrderMenuPage() {
       toast.error('This item is unavailable');
       return;
     }
-    if (product.type === 'COMBO' || productRequiresOptionPicker(product)) {
+    if (product.type === 'COMBO') {
       setComboProduct(product);
       return;
     }
     if (product.type === 'VARIANT') {
       setVariantProduct(product);
+      return;
+    }
+    if (productRequiresOptionPicker(product)) {
+      setComboProduct(product);
       return;
     }
     addLine({
@@ -273,16 +277,17 @@ export default function OrderMenuPage() {
         onOpenChange={(open) => {
           if (!open) setVariantProduct(null);
         }}
-        onConfirm={({ product, variant }) => {
+        onConfirm={({ product, variant, unitPrice, choicesSummary, comboSelections, remarks }) => {
           addLine({
             lineType: 'VARIANT',
             productId: product.id,
             variantId: variant.id,
             displayName: `${product.name} (${variant.name})`,
-            choicesSummary: variant.name,
+            choicesSummary,
+            comboSelections,
             quantity: 1,
-            unitPrice: variant.price,
-            remarks: '',
+            unitPrice,
+            remarks,
           });
           toast.success(`${product.name} added`);
         }}

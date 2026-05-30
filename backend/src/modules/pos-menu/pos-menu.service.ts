@@ -163,7 +163,8 @@ export class PosMenuService {
               },
             }
           : {}),
-        ...(dto.type === 'SIMPLE' && dto.optionSlots?.length
+        ...((dto.type === 'SIMPLE' || dto.type === 'VARIANT') &&
+        dto.optionSlots?.length
           ? {
               optionSlots: {
                 create: dto.optionSlots.map((slot, si) => ({
@@ -267,14 +268,17 @@ export class PosMenuService {
       }
     }
 
-    if (current.type === 'SIMPLE' && dto.optionSlots) {
-      await this.replaceSimpleOptionSlots(id, dto.optionSlots);
+    if (
+      (current.type === 'SIMPLE' || current.type === 'VARIANT') &&
+      dto.optionSlots
+    ) {
+      await this.replaceProductOptionSlots(id, dto.optionSlots);
     }
 
     return this.findOneProduct(id);
   }
 
-  private async replaceSimpleOptionSlots(
+  private async replaceProductOptionSlots(
     productId: string,
     slots: NonNullable<UpdatePosProductDto['optionSlots']>,
   ) {
