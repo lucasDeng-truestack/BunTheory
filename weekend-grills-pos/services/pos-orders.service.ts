@@ -47,6 +47,9 @@ export const posOrdersService = {
 
   advance: (id: string) => api.patch<PosOrder>(`/pos/orders/${id}/advance`),
 
+  revertToPlaced: (id: string) =>
+    api.patch<PosOrder>(`/pos/orders/${id}/revert-to-placed`),
+
   cancel: (id: string) => api.patch<PosOrder>(`/pos/orders/${id}/cancel`),
 
   updatePayment: (id: string, paymentStatus: PosPaymentStatus) =>

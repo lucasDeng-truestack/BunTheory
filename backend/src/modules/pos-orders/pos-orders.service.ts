@@ -466,6 +466,30 @@ export class PosOrdersService {
     return this.mapOrder(updated);
   }
 
+  /** Move a preparing order back to the new-order queue (guest not ready yet). */
+  async revertToPlaced(id: string) {
+    const order = await this.prisma.posOrder.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException('POS order not found');
+
+    if (order.status !== PosOrderStatus.PREPARING) {
+      throw new BadRequestException(
+        'Only preparing orders can be moved back to new orders',
+      );
+    }
+
+    const updated = await this.prisma.posOrder.update({
+      where: { id },
+      data: {
+        status: PosOrderStatus.PLACED,
+        startedAt: null,
+      },
+      include: orderInclude,
+    });
+
+    this.gateway.broadcastOrderUpdated(this.mapOrder(updated));
+    return this.mapOrder(updated);
+  }
+
   async cancelOrder(id: string) {
     const order = await this.prisma.posOrder.findUnique({ where: { id } });
     if (!order) throw new NotFoundException('POS order not found');

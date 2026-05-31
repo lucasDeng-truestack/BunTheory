@@ -45,6 +45,11 @@ export class PosOrdersController {
     return this.posOrdersService.advanceStatus(id, req.user?.id);
   }
 
+  @Patch(':id/revert-to-placed')
+  revertToPlaced(@Param('id') id: string) {
+    return this.posOrdersService.revertToPlaced(id);
+  }
+
   @Patch(':id/cancel')
   cancel(@Param('id') id: string) {
     return this.posOrdersService.cancelOrder(id);

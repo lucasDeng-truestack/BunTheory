@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 interface KitchenOrderCardProps {
   order: PosOrder;
   onAdvance: (id: string) => Promise<void>;
+  onRevertToPlaced?: (id: string) => Promise<void>;
 }
 
 function useElapsed(createdAt: string) {
@@ -51,9 +52,15 @@ const statusConfig = {
   },
 } as const;
 
-export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
+export function KitchenOrderCard({
+  order,
+  onAdvance,
+  onRevertToPlaced,
+}: KitchenOrderCardProps) {
   const elapsed = useElapsed(order.createdAt);
   const [advancing, setAdvancing] = useState(false);
+  const [reverting, setReverting] = useState(false);
+  const busy = advancing || reverting;
 
   async function handleAdvance() {
     setAdvancing(true);
@@ -61,6 +68,16 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
       await onAdvance(order.id);
     } finally {
       setAdvancing(false);
+    }
+  }
+
+  async function handleRevertToPlaced() {
+    if (!onRevertToPlaced) return;
+    setReverting(true);
+    try {
+      await onRevertToPlaced(order.id);
+    } finally {
+      setReverting(false);
     }
   }
 
@@ -108,11 +125,11 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="border-t-0 bg-transparent p-3">
+      <CardFooter className="border-t-0 bg-transparent p-3 flex flex-col gap-2">
         <Button
           onClick={handleAdvance}
-          disabled={advancing}
-          className={cn('w-full font-display font-bold', config.buttonClass)}
+          disabled={busy}
+          className={cn('w-full min-h-[44px] font-display font-bold', config.buttonClass)}
         >
           {advancing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -120,6 +137,21 @@ export function KitchenOrderCard({ order, onAdvance }: KitchenOrderCardProps) {
             config.label
           )}
         </Button>
+        {order.status === 'PREPARING' && onRevertToPlaced ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleRevertToPlaced}
+            disabled={busy}
+            className="w-full min-h-[44px] font-display font-semibold text-orange-700 border-orange-200 hover:bg-orange-50"
+          >
+            {reverting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Back to New Orders'
+            )}
+          </Button>
+        ) : null}
       </CardFooter>
     </Card>
   );

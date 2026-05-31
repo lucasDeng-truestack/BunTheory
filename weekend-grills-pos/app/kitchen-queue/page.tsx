@@ -60,6 +60,17 @@ export default function KitchenQueuePage() {
     }
   }
 
+  async function handleRevertToPlaced(id: string) {
+    try {
+      await posOrdersService.revertToPlaced(id);
+      toast.success('Moved back to new orders');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to move order back',
+      );
+    }
+  }
+
   const placed = sortOrdersOldestFirst(orders.filter((o) => o.status === 'PLACED'));
   const preparing = sortOrdersOldestFirst(
     orders.filter((o) => o.status === 'PREPARING'),
@@ -136,7 +147,12 @@ export default function KitchenQueuePage() {
                 </div>
               ) : (
                 preparing.map((order) => (
-                  <KitchenOrderCard key={order.id} order={order} onAdvance={handleAdvance} />
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    onAdvance={handleAdvance}
+                    onRevertToPlaced={handleRevertToPlaced}
+                  />
                 ))
               )}
             </div>
