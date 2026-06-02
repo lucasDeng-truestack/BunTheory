@@ -16,6 +16,7 @@ import { PosKitchenModule } from './modules/pos-kitchen/pos-kitchen.module';
 import { PosRealtimeModule } from './modules/pos-realtime/pos-realtime.module';
 import { PosPurchasesModule } from './modules/pos-purchases/pos-purchases.module';
 import { PosReportsModule } from './modules/pos-reports/pos-reports.module';
+import { PosInventoryModule } from './modules/pos-inventory/pos-inventory.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PosReportsModule } from './modules/pos-reports/pos-reports.module';
     PosKitchenModule,
     PosPurchasesModule,
     PosReportsModule,
+    PosInventoryModule,
   ],
 })
 export class AppModule {}

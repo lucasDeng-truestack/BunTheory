@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { PosShell } from '@/components/layout/pos-shell';
 import { OrdersHistoryTable } from '@/components/reports/orders-history-table';
+import { CustomerReportsTable } from '@/components/reports/customer-reports-table';
+import { CustomerOrdersDialog } from '@/components/reports/customer-orders-dialog';
 import { posReportsService } from '@/services/pos-reports.service';
 import { posOrdersService } from '@/services/pos-orders.service';
-import { DailySummary, PosOrder, ReportRange } from '@/types/pos';
+import { CustomerReportSummary, DailySummary, PosOrder, ReportRange } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,27 +28,40 @@ function rangeLabel(range: ReportRange) {
   return 'Today';
 }
 
+type ReportView = 'orders' | 'customers';
+
 export default function ReportsPage() {
   const [range, setRange] = useState<ReportRange>('today');
+  const [view, setView] = useState<ReportView>('customers');
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [orders, setOrders] = useState<PosOrder[]>([]);
+  const [customers, setCustomers] = useState<CustomerReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
 
   const fetchReport = useCallback(async (selected: ReportRange) => {
     setLoading(true);
     try {
-      const [summaryData, ordersData] = await Promise.all([
+      const [summaryData, ordersData, customersData] = await Promise.all([
         posReportsService.getSummary(selected),
         posOrdersService.list({ range: selected }),
+        posReportsService.getCustomers(selected),
       ]);
       setSummary(summaryData);
       setOrders(ordersData);
+      setCustomers(customersData);
     } catch {
       toast.error('Failed to load report');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  function openCustomer(name: string) {
+    setSelectedCustomer(name);
+    setCustomerDialogOpen(true);
+  }
 
   useEffect(() => {
     void fetchReport(range);
@@ -76,7 +91,29 @@ export default function ReportsPage() {
           </Button>
         </div>
 
-        <div className="border-b border-border bg-card/60 px-5 py-3">
+        <div className="border-b border-border bg-card/60 px-5 py-3 flex flex-wrap gap-3 items-center">
+          <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1">
+            {(
+              [
+                { value: 'customers' as const, label: 'By guest' },
+                { value: 'orders' as const, label: 'All orders' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setView(opt.value)}
+                className={cn(
+                  'rounded-lg px-4 py-2 font-display text-sm font-bold transition',
+                  view === opt.value
+                    ? 'bg-charcoal text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1">
             {RANGE_OPTIONS.map((opt) => (
               <button
@@ -153,11 +190,26 @@ export default function ReportsPage() {
               )}
 
               <Separator />
-              <OrdersHistoryTable orders={orders} loading={loading} />
+              {view === 'customers' ? (
+                <CustomerReportsTable
+                  customers={customers}
+                  loading={loading}
+                  onSelect={openCustomer}
+                />
+              ) : (
+                <OrdersHistoryTable orders={orders} loading={loading} />
+              )}
             </>
           )}
         </div>
       </div>
+
+      <CustomerOrdersDialog
+        open={customerDialogOpen}
+        onOpenChange={setCustomerDialogOpen}
+        customerName={selectedCustomer}
+        range={range}
+      />
     </PosShell>
   );
 }

@@ -205,7 +205,8 @@ model PosProduct {
   combo       PosCombo?
   variants    PosProductVariant[]
   optionSlots PosProductOptionSlot[]
-  orderItems  PosOrderItem[]
+  orderItems          PosOrderItem[]
+  productIngredients  PosProductIngredient[]
 
   @@index([sectionId, sortOrder])
 }
@@ -314,10 +315,13 @@ model PosOrder {
   startedAt   DateTime?
   readyAt     DateTime?
   completedAt DateTime?
+  /// Set when countable inventory was deducted at Start Cooking (PLACED → PREPARING).
+  inventoryDeductedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  orderItems PosOrderItem[]
+  orderItems           PosOrderItem[]
+  inventoryMovements   PosInventoryMovement[]
 
   @@index([status])
   @@index([createdAt])
@@ -341,6 +345,53 @@ model PosOrderItem {
 
   @@index([productId])
   @@index([orderId])
+}
+
+// ─── Inventory (countable stock deducted when kitchen starts cooking) ────────
+
+model PosInventoryItem {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  unit              String?
+  /// When false, linked to recipes for reference only (sauce, fries) — no stock deduction.
+  isCountable       Boolean  @default(true)
+  quantityOnHand    Decimal  @default(0) @db.Decimal(10, 2)
+  lowStockThreshold Decimal? @db.Decimal(10, 2)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  productLinks PosProductIngredient[]
+  movements    PosInventoryMovement[]
+
+  @@index([sortOrder])
+}
+
+model PosProductIngredient {
+  id              String           @id @default(cuid())
+  productId       String
+  product         PosProduct       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem   PosInventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  /// Amount consumed per 1 unit of this menu item (e.g. 1 chicken leg per BBQ set).
+  quantityPerUnit Decimal          @db.Decimal(10, 2)
+
+  @@unique([productId, inventoryItemId])
+  @@index([inventoryItemId])
+}
+
+model PosInventoryMovement {
+  id              String            @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   PosInventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  orderId         String?
+  order           PosOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  delta           Decimal           @db.Decimal(10, 2)
+  reason          String
+  createdAt       DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([inventoryItemId, createdAt])
 }
 
 // ─── Purchases ledger ────────────────────────────────────────────────────────
