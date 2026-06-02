@@ -6,6 +6,7 @@ import {
 import { Prisma, PosOrderStatus, PosPaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PosRealtimeGateway } from '../pos-realtime/pos-realtime.gateway';
+import { PosInventoryService } from '../pos-inventory/pos-inventory.service';
 import { CreatePosOrderDto, PosOrderItemDto } from './dto/create-pos-order.dto';
 import { UpdatePosPaymentDto } from './dto/update-pos-payment.dto';
 import {
@@ -54,6 +55,7 @@ export class PosOrdersService {
   constructor(
     private prisma: PrismaService,
     private gateway: PosRealtimeGateway,
+    private inventory: PosInventoryService,
   ) {}
 
   private async generateOrderNumber(): Promise<string> {
@@ -448,6 +450,10 @@ export class PosOrdersService {
     }
 
     const now = new Date();
+    if (next === PosOrderStatus.PREPARING) {
+      await this.inventory.deductForCookStart(id);
+    }
+
     const timestamps: Prisma.PosOrderUpdateInput = { status: next };
     if (next === PosOrderStatus.PREPARING) timestamps.startedAt = now;
     if (next === PosOrderStatus.READY) timestamps.readyAt = now;
@@ -477,6 +483,8 @@ export class PosOrdersService {
       );
     }
 
+    await this.inventory.restoreAfterCook(id, 'REVERT_COOK');
+
     const updated = await this.prisma.posOrder.update({
       where: { id },
       data: {
@@ -496,6 +504,10 @@ export class PosOrdersService {
 
     if (order.status === PosOrderStatus.COMPLETED) {
       throw new BadRequestException('Cannot cancel a completed order');
+    }
+
+    if (order.status === PosOrderStatus.PREPARING) {
+      await this.inventory.restoreAfterCook(id, 'CANCEL_COOK');
     }
 
     const updated = await this.prisma.posOrder.update({

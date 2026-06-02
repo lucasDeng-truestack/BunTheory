@@ -339,4 +339,123 @@ export class PosReportsService {
       salesBySection,
     };
   }
+
+  private ordersInReportRange(rangeInput?: string): Prisma.PosOrderWhereInput {
+    const range = parseReportRange(rangeInput);
+    const bounds = reportRangeBounds(range);
+    const createdAt: Prisma.DateTimeFilter = { lt: bounds.lt };
+    if (bounds.gte) createdAt.gte = bounds.gte;
+    return {
+      createdAt,
+      status: { not: PosOrderStatus.CANCELLED },
+    };
+  }
+
+  async getCustomerSummaries(rangeInput?: string) {
+    const orders = await this.prisma.posOrder.findMany({
+      where: this.ordersInReportRange(rangeInput),
+      include: {
+        orderItems: {
+          select: {
+            displayName: true,
+            quantity: true,
+            choicesSummary: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    type Bucket = {
+      customerName: string;
+      orderCount: number;
+      totalSpent: number;
+      lastOrderAt: string;
+      recentItemsPreview: string;
+    };
+
+    const byKey = new Map<string, Bucket>();
+
+    for (const order of orders) {
+      const displayName = order.customerName.trim() || 'Guest';
+      const key = displayName.toLocaleLowerCase();
+      const total = Number(order.total);
+      const itemsPreview = order.orderItems
+        .map((oi) => {
+          const label = oi.choicesSummary
+            ? `${oi.displayName} (${oi.choicesSummary})`
+            : oi.displayName;
+          return `${oi.quantity}× ${label}`;
+        })
+        .join(', ');
+
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, {
+          customerName: displayName,
+          orderCount: 1,
+          totalSpent: total,
+          lastOrderAt: order.createdAt.toISOString(),
+          recentItemsPreview: itemsPreview,
+        });
+      } else {
+        existing.orderCount += 1;
+        existing.totalSpent += total;
+      }
+    }
+
+    return [...byKey.values()].sort(
+      (a, b) =>
+        new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime(),
+    );
+  }
+
+  async getCustomerOrders(rangeInput: string | undefined, customerName: string) {
+    const normalized = customerName.trim().toLocaleLowerCase();
+    if (!normalized) {
+      return { customerName: '', orders: [] };
+    }
+
+    const orders = await this.prisma.posOrder.findMany({
+      where: this.ordersInReportRange(rangeInput),
+      include: {
+        orderItems: {
+          select: {
+            id: true,
+            displayName: true,
+            choicesSummary: true,
+            quantity: true,
+            unitPrice: true,
+            remarks: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const matched = orders.filter(
+      (o) => o.customerName.trim().toLocaleLowerCase() === normalized,
+    );
+
+    return {
+      customerName: matched[0]?.customerName.trim() ?? customerName.trim(),
+      orders: matched.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        paymentMethod: o.paymentMethod,
+        total: Number(o.total),
+        createdAt: o.createdAt.toISOString(),
+        items: o.orderItems.map((oi) => ({
+          id: oi.id,
+          displayName: oi.displayName,
+          choicesSummary: oi.choicesSummary,
+          quantity: oi.quantity,
+          unitPrice: Number(oi.unitPrice),
+          lineTotal: Number(oi.unitPrice) * oi.quantity,
+          remarks: oi.remarks,
+        })),
+      })),
+    };
+  }
 }

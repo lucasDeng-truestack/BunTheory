@@ -1,5 +1,11 @@
 import { api } from '@/lib/api';
-import { DailySummary, DashboardSummary, ReportRange } from '@/types/pos';
+import {
+  CustomerOrdersResponse,
+  CustomerReportSummary,
+  DailySummary,
+  DashboardSummary,
+  ReportRange,
+} from '@/types/pos';
 
 export const posReportsService = {
   getDaily: (date?: string) => {
@@ -11,4 +17,12 @@ export const posReportsService = {
     api.get<DailySummary>(`/pos/reports/summary?range=${range}`),
 
   getDashboard: () => api.get<DashboardSummary>('/pos/reports/dashboard'),
+
+  getCustomers: (range: ReportRange = 'today') =>
+    api.get<CustomerReportSummary[]>(`/pos/reports/customers?range=${range}`),
+
+  getCustomerOrders: (customerName: string, range: ReportRange = 'today') =>
+    api.get<CustomerOrdersResponse>(
+      `/pos/reports/customer-orders?range=${range}&customerName=${encodeURIComponent(customerName)}`,
+    ),
 };

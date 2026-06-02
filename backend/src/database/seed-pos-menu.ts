@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { seedPosInventory } from './seed-pos-inventory';
 
 /**
  * Seeds Weekend Grills POS menu only.
@@ -328,6 +329,8 @@ export async function seedPosMenu(prisma: PrismaClient) {
       ],
     });
   }
+
+  await seedPosInventory(prisma);
 
   const productCount = await prisma.posProduct.count();
   console.log('Weekend Grills POS seed completed:', {

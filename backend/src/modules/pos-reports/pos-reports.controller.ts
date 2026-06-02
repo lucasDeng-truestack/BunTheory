@@ -21,4 +21,17 @@ export class PosReportsController {
   getDashboardSummary() {
     return this.posReportsService.getDashboardSummary();
   }
+
+  @Get('customers')
+  getCustomerSummaries(@Query('range') range?: string) {
+    return this.posReportsService.getCustomerSummaries(range);
+  }
+
+  @Get('customer-orders')
+  getCustomerOrders(
+    @Query('range') range: string | undefined,
+    @Query('customerName') customerName: string,
+  ) {
+    return this.posReportsService.getCustomerOrders(range, customerName ?? '');
+  }
 }

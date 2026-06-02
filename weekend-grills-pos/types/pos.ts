@@ -232,3 +232,54 @@ export interface DashboardSummary {
     revenue: number;
   }>;
 }
+
+export interface PosInventoryItem {
+  id: string;
+  name: string;
+  unit: string | null;
+  isCountable: boolean;
+  quantityOnHand: number;
+  lowStockThreshold: number | null;
+  isLowStock: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PosProductIngredientLink {
+  id: string;
+  inventoryItemId: string;
+  quantityPerUnit: number;
+  inventoryItem: PosInventoryItem;
+}
+
+export interface CustomerReportSummary {
+  customerName: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string;
+  recentItemsPreview: string;
+}
+
+export interface CustomerOrderDetail {
+  id: string;
+  orderNumber: string;
+  status: PosOrderStatus;
+  paymentMethod: PosPaymentMethod;
+  total: number;
+  createdAt: string;
+  items: Array<{
+    id: string;
+    displayName: string;
+    choicesSummary: string | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    remarks: string | null;
+  }>;
+}
+
+export interface CustomerOrdersResponse {
+  customerName: string;
+  orders: CustomerOrderDetail[];
+}

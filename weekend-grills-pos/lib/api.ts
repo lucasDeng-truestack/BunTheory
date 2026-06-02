@@ -13,8 +13,15 @@ function getToken(): string | null {
 
 function extractNestMessage(body: unknown): string | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
-  const raw = (body as Record<string, unknown>).message;
-  if (typeof raw === 'string' && raw.trim()) return raw;
+  const record = body as Record<string, unknown>;
+  const raw = record.message;
+  if (typeof raw === 'string' && raw.trim()) {
+    const shortages = record.shortages;
+    if (Array.isArray(shortages) && shortages.length > 0) {
+      return `${raw}: ${shortages.map(String).join('; ')}`;
+    }
+    return raw;
+  }
   if (Array.isArray(raw)) {
     const msg = raw.map(String).join('. ');
     return msg.trim() || undefined;
@@ -100,5 +107,7 @@ export const api = {
       method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
     }),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
