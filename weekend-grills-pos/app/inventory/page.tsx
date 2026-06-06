@@ -32,6 +32,40 @@ import { cn } from '@/lib/utils';
 
 type RecipeRow = { inventoryItemId: string; quantityPerUnit: string };
 
+const LONG_INVENTORY_NAME_LENGTH = 18;
+
+function getInventoryInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || '?';
+}
+
+function isLongInventoryName(name: string) {
+  return name.trim().length > LONG_INVENTORY_NAME_LENGTH;
+}
+
+function InventoryNameMark({
+  name,
+  compact = false,
+}: {
+  name: string;
+  compact?: boolean;
+}) {
+  if (!isLongInventoryName(name)) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex shrink-0 items-center justify-center bg-bbq-flame font-display font-black text-white shadow-sm',
+        compact
+          ? 'size-6 rounded-lg text-sm'
+          : 'size-11 rounded-2xl text-2xl',
+      )}
+    >
+      {getInventoryInitial(name)}
+    </span>
+  );
+}
+
 export default function InventoryPage() {
   const [items, setItems] = useState<PosInventoryItem[]>([]);
   const [menu, setMenu] = useState<PosMenuSection[]>([]);
@@ -72,6 +106,22 @@ export default function InventoryPage() {
         s.products.map((p) => ({ ...p, sectionName: s.name })),
       ),
     [menu],
+  );
+
+  const productNameById = useMemo(
+    () =>
+      new Map(
+        allProducts.map((product) => [
+          product.id,
+          `${product.sectionName} — ${product.name}`,
+        ]),
+      ),
+    [allProducts],
+  );
+
+  const inventoryItemById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
   );
 
   useEffect(() => {
@@ -250,9 +300,15 @@ export default function InventoryPage() {
                 {items.map((item) => (
                   <Card key={item.id} size="sm">
                     <CardContent className="flex flex-wrap items-center gap-3 py-3">
-                      <div className="flex-1 min-w-[140px]">
-                        <p className="font-display font-bold">{item.name}</p>
+                      <InventoryNameMark name={item.name} />
+                      <div className="flex-1 min-w-[140px]" title={item.name}>
+                        <p className="font-display font-bold">
+                          {isLongInventoryName(item.name)
+                            ? getInventoryInitial(item.name)
+                            : item.name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
+                          {isLongInventoryName(item.name) ? `${item.name} · ` : ''}
                           {item.isCountable
                             ? 'Countable — deducted on cook'
                             : 'Reference only — not deducted'}
@@ -321,7 +377,9 @@ export default function InventoryPage() {
                     onValueChange={(v) => v && setSelectedProductId(v)}
                   >
                     <SelectTrigger className="mt-1 font-display">
-                      <SelectValue placeholder="Select product" />
+                      <SelectValue placeholder="Select product">
+                        {productNameById.get(selectedProductId) ?? 'Select product'}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {allProducts.map((p) => (
@@ -344,6 +402,12 @@ export default function InventoryPage() {
                       <div key={index} className="flex flex-wrap gap-2 items-end">
                         <div className="flex-1 min-w-[160px]">
                           <Label className="text-xs">Ingredient</Label>
+                          {(() => {
+                            const selectedInventoryItem = inventoryItemById.get(
+                              row.inventoryItemId,
+                            );
+
+                            return (
                           <Select
                             value={row.inventoryItemId}
                             onValueChange={(v) => {
@@ -356,17 +420,48 @@ export default function InventoryPage() {
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue>
+                                {selectedInventoryItem ? (
+                                  <span
+                                    className="flex min-w-0 items-center gap-2"
+                                    title={selectedInventoryItem.name}
+                                  >
+                                    <InventoryNameMark
+                                      name={selectedInventoryItem.name}
+                                      compact
+                                    />
+                                    <span className="truncate">
+                                      {isLongInventoryName(selectedInventoryItem.name)
+                                        ? getInventoryInitial(selectedInventoryItem.name)
+                                        : selectedInventoryItem.name}
+                                    </span>
+                                  </span>
+                                ) : (
+                                  'Select ingredient'
+                                )}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {items.map((it) => (
                                 <SelectItem key={it.id} value={it.id}>
-                                  {it.name}
-                                  {!it.isCountable ? ' (not deducted)' : ''}
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <InventoryNameMark name={it.name} compact />
+                                    <span className="truncate">
+                                      {isLongInventoryName(it.name)
+                                        ? getInventoryInitial(it.name)
+                                        : it.name}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {isLongInventoryName(it.name) ? it.name : ''}
+                                      {!it.isCountable ? ' (not deducted)' : ''}
+                                    </span>
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                            );
+                          })()}
                         </div>
                         <div className="w-24">
                           <Label className="text-xs">Per plate</Label>
