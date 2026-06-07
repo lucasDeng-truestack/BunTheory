@@ -19,7 +19,11 @@ import {
   Search,
   ChevronsLeft,
   ChevronsRight,
+  MoreHorizontal,
+  X,
 } from 'lucide-react';
+import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
+import { Dialog, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useBrandingStore } from '@/store/branding.store';
 import { useStaffAuth } from '@/hooks/use-staff-auth';
@@ -39,6 +43,9 @@ const PRIMARY_NAV = [
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
+
+const MOBILE_PRIMARY_NAV = PRIMARY_NAV.slice(0, 5);
+const MOBILE_OVERFLOW_NAV = PRIMARY_NAV.slice(5);
 
 function navActive(pathname: string, href: string) {
   if (href === '/dashboard') return pathname === href;
@@ -84,6 +91,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   const hydrateBranding = useBrandingStore((s) => s.hydrateFromStorage);
   const refreshBranding = useBrandingStore((s) => s.refresh);
   const [collapsed, setCollapsed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     hydrateBranding();
@@ -106,6 +114,9 @@ export function PosShell({ children }: { children: React.ReactNode }) {
   if (!ready) return null;
 
   const userInitial = adminAvatarInitial(admin);
+  const moreNavActive = MOBILE_OVERFLOW_NAV.some((item) =>
+    navActive(pathname, item.href),
+  );
 
   return (
     <div className="pos-ui flex h-screen overflow-hidden bg-background">
@@ -267,8 +278,11 @@ export function PosShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ─── Mobile bottom nav — charcoal bar ─────────────────── */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 flex md:hidden border-t border-sidebar-border bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgb(0_0_0/0.25)]">
-        {PRIMARY_NAV.slice(0, 5).map((item) => {
+      <nav
+        className="fixed bottom-0 inset-x-0 z-50 flex md:hidden border-t border-sidebar-border bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgb(0_0_0/0.25)]"
+        aria-label="POS mobile"
+      >
+        {MOBILE_PRIMARY_NAV.map((item) => {
           const Icon = item.icon;
           const active = navActive(pathname, item.href);
           return (
@@ -276,32 +290,130 @@ export function PosShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors',
+                'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors',
                 active
                   ? 'text-bbq-flame'
                   : 'text-sidebar-foreground/50',
               )}
             >
-              <Icon className="h-5 w-5" />
-              <span className="font-display">{item.label}</span>
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="font-display truncate">{item.label}</span>
             </Link>
           );
         })}
-        <Link
-          href="/settings"
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
           className={cn(
-            'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors',
-            pathname.startsWith('/settings')
+            'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors',
+            moreNavActive
               ? 'text-bbq-flame'
               : 'text-sidebar-foreground/50',
           )}
+          aria-label="More navigation"
+          aria-expanded={moreOpen}
         >
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-bbq-flame/20 text-bbq-flame text-[9px] font-bold font-display ring-1 ring-bbq-flame/30">
-            {userInitial}
-          </div>
+          <MoreHorizontal className="h-5 w-5 shrink-0" />
           <span className="font-display">More</span>
-        </Link>
+        </button>
       </nav>
+
+      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+        <DialogPortal>
+          <DialogPrimitive.Backdrop
+            className={cn(
+              'fixed inset-0 z-60 bg-black/45 duration-200 supports-backdrop-filter:backdrop-blur-xs md:hidden',
+              'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+            )}
+          />
+          <DialogPrimitive.Popup
+            className={cn(
+              'fixed inset-x-0 bottom-0 z-60 flex max-h-[min(70vh,28rem)] flex-col rounded-t-2xl bg-sidebar text-sidebar-foreground shadow-xl outline-none md:hidden',
+              'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+              'data-open:animate-in data-open:slide-in-from-bottom duration-300',
+              'data-closed:animate-out data-closed:slide-out-to-bottom duration-200',
+            )}
+          >
+            <div className="shrink-0 border-b border-sidebar-border px-4 pb-3 pt-3">
+              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-sidebar-foreground/20" aria-hidden />
+              <div className="flex items-center justify-between gap-3">
+                <DialogPrimitive.Title className="font-display text-lg font-bold text-sidebar-foreground">
+                  More
+                </DialogPrimitive.Title>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  onClick={() => setMoreOpen(false)}
+                  aria-label="Close more menu"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <DialogPrimitive.Description className="sr-only">
+                Inventory, purchases, reports, and settings.
+              </DialogPrimitive.Description>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+              {MOBILE_OVERFLOW_NAV.map(({ href, label, icon: Icon }) => {
+                const active = navActive(pathname, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      'font-display flex min-h-12 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors',
+                      active
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-bbq-flame/20'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    )}
+                  >
+                    <span className={ICON_COL}>
+                      <Icon className="h-5 w-5 opacity-90" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 border-t border-sidebar-border px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bbq-flame/20 font-display text-sm font-bold text-bbq-flame ring-2 ring-bbq-flame/30"
+                  aria-hidden
+                >
+                  {userInitial}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display truncate text-sm font-semibold text-sidebar-foreground">
+                    {adminDisplayLabel(admin)}
+                  </p>
+                  <p className="truncate text-xs text-sidebar-foreground/55">
+                    {admin?.email}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-full text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    void handleLogout();
+                  }}
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DialogPrimitive.Popup>
+        </DialogPortal>
+      </Dialog>
 
       {/* ─── Main content area ────────────────────────────────── */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
