@@ -13,6 +13,12 @@ const MOVEMENT_COOK_START = 'COOK_START';
 const MOVEMENT_REVERT_COOK = 'REVERT_COOK';
 const MOVEMENT_CANCEL_COOK = 'CANCEL_COOK';
 
+export type PosProductAvailability = {
+  soldOut: boolean;
+  maxServings: number | null;
+  limitingIngredient: string | null;
+};
+
 function toNumber(value: Prisma.Decimal | number): number {
   return typeof value === 'number' ? value : value.toNumber();
 }
@@ -109,6 +115,81 @@ export class PosInventoryService {
     if (!existing) throw new NotFoundException('Inventory item not found');
     await this.prisma.posInventoryItem.delete({ where: { id } });
     return { ok: true };
+  }
+
+  /**
+   * Derive menu availability from countable ingredient recipes (BOM).
+   * Products without countable links are never sold out from inventory alone.
+   */
+  async getAvailabilityForProducts(
+    productIds: string[],
+  ): Promise<Map<string, PosProductAvailability>> {
+    const result = new Map<string, PosProductAvailability>();
+    if (productIds.length === 0) return result;
+
+    const links = await this.prisma.posProductIngredient.findMany({
+      where: { productId: { in: productIds } },
+      include: { inventoryItem: true },
+    });
+
+    const linksByProduct = new Map<string, typeof links>();
+    for (const link of links) {
+      const group = linksByProduct.get(link.productId) ?? [];
+      group.push(link);
+      linksByProduct.set(link.productId, group);
+    }
+
+    for (const productId of productIds) {
+      const productLinks = linksByProduct.get(productId) ?? [];
+      const countable = productLinks.filter(
+        (link) => link.inventoryItem.isCountable,
+      );
+
+      if (countable.length === 0) {
+        result.set(productId, {
+          soldOut: false,
+          maxServings: null,
+          limitingIngredient: null,
+        });
+        continue;
+      }
+
+      let maxServings = Number.POSITIVE_INFINITY;
+      let limitingIngredient: string | null = null;
+
+      for (const link of countable) {
+        const qty = toNumber(link.inventoryItem.quantityOnHand);
+        const perUnit = toNumber(link.quantityPerUnit);
+        if (perUnit <= 0) continue;
+        const servings = Math.floor(qty / perUnit);
+        if (servings < maxServings) {
+          maxServings = servings;
+          limitingIngredient = link.inventoryItem.name;
+        }
+      }
+
+      const finalMax =
+        maxServings === Number.POSITIVE_INFINITY ? null : maxServings;
+      result.set(productId, {
+        soldOut: finalMax !== null && finalMax < 1,
+        maxServings: finalMax,
+        limitingIngredient:
+          finalMax !== null && finalMax < 1 ? limitingIngredient : null,
+      });
+    }
+
+    return result;
+  }
+
+  async getProductAvailability(productId: string) {
+    const map = await this.getAvailabilityForProducts([productId]);
+    return (
+      map.get(productId) ?? {
+        soldOut: false,
+        maxServings: null,
+        limitingIngredient: null,
+      }
+    );
   }
 
   async getProductIngredients(productId: string) {

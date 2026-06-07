@@ -60,12 +60,19 @@ export interface PosProduct {
   image: string | null;
   basePrice: number;
   available: boolean;
+  soldOut: boolean;
+  maxServings: number | null;
+  limitingIngredient: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
   combo: PosComboConfig | null;
   variants: PosProductVariant[];
   optionSlots: PosComboSlot[];
+}
+
+export function isPosProductOrderable(product: PosProduct): boolean {
+  return product.available && !product.soldOut;
 }
 
 export function getProductOptionSlots(product: PosProduct): PosComboSlot[] {

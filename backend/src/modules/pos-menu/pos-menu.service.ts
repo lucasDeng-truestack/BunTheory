@@ -5,6 +5,10 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  PosInventoryService,
+  PosProductAvailability,
+} from '../pos-inventory/pos-inventory.service';
 import { CreatePosSectionDto } from './dto/create-pos-section.dto';
 import { UpdatePosSectionDto } from './dto/update-pos-section.dto';
 import { CreatePosProductDto } from './dto/create-pos-product.dto';
@@ -39,7 +43,10 @@ const productInclude = {
 
 @Injectable()
 export class PosMenuService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventory: PosInventoryService,
+  ) {}
 
   async getFullMenu(availableOnly = false) {
     const sections = await this.prisma.posMenuSection.findMany({
@@ -53,11 +60,17 @@ export class PosMenuService {
       },
     });
 
+    const productIds = sections.flatMap((s) => s.products.map((p) => p.id));
+    const availability =
+      await this.inventory.getAvailabilityForProducts(productIds);
+
     return sections.map((s) => ({
       id: s.id,
       name: s.name,
       sortOrder: s.sortOrder,
-      products: s.products.map((p) => this.mapProduct(p)),
+      products: s.products.map((p) =>
+        this.mapProduct(p, availability.get(p.id)),
+      ),
     }));
   }
 
@@ -100,7 +113,8 @@ export class PosMenuService {
       include: productInclude,
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.mapProduct(product);
+    const availability = await this.inventory.getProductAvailability(id);
+    return this.mapProduct(product, availability);
   }
 
   async createProduct(dto: CreatePosProductDto) {
@@ -186,7 +200,7 @@ export class PosMenuService {
       include: productInclude,
     });
 
-    return this.mapProduct(product);
+    return this.findOneProduct(product.id);
   }
 
   async updateProduct(id: string, dto: UpdatePosProductDto) {
@@ -364,6 +378,7 @@ export class PosMenuService {
 
   private mapProduct(
     product: Prisma.PosProductGetPayload<{ include: typeof productInclude }>,
+    availability?: PosProductAvailability,
   ) {
     return {
       id: product.id,
@@ -374,6 +389,9 @@ export class PosMenuService {
       image: product.image,
       basePrice: Number(product.basePrice),
       available: product.available,
+      soldOut: availability?.soldOut ?? false,
+      maxServings: availability?.maxServings ?? null,
+      limitingIngredient: availability?.limitingIngredient ?? null,
       sortOrder: product.sortOrder,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
