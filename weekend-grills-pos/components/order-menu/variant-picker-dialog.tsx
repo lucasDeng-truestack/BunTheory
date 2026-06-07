@@ -6,6 +6,7 @@ import {
   PosProduct,
   PosProductVariant,
   getProductOptionSlots,
+  isPosProductOrderable,
 } from '@/types/pos';
 import {
   Dialog,
@@ -54,6 +55,7 @@ export function VariantPickerDialog({
 
   const slots = product ? getProductOptionSlots(product) : [];
   const hasSlots = slots.length > 0;
+  const orderable = product ? isPosProductOrderable(product) : false;
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? null;
 
   useEffect(() => {
@@ -278,11 +280,11 @@ export function VariantPickerDialog({
               )}
               <Button
                 type="button"
-                disabled={!complete}
+                disabled={!complete || !orderable}
                 onClick={handleConfirm}
                 className="w-full bg-bbq-flame font-display text-base font-bold text-white hover:bg-bbq-flame/90"
               >
-                Add to order
+                {product?.soldOut ? 'Sold out' : 'Add to order'}
               </Button>
             </>
           ) : (

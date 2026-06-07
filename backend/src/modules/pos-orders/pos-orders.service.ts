@@ -162,6 +162,14 @@ export class PosOrdersService {
       throw new BadRequestException(`"${product.name}" is not available`);
     }
 
+    const availability = await this.inventory.getProductAvailability(product.id);
+    if (availability.soldOut) {
+      const detail = availability.limitingIngredient
+        ? ` (${availability.limitingIngredient} out of stock)`
+        : '';
+      throw new BadRequestException(`"${product.name}" is sold out${detail}`);
+    }
+
     if (item.lineType === 'SIMPLE') {
       if (product.type !== 'SIMPLE') {
         throw new BadRequestException(`"${product.name}" is not a simple product`);

@@ -25,7 +25,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PosMenuSection, PosProduct, productRequiresOptionPicker } from '@/types/pos';
+import {
+  PosMenuSection,
+  PosProduct,
+  isPosProductOrderable,
+  productRequiresOptionPicker,
+} from '@/types/pos';
 import { cn } from '@/lib/utils';
 import { useMobileCartLayout } from '@/hooks/use-mobile-cart';
 
@@ -111,6 +116,13 @@ export default function OrderMenuPage() {
 
   async function handleTapProduct(product: PosProduct) {
     if (menuEditMode) return;
+    if (product.soldOut) {
+      const detail = product.limitingIngredient
+        ? ` (${product.limitingIngredient} out of stock)`
+        : '';
+      toast.error(`This item is sold out${detail}`);
+      return;
+    }
     if (!product.available) {
       toast.error('This item is unavailable');
       return;

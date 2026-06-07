@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { PosProduct, getProductOptionSlots } from '@/types/pos';
+import {
+  PosProduct,
+  getProductOptionSlots,
+  isPosProductOrderable,
+} from '@/types/pos';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +41,7 @@ export function ComboCardDialog({
   const [remarks, setRemarks] = useState('');
 
   const slots = product ? getProductOptionSlots(product) : [];
+  const orderable = product ? isPosProductOrderable(product) : false;
 
   useEffect(() => {
     if (!open) return;
@@ -195,11 +200,11 @@ export function ComboCardDialog({
           </div>
           <Button
             type="button"
-            disabled={!complete}
+            disabled={!complete || !orderable}
             onClick={handleConfirm}
             className="w-full bg-bbq-flame font-display text-base font-bold text-white hover:bg-bbq-flame/90"
           >
-            Add to order
+            {product?.soldOut ? 'Sold out' : 'Add to order'}
           </Button>
         </DialogFooter>
       </DialogContent>

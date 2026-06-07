@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Pencil, Trash2 } from 'lucide-react';
-import { PosProduct } from '@/types/pos';
+import { PosProduct, isPosProductOrderable } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -37,20 +37,25 @@ export function ProductCard({
   onDelete,
 }: ProductCardProps) {
   const badge = typeBadge(product);
+  const orderable = isPosProductOrderable(product);
+  const disabled = !editMode && !orderable;
 
   return (
     <div
       className={cn(
         'group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition',
-        !editMode && product.available && 'cursor-pointer hover:border-bbq-flame/50 hover:shadow-md',
-        !product.available && 'opacity-50',
+        !editMode && orderable && 'cursor-pointer hover:border-bbq-flame/50 hover:shadow-md',
+        disabled && 'opacity-60',
       )}
     >
       <button
         type="button"
-        disabled={editMode || !product.available}
+        disabled={editMode || !orderable}
         onClick={() => onTap(product)}
-        className="flex flex-1 flex-col text-left"
+        className={cn(
+          'flex flex-1 flex-col text-left',
+          disabled && 'cursor-not-allowed',
+        )}
       >
         {product.image ? (
           <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted/30">
@@ -58,12 +63,49 @@ export function ProductCard({
               src={product.image}
               alt={product.name}
               fill
-              className="object-cover"
+              className={cn('object-cover', disabled && 'grayscale-[0.35]')}
               sizes="(max-width: 768px) 50vw, 240px"
               unoptimized
             />
+            {product.soldOut ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-sidebar/55">
+                <Badge
+                  variant="secondary"
+                  className="font-display text-xs px-3 py-1 shadow-sm"
+                >
+                  Sold out
+                </Badge>
+              </div>
+            ) : null}
+            {!product.available && !product.soldOut ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-sidebar/50">
+                <Badge
+                  variant="destructive"
+                  className="font-display text-xs px-3 py-1 shadow-sm"
+                >
+                  Unavailable
+                </Badge>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        ) : (
+          <>
+            {product.soldOut ? (
+              <div className="border-b border-border bg-muted/40 px-4 py-2 text-center">
+                <Badge variant="secondary" className="font-display text-xs">
+                  Sold out
+                </Badge>
+              </div>
+            ) : null}
+            {!product.available && !product.soldOut ? (
+              <div className="border-b border-border bg-muted/40 px-4 py-2 text-center">
+                <Badge variant="destructive" className="font-display text-xs">
+                  Unavailable
+                </Badge>
+              </div>
+            ) : null}
+          </>
+        )}
         <div className="flex flex-1 flex-col p-4">
           <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
             <h3 className="font-display text-base font-black leading-tight text-foreground">
