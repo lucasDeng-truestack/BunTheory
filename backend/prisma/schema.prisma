@@ -17,6 +17,10 @@ model Menu {
   image        String?
   isFavorite   Boolean           @default(false)
   available    Boolean           @default(true)
+  /// Lightweight grouping for the storefront menu (e.g. "Buns", "Sides", "Drinks"). Null = uncategorised.
+  category     String?
+  /// Manual admin "sold out" toggle. The storefront also derives sold-out from maxQuantity.
+  soldOut      Boolean           @default(false)
   /// Max total quantity that can be sold (all-time). Null = unlimited.
   maxQuantity  Int?
   sortOrder    Int               @default(0)
@@ -56,9 +60,20 @@ model Order {
   /// Gate, unit, landmarks (optional) when type is DELIVERY.
   deliveryNotes   String?
   status       OrderStatus  @default(RECEIVED)
+  /// Set when status becomes CANCELLED.
+  cancelledAt  DateTime?
   batchId      String?
   batch        OrderBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
   createdAt    DateTime     @default(now())
+  /// Free-text "Comments for the restaurant" captured on the confirm screen.
+  restaurantComment     String?
+  /// Persisted money breakdown (null on legacy orders predating the revamp; compute from line items).
+  subtotal              Decimal?              @db.Decimal(10, 2)
+  deliveryFee           Decimal?              @db.Decimal(10, 2)
+  processingFee         Decimal?              @db.Decimal(10, 2)
+  /// Tax portion already INCLUDED in `total` (SST, default 6%).
+  taxAmount             Decimal?              @db.Decimal(10, 2)
+  total                 Decimal?              @db.Decimal(10, 2)
   /// Checkout selection: pay at pickup vs online transfer + receipt.
   paymentChoice         PaymentChoice         @default(PAY_LATER)
   /// Set when PAY_NOW: URL to uploaded payment proof (same host as /uploads).
@@ -87,7 +102,15 @@ enum OrderStatus {
   RECEIVED
   PREPARING
   READY
+  /// Delivery orders: en route to the customer.
+  OUT_FOR_DELIVERY
+  /// Pickup orders: collected by the customer.
+  PICKED_UP
+  /// Legacy delivery terminal state (kept for existing rows / notifications).
   DELIVERED
+  /// Generic terminal "done" state used by the KDS board.
+  COMPLETED
+  CANCELLED
 }
 
 /// How the customer intends to pay (checkout modal).
@@ -129,12 +152,21 @@ model OrderItem {
   selectedOptions   Json?
 }
 
+enum AdminRole {
+  OWNER
+  MANAGER
+  KITCHEN
+  CASHIER
+}
+
 model Admin {
   id           String   @id @default(cuid())
   email        String   @unique
   password     String
   /// POS / admin UI display name (e.g. \"Ahmad\") — falls back to email if empty.
   displayName  String?
+  /// Light RBAC: gates a few sensitive admin screens. Existing admins default to full access.
+  role         AdminRole @default(OWNER)
   createdAt    DateTime @default(now())
 
   posOrders         PosOrder[] @relation("CreatedByAdmin")
@@ -421,5 +453,22 @@ model SystemSettings {
   paymentQrUrl            String?
   /// WhatsApp number for admin new-order alerts (E.164 e.g. +60123456789). Overrides .env fallback.
   adminWhatsappNumber     String?
+  // ─── Single-outlet config (fulfillment header, fees, tax, ETA) ──────────────
+  /// Public outlet name shown in the pickup block.
+  outletName              String?
+  /// Pickup address shown in the fulfillment header.
+  outletAddress           String?
+  /// Opening hours as JSON (e.g. { "mon": "11:00-21:00", ... }).
+  outletHours             Json?
+  /// Prep-time minutes powering "Delivery/Pickup in N min" ETA.
+  prepTimeMinutes         Int?
+  /// Flat delivery fee (delivery orders only). Null = free / not charged.
+  deliveryFee             Decimal? @db.Decimal(10, 2)
+  /// Optional flat processing fee applied to every order.
+  processingFee           Decimal? @db.Decimal(10, 2)
+  /// SST rate percent included in the total (default 6%).
+  taxRatePercent          Decimal  @default(6) @db.Decimal(5, 2)
+  /// Informational delivery-radius note (no geocoding/enforcement).
+  deliveryRadiusNote      String?
   updatedAt               DateTime @updatedAt
 }

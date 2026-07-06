@@ -15,6 +15,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   MessageSquareQuote,
+  LayoutGrid,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND_FULL_NAME } from "@/lib/brand";
@@ -26,8 +28,10 @@ const ICON_COL = "flex size-5 shrink-0 items-center justify-center";
 
 const PRIMARY_NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/board", label: "Live board", icon: LayoutGrid },
   { href: "/admin/batches", label: "Batches", icon: CalendarClock },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/payments", label: "Receipts", icon: Receipt },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -80,9 +84,10 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
     <div
       className={cn("flex h-full min-h-0 flex-col bg-white", className)}
     >
+      <div className="admin-accent-bar shrink-0 rounded-none" aria-hidden />
       <div
         className={cn(
-          "border-b border-charcoal/10 py-5 lg:py-6",
+          "border-b border-bun-ink/10 py-5 lg:py-6",
           sidebarCollapsed ? "px-2" : "px-3"
         )}
       >
@@ -111,10 +116,10 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
               sidebarCollapsed ? "hidden" : "flex"
             )}
           >
-            <span className="inline-flex w-fit items-center rounded-full bg-charcoal px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-white">
+            <span className="inline-flex w-fit items-center rounded-full bg-bun-black px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-bun-cream">
               ADMIN
             </span>
-            <span className="font-display block whitespace-normal break-words text-balance text-base font-bold leading-snug text-charcoal sm:text-lg">
+            <span className="font-display block whitespace-normal break-words text-balance text-base font-bold leading-snug text-bun-ink sm:text-lg">
               {displayName}
             </span>
           </span>
@@ -150,8 +155,8 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
                   ? "justify-center px-0 py-3"
                   : "gap-3 px-3 py-2.5",
                 active
-                  ? "bg-roast-red text-white shadow-sm"
-                  : "text-charcoal/70 hover:bg-cream/80 hover:text-charcoal"
+                  ? "bg-bun-red text-white shadow-sm"
+                  : "text-bun-ink-soft hover:bg-bun-cream-soft hover:text-bun-ink"
               )}
             >
               <span className={cn(ICON_COL, "relative")}>

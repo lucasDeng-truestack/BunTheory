@@ -19,6 +19,16 @@ async function main() {
   });
 
   // ─── System Settings ──────────────────────────────────────────────────────
+  const outletDefaults = {
+    outletName: 'The Bun Theory',
+    outletAddress: 'Bakar & Roast, Kuala Lumpur',
+    prepTimeMinutes: 30,
+    deliveryFee: 5,
+    processingFee: 0,
+    taxRatePercent: 6,
+    deliveryRadiusNote: 'We deliver within ~5 km of the outlet.',
+  };
+
   let settings = await prisma.systemSettings.findFirst();
   if (!settings) {
     settings = await prisma.systemSettings.create({
@@ -26,6 +36,22 @@ async function main() {
         maxOrdersPerDay: 15,
         orderingEnabled: true,
         minimumDeliveryAmount: 15,
+        ...outletDefaults,
+      },
+    });
+  } else {
+    // Backfill the new outlet/fee/tax fields on a pre-existing settings row.
+    settings = await prisma.systemSettings.update({
+      where: { id: settings.id },
+      data: {
+        outletName: settings.outletName ?? outletDefaults.outletName,
+        outletAddress: settings.outletAddress ?? outletDefaults.outletAddress,
+        prepTimeMinutes:
+          settings.prepTimeMinutes ?? outletDefaults.prepTimeMinutes,
+        deliveryFee: settings.deliveryFee ?? outletDefaults.deliveryFee,
+        processingFee: settings.processingFee ?? outletDefaults.processingFee,
+        deliveryRadiusNote:
+          settings.deliveryRadiusNote ?? outletDefaults.deliveryRadiusNote,
       },
     });
   }
@@ -38,6 +64,7 @@ async function main() {
       description: 'Our famous slow-roasted beef in a soft artisan bun',
       price: 12,
       available: true,
+      category: 'Buns',
     },
     {
       slug: 'classic-cheese-bun',
@@ -45,6 +72,7 @@ async function main() {
       description: 'Melted cheddar with our house sauce',
       price: 10,
       available: true,
+      category: 'Buns',
     },
     {
       slug: 'spicy-jalapeno-bun',
@@ -52,6 +80,7 @@ async function main() {
       description: 'Roasted jalapeños with chipotle mayo',
       price: 11,
       available: true,
+      category: 'Buns',
     },
   ];
 
@@ -74,6 +103,7 @@ async function main() {
         description: item.description,
         price: item.price,
         available: item.available,
+        category: item.category,
       },
       create: {
         slug: item.slug,
@@ -81,6 +111,7 @@ async function main() {
         description: item.description,
         price: item.price,
         available: item.available,
+        category: item.category,
       },
     });
 

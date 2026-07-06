@@ -20,12 +20,13 @@ export function AdminPageHeader({
         className
       )}
     >
-      <div className="min-w-0 space-y-1">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal lg:text-4xl">
+      <div className="min-w-0 space-y-2">
+        <div className="admin-accent-bar w-14" aria-hidden />
+        <h1 className="font-display text-3xl font-bold tracking-tight text-bun-ink lg:text-4xl">
           {title}
         </h1>
         {description && (
-          <p className="text-base text-charcoal/70">{description}</p>
+          <p className="text-base text-bun-ink-soft">{description}</p>
         )}
       </div>
       {actions ? (

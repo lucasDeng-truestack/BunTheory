@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_STEPS } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, ALL_ORDER_STATUSES } from "@/lib/constants";
 import {
   paymentChoiceLabel,
   receiptStatusLabel,
@@ -141,7 +141,7 @@ export default function AdminOrderDetailPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ORDER_STATUS_STEPS.map((s) => (
+              {ALL_ORDER_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {ORDER_STATUS_LABELS[s]}
                 </SelectItem>

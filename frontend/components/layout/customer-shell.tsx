@@ -20,15 +20,15 @@ export const customerMainPaddingClass =
 export const customerHeaderInnerClass =
   "mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16";
 
-/** Shared sticky bar chrome (home + inner pages) */
+/** Shared sticky bar chrome (home + inner pages) — translucent paper, hairline. */
 export const customerHeaderChromeClass =
-  "sticky top-0 z-30 w-full overflow-hidden border-b border-charcoal/10 bg-white/97 shadow-[0_6px_32px_-12px_rgba(122,12,12,0.18),0_2px_8px_-2px_rgba(31,41,55,0.08)] backdrop-blur-lg supports-[backdrop-filter]:bg-white/92";
+  "sticky top-0 z-30 w-full overflow-hidden border-b border-hairline bg-paper/85 backdrop-blur-lg supports-[backdrop-filter]:bg-paper/70";
 
 const customerTopNavLinkClass =
-  "font-display inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-medium text-charcoal/75 transition-colors hover:bg-cream hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2";
+  "inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium tracking-wide text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2";
 
 const customerTopNavPrimaryClass =
-  "font-display inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2.5 text-base font-semibold text-white shadow-sm transition-colors bg-roast-red hover:bg-roast-red/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/45 focus-visible:ring-offset-2";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-5 py-2.5 text-sm font-semibold tracking-wide text-paper shadow-soft transition-all duration-300 hover:bg-roast-red hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/45 focus-visible:ring-offset-2";
 
 /**
  * Full-height customer storefront shell: full-width background; headers span the viewport.
@@ -94,7 +94,7 @@ export function CustomerTopBar({
   return (
     <header className={customerHeaderChromeClass}>
       <div
-        className="h-1 w-full bg-gradient-to-r from-roast-red via-roast-red/90 to-amber-500/35"
+        className="h-[3px] w-full bg-gradient-to-r from-deep-red via-roast-red to-mustard"
         aria-hidden
       />
       <div
@@ -122,7 +122,7 @@ export function CustomerTopBar({
         </div>
         <div
           className={cn(
-            "flex min-w-0 max-w-[min(100vw-7.5rem,22rem)] items-center justify-center gap-2 sm:max-w-[min(100vw-9rem,26rem)] sm:gap-2.5 md:max-w-[min(100vw-10rem,30rem)] lg:max-w-[min(100vw-12rem,34rem)] lg:gap-3",
+            "flex min-w-0 max-w-[min(100%-7.5rem,22rem)] items-center justify-center gap-2 sm:max-w-[min(100%-9rem,26rem)] sm:gap-2.5 md:max-w-[min(100%-10rem,30rem)] lg:max-w-[min(100%-12rem,34rem)] lg:gap-3",
             centerTitle ? "text-center lg:text-left" : "text-left"
           )}
         >
@@ -138,10 +138,10 @@ export function CustomerTopBar({
               centerTitle ? "text-center lg:text-left" : "text-left"
             )}
           >
-            <p className="font-display hidden text-[0.65rem] font-semibold leading-tight tracking-wide text-roast-red sm:block sm:text-xs sm:leading-tight">
+            <p className="font-display hidden text-[0.65rem] font-semibold leading-tight tracking-wide text-bun-red-deep sm:block sm:text-xs sm:leading-tight">
               {BRAND_FULL_NAME}
             </p>
-            <h1 className="font-display min-w-0 max-w-full truncate text-base font-bold leading-tight tracking-tight text-charcoal sm:text-lg md:text-xl lg:text-xl xl:text-2xl">
+            <h1 className="font-display min-w-0 max-w-full truncate text-base font-bold leading-tight tracking-tight text-bun-ink sm:text-lg md:text-xl lg:text-xl xl:text-2xl">
               {title}
             </h1>
           </div>
@@ -177,7 +177,7 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
   return (
     <header className={cn(customerHeaderChromeClass, className)}>
       <div
-        className="h-1.5 w-full bg-gradient-to-r from-deep-red via-roast-red to-accent-orange/60"
+        className="h-[3px] w-full bg-gradient-to-r from-deep-red via-roast-red to-mustard"
         aria-hidden
       />
       <div
@@ -194,10 +194,10 @@ export function MarketingHeader({ className }: MarketingHeaderProps) {
             <BrandLogo size="md" priority />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-lg font-black leading-tight tracking-wide text-deep-red sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.125rem] xl:leading-tight">
+            <p className="font-display text-lg font-bold leading-tight tracking-tight text-deep-red sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.125rem] xl:leading-tight">
               {BRAND_TITLE_LINE}
             </p>
-            <p className="font-display mt-0.5 text-xs font-medium leading-snug text-charcoal/50 sm:text-sm lg:text-base">
+            <p className="mt-0.5 text-[0.7rem] font-medium uppercase leading-snug tracking-eyebrow text-ink-soft/70 sm:text-xs">
               {BRAND_SUBLINE} · Designed by Lucas
             </p>
           </div>

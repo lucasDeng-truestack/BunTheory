@@ -8,8 +8,20 @@ export type PublicSystemSettings = {
   companyName?: string | null;
   companyLogoUrl?: string | null;
   paymentQrUrl?: string | null;
+  // Single-outlet config (fulfillment header + checkout).
+  outletName?: string | null;
+  outletAddress?: string | null;
+  outletHours?: Record<string, unknown> | null;
+  prepTimeMinutes?: number | null;
+  deliveryFee?: number | null;
+  processingFee?: number | null;
+  taxRatePercent?: number | null;
+  deliveryRadiusNote?: string | null;
 };
 
-export async function getPublicSettings(): Promise<PublicSystemSettings> {
-  return api<PublicSystemSettings>("/settings");
+export async function getPublicSettings(revalidate?: number): Promise<PublicSystemSettings> {
+  return api<PublicSystemSettings>(
+    "/settings",
+    revalidate != null ? { next: { revalidate } } : undefined
+  );
 }

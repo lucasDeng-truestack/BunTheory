@@ -84,8 +84,8 @@ export class MenuService {
   ) {
     const sold = soldMap.get(m.id) ?? 0;
     const maxQ = m.maxQuantity;
-    const soldOut =
-      maxQ != null && sold >= maxQ;
+    // Sold-out is true if the admin toggled it OR the all-time cap is reached.
+    const soldOut = m.soldOut || (maxQ != null && sold >= maxQ);
     return {
       id: m.id,
       slug: m.slug,
@@ -95,6 +95,7 @@ export class MenuService {
       image: m.image,
       isFavorite: m.isFavorite,
       available: m.available,
+      category: m.category,
       maxQuantity: maxQ,
       sortOrder: m.sortOrder,
       createdAt: m.createdAt.toISOString(),
@@ -135,6 +136,8 @@ export class MenuService {
         image: dto.image,
         isFavorite: dto.isFavorite ?? false,
         available: dto.available ?? true,
+        category: dto.category?.trim() ? dto.category.trim() : null,
+        soldOut: dto.soldOut ?? false,
         maxQuantity: dto.maxQuantity ?? null,
         sortOrder: dto.sortOrder ?? 0,
         optionGroups:
@@ -169,6 +172,11 @@ export class MenuService {
     if (dto.image !== undefined) data.image = dto.image;
     if (dto.isFavorite !== undefined) data.isFavorite = dto.isFavorite;
     if (dto.available !== undefined) data.available = dto.available;
+    if (dto.category !== undefined) {
+      const c = dto.category?.trim();
+      data.category = c ? c : null;
+    }
+    if (dto.soldOut !== undefined) data.soldOut = dto.soldOut;
     if (dto.maxQuantity !== undefined) {
       data.maxQuantity = dto.maxQuantity ?? null;
     }

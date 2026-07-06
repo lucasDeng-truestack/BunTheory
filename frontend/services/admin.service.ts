@@ -5,15 +5,23 @@ export interface LoginPayload {
   password: string;
 }
 
+export type AdminRole = "OWNER" | "MANAGER" | "KITCHEN" | "CASHIER";
+
 export interface LoginResponse {
   accessToken: string;
-  admin: { id: string; email: string; displayName?: string | null };
+  admin: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+    role?: AdminRole;
+  };
 }
 
 export interface AdminUser {
   id: string;
   email: string;
   displayName: string | null;
+  role?: AdminRole;
   createdAt: string;
 }
 
@@ -63,6 +71,36 @@ export interface SystemSettings {
   paymentQrUrl?: string | null;
   /** E.164 e.g. +60123456789 — new-order WhatsApp to admin (not exposed on public /settings). */
   adminWhatsappNumber?: string | null;
+  // Single-outlet config.
+  outletName?: string | null;
+  outletAddress?: string | null;
+  outletHours?: Record<string, unknown> | null;
+  prepTimeMinutes?: number | null;
+  deliveryFee?: number | null;
+  processingFee?: number | null;
+  taxRatePercent?: number | null;
+  deliveryRadiusNote?: string | null;
+}
+
+export interface UpdateOutletPayload {
+  outletName?: string;
+  outletAddress?: string;
+  prepTimeMinutes?: number | null;
+  deliveryFee?: number | null;
+  processingFee?: number | null;
+  taxRatePercent?: number;
+  deliveryRadiusNote?: string;
+}
+
+export async function updateOutlet(
+  payload: UpdateOutletPayload,
+  token: string
+) {
+  return api<SystemSettings>("/settings/outlet", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+    token,
+  });
 }
 
 export async function getSettings(token: string): Promise<SystemSettings> {

@@ -85,6 +85,8 @@ export function AdminMenuItemDialog({
   const [maxQty, setMaxQty] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [available, setAvailable] = useState(true);
+  const [soldOut, setSoldOut] = useState(false);
+  const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupRow[]>([]);
 
@@ -97,6 +99,8 @@ export function AdminMenuItemDialog({
       setMaxQty("");
       setIsFavorite(false);
       setAvailable(true);
+      setSoldOut(false);
+      setCategory("");
       setImageUrl(null);
       setGroups([]);
       return;
@@ -107,6 +111,8 @@ export function AdminMenuItemDialog({
     setMaxQty(item.maxQuantity != null ? String(item.maxQuantity) : "");
     setIsFavorite(item.isFavorite);
     setAvailable(item.available);
+    setSoldOut(item.soldOut);
+    setCategory(item.category ?? "");
     setImageUrl(item.image);
     setGroups(
       item.optionGroups.length
@@ -149,6 +155,8 @@ export function AdminMenuItemDialog({
       price: parseFloat(price) || 0,
       isFavorite,
       available,
+      soldOut,
+      category: category.trim() || null,
       image: imageUrl || undefined,
       optionGroups,
     };
@@ -247,6 +255,20 @@ export function AdminMenuItemDialog({
           </div>
           <div className="space-y-2">
             <Label className="font-display text-charcoal">
+              Category <span className="font-normal text-charcoal/50">(optional)</span>
+            </Label>
+            <Input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g. Buns, Sides, Drinks"
+              className="h-11 rounded-xl border-charcoal/12 shadow-sm"
+            />
+            <p className="text-sm text-charcoal/55">
+              Groups this item into a section on the storefront menu.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label className="font-display text-charcoal">
               Max item quantity <span className="font-normal text-charcoal/50">(optional)</span>
             </Label>
             <Input
@@ -279,11 +301,26 @@ export function AdminMenuItemDialog({
             <Button
               type="button"
               size="sm"
-              variant={available ? "outline" : "secondary"}
-              className="rounded-full font-display"
+              variant={available ? "default" : "outline"}
+              className={cn(
+                "rounded-full font-display",
+                available && "shadow-sm"
+              )}
               onClick={() => setAvailable((a) => !a)}
             >
               {available ? "Available" : "Hidden"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={soldOut ? "destructive" : "outline"}
+              className={cn(
+                "rounded-full font-display",
+                soldOut && "shadow-sm"
+              )}
+              onClick={() => setSoldOut((s) => !s)}
+            >
+              {soldOut ? "Sold out" : "In stock"}
             </Button>
           </div>
 

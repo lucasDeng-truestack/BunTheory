@@ -8,6 +8,15 @@ export interface CartSelection {
   optionIds: string[];
 }
 
+export type FulfillmentType = "DELIVERY" | "PICKUP";
+
+/** Chosen before the menu (fulfillment gate) and reused through cart + checkout. */
+export interface CartFulfillment {
+  type: FulfillmentType | null;
+  deliveryAddress?: string;
+  deliveryNotes?: string;
+}
+
 export interface CartItem {
   lineKey: string;
   slug: string;
@@ -32,6 +41,10 @@ function buildLineKey(
 
 interface CartStore {
   items: CartItem[];
+  /** Delivery vs Pickup (+ address) chosen at the fulfillment gate. */
+  fulfillment: CartFulfillment;
+  setFulfillment: (f: CartFulfillment) => void;
+  clearFulfillment: () => void;
   addItem: (item: Omit<CartItem, "quantity" | "lineKey">, quantity?: number) => void;
   /** Remove a line and add the replacement (same as editing options / remarks / price). */
   replaceItem: (
@@ -53,6 +66,9 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      fulfillment: { type: null },
+      setFulfillment: (f) => set({ fulfillment: f }),
+      clearFulfillment: () => set({ fulfillment: { type: null } }),
       addItem: (item, quantity = 1) => {
         set((state) => {
           const slug = normalizeMenuSlug(item.slug);
@@ -141,8 +157,15 @@ export const useCartStore = create<CartStore>()(
         get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
     {
-      name: "bun-theory-cart-v6",
-      storage: createJSONStorage<{ items: CartItem[] }>(() => localStorage, {
+      name: "bun-theory-cart-v7",
+      partialize: (state) => ({
+        items: state.items,
+        fulfillment: state.fulfillment,
+      }),
+      storage: createJSONStorage<{
+        items: CartItem[];
+        fulfillment: CartFulfillment;
+      }>(() => localStorage, {
         reviver: (key, value) => {
           if (key === "items" && Array.isArray(value)) {
             return (value as CartItem[]).map((i) => ({

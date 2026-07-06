@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useFlyToCart } from "@/components/menu/fly-to-cart";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCartStore, type CartSelection } from "@/store/cart.store";
 import type { MenuItem } from "@/types/menu";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
+import { resolveItemImage } from "@/lib/storefront-display";
 import { cn } from "@/lib/utils";
 import { Minus, Plus, ShoppingCart, ListChecks, Pencil } from "lucide-react";
 
@@ -58,6 +60,8 @@ export function MenuItemModal({
 }: MenuItemModalProps) {
   const addItem = useCartStore((s) => s.addItem);
   const replaceItem = useCartStore((s) => s.replaceItem);
+  const { fly } = useFlyToCart();
+  const addBtnRef = useRef<HTMLButtonElement>(null);
   const [quantity, setQuantity] = useState(1);
   const [remarks, setRemarks] = useState("");
   const [selections, setSelections] = useState<Record<string, string[]>>({});
@@ -154,6 +158,8 @@ export function MenuItemModal({
       toast.success("Cart updated", { description: item.name });
     } else {
       addItem(payload, quantity);
+      const rect = addBtnRef.current?.getBoundingClientRect();
+      if (rect) fly({ src: item.image, from: rect });
       toast.success("Added to cart", { description: item.name });
     }
     onOpenChange(false);
@@ -161,101 +167,76 @@ export function MenuItemModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(92vh,820px)] w-[min(100vw-1.5rem,26rem)] flex-col gap-0 overflow-hidden rounded-3xl border-charcoal/10 p-0 shadow-elevated sm:max-w-md">
+      <DialogContent className="flex max-h-[min(92vh,820px)] w-[min(calc(100%-1.5rem),26rem)] flex-col gap-0 overflow-hidden rounded-5xl border-2 border-bun-ink p-0 shadow-sticker-lg sm:max-w-md">
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
-          <div className="relative aspect-[16/10] w-full shrink-0 bg-gradient-to-b from-charcoal/5 to-charcoal/[0.02]">
-            {item.image ? (
-              <Image
-                src={item.image}
-                alt={item.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, 480px"
-                priority
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-6xl text-charcoal/20">
-                🍔
-              </div>
-            )}
+          <div className="relative aspect-[16/10] w-full shrink-0 bg-item-photo">
+            <Image
+              src={resolveItemImage(item)}
+              alt={item.name}
+              fill
+              className={item.image?.trim() ? "object-cover" : "object-contain p-6"}
+              sizes="(max-width: 640px) 100vw, 480px"
+              priority
+            />
+            <Badge variant="sticker" className="absolute left-4 top-4 rotate-[-6deg] text-base">
+              RM {basePrice.toFixed(2)}
+            </Badge>
           </div>
 
           <div className="space-y-3 px-5 pb-2 pt-5">
             <DialogHeader className="space-y-2 text-left">
-              <DialogTitle className="font-display text-xl leading-tight text-charcoal sm:text-2xl">
+              <DialogTitle className="font-display text-2xl font-bold leading-tight text-bun-ink">
                 {item.name}
               </DialogTitle>
               {editLineKey ? (
-                <p className="text-sm font-medium text-roast-red">
+                <p className="font-display text-sm font-semibold text-bun-red">
                   Editing your cart
                 </p>
               ) : null}
               {item.description ? (
-                <DialogDescription className="text-left text-sm leading-relaxed text-charcoal/70">
+                <DialogDescription className="text-left text-sm leading-relaxed text-bun-ink-soft">
                   {item.description}
                 </DialogDescription>
               ) : null}
             </DialogHeader>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-charcoal/10 bg-cream/60 px-3 py-1.5 text-sm font-medium text-charcoal shadow-sm">
-              <span className="text-charcoal/55">Base</span>
-              <span className="font-display font-semibold tabular-nums text-roast-red">
-                RM {basePrice.toFixed(2)}
-              </span>
-            </div>
           </div>
 
           {item.optionGroups.length > 0 ? (
             <>
-              <Separator className="my-1 bg-charcoal/8" />
+              <Separator className="my-2 bg-bun-ink/10" />
               <div className="space-y-4 px-5 py-4">
-                <div className="flex items-center gap-2 text-charcoal/80">
+                <div className="flex items-center gap-2 text-bun-ink">
                   <ListChecks className="h-4 w-4" aria-hidden />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-                    Customize
+                  <span className="font-display text-xs font-semibold uppercase tracking-[0.14em] text-bun-ink-soft">
+                    Customise
                   </span>
                 </div>
                 {item.optionGroups.map((g) => (
                   <div
                     key={g.id}
-                    className="rounded-2xl border border-charcoal/8 bg-white p-4 shadow-sm ring-1 ring-charcoal/[0.04]"
+                    className="rounded-2xl border-2 border-bun-ink/12 bg-bun-cream-soft p-4"
                   >
                     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                       <div>
-                        <p className="font-display text-base font-semibold text-charcoal">
+                        <p className="font-display text-base font-bold text-bun-ink">
                           {g.name}
                         </p>
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {g.required ? (
-                            <Badge
-                              variant="outline"
-                              className="border-roast-red/40 bg-roast-red/5 px-2 py-0 text-[11px] font-semibold uppercase tracking-wide text-roast-red"
-                            >
+                            <Badge className="bg-bun-red px-2 py-0 text-[11px] uppercase tracking-wide">
                               Required
                             </Badge>
                           ) : (
-                            <Badge
-                              variant="secondary"
-                              className="bg-charcoal/10 px-2 py-0 text-[11px] font-semibold uppercase tracking-wide text-charcoal/70"
-                            >
+                            <Badge variant="dark" className="px-2 py-0 text-[11px] uppercase tracking-wide">
                               Optional
                             </Badge>
                           )}
-                          {g.multiSelect ? (
-                            <Badge
-                              variant="outline"
-                              className="border-charcoal/15 px-2 py-0 text-[11px] font-medium text-charcoal/60"
-                            >
-                              Multi
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-charcoal/15 px-2 py-0 text-[11px] font-medium text-charcoal/60"
-                            >
-                              Pick one
-                            </Badge>
-                          )}
+                          <Badge
+                            variant="outline"
+                            className="border-bun-ink/20 px-2 py-0 text-[11px] font-medium text-bun-ink-soft"
+                          >
+                            {g.multiSelect ? "Multi" : "Pick one"}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -277,12 +258,12 @@ export function MenuItemModal({
                             type="button"
                             onClick={() => toggleMulti(g.id, o.id, g.multiSelect)}
                             className={cn(
-                              "rounded-xl border-2 px-4 py-3 text-left text-sm font-medium transition-all",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roast-red/35 focus-visible:ring-offset-2",
+                              "rounded-xl border-2 px-4 py-3 text-left font-display text-sm font-semibold transition-all",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bun-red/40 focus-visible:ring-offset-2",
                               "active:scale-[0.98]",
                               active
-                                ? "border-roast-red bg-gradient-to-br from-roast-red/[0.09] to-roast-red/[0.04] text-charcoal shadow-md ring-1 ring-roast-red/25"
-                                : "border-charcoal/12 bg-charcoal/[0.02] text-charcoal hover:border-charcoal/25 hover:bg-white hover:shadow-sm"
+                                ? "border-bun-ink bg-bun-yellow text-bun-ink shadow-sticker"
+                                : "border-bun-ink/15 bg-white text-bun-ink hover:border-bun-ink/40"
                             )}
                           >
                             {label}
@@ -296,10 +277,10 @@ export function MenuItemModal({
             </>
           ) : null}
 
-          <Separator className="bg-charcoal/8" />
+          <Separator className="bg-bun-ink/10" />
 
           <div className="space-y-2 px-5 py-4">
-            <Label className="font-display text-base text-charcoal" htmlFor="remarks">
+            <Label className="font-display text-base font-semibold text-bun-ink" htmlFor="remarks">
               Remarks
             </Label>
             <Textarea
@@ -308,57 +289,59 @@ export function MenuItemModal({
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="Allergies, spice level, etc."
-              className="resize-none border-charcoal/12 bg-charcoal/[0.02]"
+              className="resize-none border-2 border-bun-ink/15 bg-bun-cream-soft"
             />
           </div>
 
           <div className="px-5 pb-5">
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-charcoal/10 bg-gradient-to-r from-cream/40 to-white px-4 py-3.5 shadow-inner">
-              <span className="font-display text-sm font-semibold text-charcoal/80">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-bun-ink bg-white px-4 py-3.5 shadow-sticker">
+              <span className="font-display text-sm font-bold text-bun-ink">
                 Quantity
               </span>
-              <div className="flex items-center gap-1 rounded-full border border-charcoal/10 bg-white p-1 shadow-sm">
+              <div className="flex items-center gap-1 rounded-full border-2 border-bun-ink bg-bun-cream-soft p-1">
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="h-10 w-10 rounded-full hover:bg-roast-red/10"
+                  className="h-10 w-10 rounded-full hover:bg-bun-yellow"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   aria-label="Decrease quantity"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className="h-4 w-4" strokeWidth={3} />
                 </Button>
-                <span className="min-w-[2.25rem] text-center font-display text-lg font-bold tabular-nums text-charcoal">
+                <span className="min-w-[2.25rem] text-center font-display text-lg font-bold tabular-nums text-bun-ink">
                   {quantity}
                 </span>
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="h-10 w-10 rounded-full hover:bg-roast-red/10"
+                  className="h-10 w-10 rounded-full hover:bg-bun-yellow"
                   onClick={() => setQuantity((q) => q + 1)}
                   aria-label="Increase quantity"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" strokeWidth={3} />
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-charcoal/10 bg-gradient-to-b from-white via-cream/30 to-cream/50 px-5 py-4 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)]">
+        <div className="shrink-0 border-t-2 border-bun-ink bg-bun-cream-soft px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-charcoal/45">
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.14em] text-bun-ink-soft">
                 Line total
               </p>
-              <p className="font-display text-2xl font-bold tabular-nums text-roast-red">
+              <p className="font-display text-2xl font-bold tabular-nums text-bun-red">
                 RM {(unitPrice * quantity).toFixed(2)}
               </p>
             </div>
             <Button
+              ref={addBtnRef}
               size="lg"
-              className="h-12 min-w-[180px] gap-2 rounded-2xl font-display text-base shadow-md transition hover:shadow-lg"
+              variant="hero"
+              className="min-w-[180px] gap-2"
               onClick={handleAdd}
             >
               {editLineKey ? (

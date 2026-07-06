@@ -23,6 +23,8 @@ export interface MenuItem {
   image: string | null;
   isFavorite: boolean;
   available: boolean;
+  /** Lightweight storefront grouping (e.g. "Buns", "Sides"). Null = uncategorised. */
+  category: string | null;
   maxQuantity: number | null;
   sortOrder: number;
   createdAt: string;

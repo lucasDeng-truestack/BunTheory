@@ -35,6 +35,16 @@ export class CreateMenuDto {
   @IsBoolean()
   available?: boolean;
 
+  /** Lightweight storefront grouping (e.g. "Buns", "Sides"). */
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  /** Manual sold-out toggle (storefront also derives sold-out from maxQuantity). */
+  @IsOptional()
+  @IsBoolean()
+  soldOut?: boolean;
+
   @IsOptional()
   @IsString()
   @MinLength(1)

@@ -7,11 +7,15 @@ interface OrderStatusProps {
 }
 
 export function OrderStatusDisplay({ status }: OrderStatusProps) {
-  const currentIndex = ORDER_STATUS_STEPS.indexOf(status);
+  // ORDER_STATUS_STEPS is the legacy 4-step path; statuses outside it (the new
+  // KDS states) resolve to -1 until the type-aware stepper lands in a later phase.
+  const currentIndex = (ORDER_STATUS_STEPS as readonly OrderStatus[]).indexOf(
+    status
+  );
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Order status</h3>
+      <h3 className="font-display text-xl font-bold text-bun-ink">Order status</h3>
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-[min(100%,520px)] items-center justify-between gap-2 px-1">
         {ORDER_STATUS_STEPS.map((step, i) => {
@@ -23,19 +27,19 @@ export function OrderStatusDisplay({ status }: OrderStatusProps) {
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
                     isComplete
-                      ? "bg-roast-red border-roast-red text-white"
-                      : "border-charcoal/20 bg-white text-charcoal/50"
+                      ? "bg-bun-red border-bun-ink text-white"
+                      : "border-bun-ink/25 bg-white text-bun-ink/50"
                   }`}
                 >
                   {isComplete ? (
-                    <Check className="h-5 w-5" />
+                    <Check className="h-5 w-5" strokeWidth={3} />
                   ) : (
-                    <span className="text-sm font-medium">{i + 1}</span>
+                    <span className="font-display text-sm font-bold">{i + 1}</span>
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-center text-sm font-medium ${
-                    isCurrent ? "text-roast-red" : "text-charcoal/70"
+                  className={`mt-2 text-center font-display text-sm font-semibold ${
+                    isCurrent ? "text-bun-red" : "text-bun-ink-soft"
                   }`}
                 >
                   {ORDER_STATUS_LABELS[step]}
@@ -43,8 +47,8 @@ export function OrderStatusDisplay({ status }: OrderStatusProps) {
               </div>
               {i < ORDER_STATUS_STEPS.length - 1 && (
                 <div
-                  className={`h-0.5 flex-1 ${
-                    isComplete ? "bg-roast-red" : "bg-charcoal/20"
+                  className={`h-1 flex-1 rounded-full ${
+                    isComplete ? "bg-bun-red" : "bg-bun-ink/15"
                   }`}
                 />
               )}

@@ -64,25 +64,26 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="w-[min(100vw-2rem,26rem)] rounded-2xl border-charcoal/10 sm:max-w-lg">
+        <DialogContent className="w-[min(calc(100%-2rem),26rem)] rounded-5xl border-2 border-bun-ink shadow-sticker-lg sm:max-w-lg">
           {submitted ? (
             <>
               <DialogHeader>
-                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-success/15 text-success">
-                  <CheckCircle2 className="h-6 w-6" aria-hidden />
+                <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-bun-ink bg-bun-yellow text-bun-ink shadow-sticker">
+                  <CheckCircle2 className="h-7 w-7" aria-hidden />
                 </div>
-                <DialogTitle className="text-center font-display text-xl text-charcoal">
+                <DialogTitle className="text-center font-display text-2xl font-bold text-bun-ink">
                   Thank you!
                 </DialogTitle>
-                <DialogDescription className="text-center text-pretty text-charcoal/70">
+                <DialogDescription className="text-center text-pretty text-bun-ink-soft">
                   Your note helps us improve the ordering experience for everyone.
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-4 flex justify-center">
                 <Button
                   type="button"
+                  variant="hero"
                   size="lg"
-                  className="min-h-12 font-display"
+                  className="min-h-12"
                   onClick={closeAfterThanks}
                 >
                   Got it
@@ -92,19 +93,19 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
           ) : (
             <>
               <DialogHeader>
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-roast-red/10 text-roast-red">
-                  <MessageSquareQuote className="h-6 w-6" aria-hidden />
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-bun-ink bg-bun-yellow text-bun-ink shadow-sticker">
+                  <MessageSquareQuote className="h-7 w-7" aria-hidden />
                 </div>
-                <DialogTitle className="text-center font-display text-xl text-charcoal">
+                <DialogTitle className="text-center font-display text-2xl font-bold text-bun-ink">
                   Tell us how we did
                 </DialogTitle>
-                <DialogDescription className="text-center text-pretty text-charcoal/70">
+                <DialogDescription className="text-center text-pretty text-bun-ink-soft">
                   Quick feedback on using this site — what worked, what was confusing, or what we should improve.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={onSubmit} className="mt-4 space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="order-feedback" className="font-display">
+                  <Label htmlFor="order-feedback" className="font-display font-semibold text-bun-ink">
                     Your feedback
                   </Label>
                   <Textarea
@@ -115,10 +116,10 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
                     placeholder="e.g. Checkout was easy — would love clearer pickup times…"
                     rows={4}
                     maxLength={4000}
-                    className="min-h-[100px] resize-y text-charcoal"
+                    className="min-h-[100px] resize-y border-2 border-bun-ink/15 bg-bun-cream-soft text-bun-ink"
                     disabled={loading}
                   />
-                  <p className="text-xs text-charcoal/50">
+                  <p className="text-xs text-bun-ink-soft/60">
                     {trimmed.length} / 4000 characters · optional
                   </p>
                 </div>
@@ -126,7 +127,7 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="font-display min-h-11 sm:min-w-0"
+                    className="min-h-11 rounded-full border-2 border-bun-ink font-display font-semibold text-bun-ink hover:bg-bun-ink hover:text-bun-cream sm:min-w-0"
                     onClick={() => handleOpenChange(false)}
                     disabled={loading}
                   >
@@ -134,8 +135,9 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
                   </Button>
                   <Button
                     type="submit"
+                    variant="hero"
                     size="lg"
-                    className="min-h-12 font-display sm:min-w-[140px]"
+                    className="min-h-12 sm:min-w-[140px]"
                     disabled={!canSubmit || loading}
                   >
                     {loading ? "Sending…" : "Send feedback"}
@@ -153,7 +155,7 @@ export function PostOrderFeedback({ orderId }: PostOrderFeedbackProps) {
             type="button"
             variant="outline"
             size="sm"
-            className="font-display border-charcoal/20 text-charcoal"
+            className="rounded-full border-2 border-bun-ink font-display font-semibold text-bun-ink hover:bg-bun-ink hover:text-bun-cream"
             onClick={() => {
               setOpen(true);
               setShowReopenCue(false);

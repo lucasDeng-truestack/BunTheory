@@ -25,10 +25,20 @@ export class SettingsService {
       id: s.id,
       maxOrdersPerDay: s.maxOrdersPerDay,
       orderingEnabled: s.orderingEnabled,
-      minimumDeliveryAmount: s.minimumDeliveryAmount,
+      minimumDeliveryAmount:
+        s.minimumDeliveryAmount != null ? Number(s.minimumDeliveryAmount) : null,
       companyName: s.companyName,
       companyLogoUrl: s.companyLogoUrl,
       paymentQrUrl: s.paymentQrUrl,
+      // ─── Outlet / fees / tax (storefront fulfillment header + checkout) ───
+      outletName: s.outletName,
+      outletAddress: s.outletAddress,
+      outletHours: s.outletHours,
+      prepTimeMinutes: s.prepTimeMinutes,
+      deliveryFee: s.deliveryFee != null ? Number(s.deliveryFee) : null,
+      processingFee: s.processingFee != null ? Number(s.processingFee) : null,
+      taxRatePercent: Number(s.taxRatePercent),
+      deliveryRadiusNote: s.deliveryRadiusNote,
       updatedAt: s.updatedAt,
     };
   }
@@ -86,6 +96,52 @@ export class SettingsService {
       });
     }
     return settings;
+  }
+
+  /** Single-outlet config (name/address/hours, prep ETA, fees, tax, radius note). */
+  async updateOutlet(dto: {
+    outletName?: string;
+    outletAddress?: string;
+    outletHours?: Record<string, unknown> | null;
+    prepTimeMinutes?: number | null;
+    deliveryFee?: number | null;
+    processingFee?: number | null;
+    taxRatePercent?: number;
+    deliveryRadiusNote?: string;
+  }) {
+    const data: Prisma.SystemSettingsUpdateInput = {};
+    const trimOrNull = (v?: string) => {
+      if (v === undefined) return undefined;
+      const t = v.trim();
+      return t === '' ? null : t;
+    };
+
+    if (dto.outletName !== undefined) data.outletName = trimOrNull(dto.outletName);
+    if (dto.outletAddress !== undefined)
+      data.outletAddress = trimOrNull(dto.outletAddress);
+    if (dto.outletHours !== undefined)
+      data.outletHours =
+        (dto.outletHours as Prisma.InputJsonValue) ?? Prisma.JsonNull;
+    if (dto.prepTimeMinutes !== undefined)
+      data.prepTimeMinutes = dto.prepTimeMinutes;
+    if (dto.deliveryFee !== undefined) data.deliveryFee = dto.deliveryFee;
+    if (dto.processingFee !== undefined) data.processingFee = dto.processingFee;
+    if (dto.taxRatePercent !== undefined)
+      data.taxRatePercent = dto.taxRatePercent;
+    if (dto.deliveryRadiusNote !== undefined)
+      data.deliveryRadiusNote = trimOrNull(dto.deliveryRadiusNote);
+
+    const existing = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    const id =
+      existing?.id ??
+      (
+        await this.prisma.systemSettings.create({
+          data: { maxOrdersPerDay: 15, orderingEnabled: true },
+        })
+      ).id;
+    return this.prisma.systemSettings.update({ where: { id }, data });
   }
 
   async updateBranding(dto: {

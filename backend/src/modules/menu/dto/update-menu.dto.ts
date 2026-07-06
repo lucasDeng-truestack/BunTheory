@@ -38,6 +38,16 @@ export class UpdateMenuDto {
   @IsBoolean()
   available?: boolean;
 
+  /** Set to "" / null to clear the category. */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  category?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  soldOut?: boolean;
+
   @IsOptional()
   @IsString()
   @MinLength(1)

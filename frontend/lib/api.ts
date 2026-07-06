@@ -2,9 +2,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export async function api<T>(
   path: string,
-  options?: RequestInit & { token?: string }
+  options?: RequestInit & { token?: string; next?: NextFetchRequestConfig }
 ): Promise<T> {
-  const { token, ...init } = options || {};
+  const { token, next, ...init } = options || {};
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(init.headers as Record<string, string>),
@@ -13,8 +13,11 @@ export async function api<T>(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
-    cache: init.cache ?? "no-store",
+    // Default to no-store, but when a caller opts into ISR via `next`
+    // (e.g. { revalidate }) let Next control caching instead.
+    cache: init.cache ?? (next ? undefined : "no-store"),
     ...init,
+    ...(next ? { next } : {}),
     headers,
   });
   if (!res.ok) {

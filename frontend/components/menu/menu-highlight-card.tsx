@@ -60,15 +60,15 @@ export function MenuHighlightCard({
   }, []);
 
   const cardClass = cn(
-    "rounded-2xl border border-charcoal/8 bg-white p-4 shadow-card transition-all duration-300",
+    "rounded-3xl border border-hairline bg-surface p-4 shadow-soft transition-all duration-300",
     interactive &&
-      "group touch-manipulation active:scale-[0.995] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover",
+      "group touch-manipulation active:scale-[0.995] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1 [@media(hover:hover)_and_(pointer:fine)]:hover:shadow-lift",
     !interactive && "cursor-default"
   );
 
   const inner = (
     <>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-charcoal/5">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-muted">
         <Image
           src={image}
           alt={name}
@@ -84,18 +84,18 @@ export function MenuHighlightCard({
       <div className="mt-4">
         <h3
           className={cn(
-            "text-lg font-bold text-charcoal transition-colors",
+            "font-display text-lg font-semibold text-ink transition-colors",
             interactive && "group-hover:text-deep-red"
           )}
         >
           {name}
         </h3>
         {description && (
-          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-charcoal/60">
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-soft">
             {description}
           </p>
         )}
-        <p className="mt-2 text-lg font-bold text-roast-red">
+        <p className="mt-2 font-display text-lg font-semibold text-roast-red">
           RM {price.toFixed(2)}
         </p>
       </div>

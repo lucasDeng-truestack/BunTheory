@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { SettingsCard } from "@/components/admin/settings-card";
+import { OutletSettingsCard } from "@/components/admin/outlet-settings-card";
 import { useAdminChrome } from "@/components/admin/admin-chrome-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -819,6 +820,8 @@ export default function AdminSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <OutletSettingsCard token={token} onUpdate={refreshAll} />
 
       <SettingsCard
         token={token}

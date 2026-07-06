@@ -38,12 +38,12 @@ export function OrderReceipt({
     : null;
 
   return (
-    <Card className="mx-auto w-full max-w-md text-left shadow-card lg:mx-0 lg:max-w-none">
+    <Card className="mx-auto w-full max-w-md border-2 border-bun-ink text-left shadow-sticker lg:mx-0 lg:max-w-none">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold tracking-tight">
+        <CardTitle className="font-display text-xl font-bold tracking-tight text-bun-ink">
           {title}
         </CardTitle>
-        <p className="text-sm text-charcoal/60">
+        <p className="text-sm text-bun-ink-soft">
           {order.type === "DELIVERY" ? "Delivery" : "Pickup"} ·{" "}
           {order.customerName}
         </p>
@@ -91,8 +91,8 @@ export function OrderReceipt({
               >
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium text-charcoal">
-                      <span className="text-roast-red">{oi.quantity}×</span>{" "}
+                    <span className="font-medium text-bun-ink">
+                      <span className="font-display font-bold text-bun-red">{oi.quantity}×</span>{" "}
                       {name}
                     </span>
                     <OrderLineItemExtras oi={oi} className="mt-1.5" />
@@ -111,10 +111,10 @@ export function OrderReceipt({
         </ul>
         {grandTotal != null && (
           <>
-            <div className="border-t border-charcoal/10" role="presentation" />
-            <div className="flex items-center justify-between pt-1 text-base font-semibold text-charcoal">
+            <div className="border-t-2 border-bun-ink/10" role="presentation" />
+            <div className="flex items-center justify-between pt-1 font-display text-lg font-bold text-bun-ink">
               <span>Total</span>
-              <span className="text-roast-red tabular-nums">
+              <span className="text-bun-red tabular-nums">
                 RM {grandTotal.toFixed(2)}
               </span>
             </div>

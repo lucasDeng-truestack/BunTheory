@@ -8,9 +8,14 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-roast-red text-white",
-        secondary: "bg-mustard text-charcoal",
+        secondary: "bg-mustard text-ink",
         outline: "border border-roast-red text-roast-red",
         destructive: "bg-red-600 text-white",
+        /* ── CRAV sticker chips (hard offset border, uppercase) ── */
+        yellow: "bg-bun-yellow text-bun-ink",
+        dark: "bg-bun-black text-bun-cream",
+        sticker:
+          "border-2 border-bun-ink bg-bun-yellow px-3 py-1 font-display font-semibold uppercase tracking-wide text-bun-ink shadow-sticker",
       },
     },
     defaultVariants: {

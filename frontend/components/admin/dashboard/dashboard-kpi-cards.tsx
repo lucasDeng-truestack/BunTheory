@@ -30,7 +30,8 @@ export function DashboardKpiCards({
         className
       )}
     >
-      <Card className="overflow-hidden border-charcoal/10 shadow-card transition-shadow hover:shadow-card-hover">
+      <Card className="overflow-hidden border-2 border-bun-ink/12 shadow-soft transition-shadow hover:shadow-lift">
+        <div className="admin-accent-bar rounded-none" aria-hidden />
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -57,7 +58,8 @@ export function DashboardKpiCards({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-charcoal/10 shadow-card transition-shadow hover:shadow-card-hover">
+      <Card className="overflow-hidden border-2 border-bun-ink/12 shadow-soft transition-shadow hover:shadow-lift">
+        <div className="admin-accent-bar rounded-none" aria-hidden />
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -84,7 +86,8 @@ export function DashboardKpiCards({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-charcoal/10 shadow-card transition-shadow hover:shadow-card-hover sm:col-span-2 lg:col-span-1">
+      <Card className="overflow-hidden border-2 border-bun-ink/12 shadow-soft transition-shadow hover:shadow-lift sm:col-span-2 lg:col-span-1">
+        <div className="admin-accent-bar rounded-none" aria-hidden />
         <CardContent className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-2">
             <div>

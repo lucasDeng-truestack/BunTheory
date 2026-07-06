@@ -12,7 +12,7 @@ type RevealItem = {
 };
 
 const BAG_IMAGE = {
-  src: "/images/items/paper%20bag.png",
+  src: "/images/items/paper-bag.webp",
   alt: "The Bun Theory takeaway bag",
 } as const;
 
@@ -21,12 +21,12 @@ const BAG_IMAGE = {
  */
 export const HERO_REVEAL_ITEMS: RevealItem[] = [
   {
-    src: "/images/items/Burger.png",
+    src: "/images/items/Burger.webp",
     alt: "The Bun Theory Burger",
     size: 1.3,
   },
   {
-    src: "/images/items/Fries.png",
+    src: "/images/items/Fries.webp",
     alt: "Loaded Fries",
     size: 1.12,
   },

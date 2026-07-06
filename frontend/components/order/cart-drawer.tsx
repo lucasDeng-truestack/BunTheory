@@ -34,11 +34,11 @@ export function CartDrawer({
         position="bottom"
         className="flex max-h-[min(90vh,900px)] flex-col gap-0 p-0"
       >
-        <div className="shrink-0 border-b border-charcoal/10 px-4 pb-3 pt-3">
-          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-charcoal/15" aria-hidden />
+        <div className="shrink-0 border-b-2 border-bun-ink/10 px-4 pb-3 pt-3">
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-bun-ink/15" aria-hidden />
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <DialogTitle className="text-left text-lg font-semibold">
+              <DialogTitle className="text-left font-display text-lg font-bold text-bun-ink">
                 Your cart
               </DialogTitle>
               <DialogDescription className="sr-only">

@@ -42,7 +42,7 @@ const DialogContent = React.forwardRef<
       className={cn(
         "fixed z-50 outline-none",
         position === "center" &&
-          "left-1/2 top-1/2 w-[min(100vw-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-charcoal/10 bg-white p-6 shadow-elevated data-[state=open]:animate-dialog-content-in data-[state=closed]:animate-dialog-content-out",
+          "left-1/2 top-1/2 w-[min(calc(100%-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-charcoal/10 bg-white p-6 shadow-elevated data-[state=open]:animate-dialog-content-in data-[state=closed]:animate-dialog-content-out",
         position === "bottom" &&
           "bottom-0 left-0 right-0 top-auto max-h-[min(90vh,900px)] w-full max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-t-3xl border border-charcoal/10 border-b-0 bg-white shadow-elevated data-[state=open]:animate-dialog-sheet-in data-[state=closed]:animate-dialog-sheet-out",
         className

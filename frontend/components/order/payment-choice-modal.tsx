@@ -222,9 +222,9 @@ export function PaymentChoiceModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-[min(100vw-2rem,42rem)] max-h-[min(90vh,760px)] overflow-y-auto rounded-[2rem] border border-charcoal/10 bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_38%,#fff8ef_100%)] p-5 sm:p-7",
+          "w-[min(calc(100%-2rem),42rem)] max-h-[min(90vh,760px)] overflow-y-auto rounded-[2rem] border border-charcoal/10 bg-[linear-gradient(180deg,#fffaf4_0%,#ffffff_38%,#fff8ef_100%)] p-5 sm:p-7",
           (step === "payNow" || step === "confirm") &&
-            "w-[min(100vw-2rem,26rem)] sm:w-[min(100vw-2rem,30rem)]"
+            "w-[min(calc(100%-2rem),26rem)] sm:w-[min(calc(100%-2rem),30rem)]"
         )}
       >
         {step === "choice" ? (

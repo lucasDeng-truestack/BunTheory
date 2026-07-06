@@ -40,15 +40,17 @@ export function MenuHighlights({
   return (
     <section className={cn(className)} aria-labelledby="highlights-heading">
       <div className="mb-8 text-center lg:mb-10">
-        <p className="text-section-label">{eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-eyebrow text-bun-red-deep">
+          {eyebrow}
+        </p>
         <h2
           id="highlights-heading"
-          className="mt-2 text-3xl font-extrabold tracking-tight text-charcoal sm:text-4xl"
+          className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl"
         >
           {title}
         </h2>
         {description ? (
-          <p className="mx-auto mt-3 max-w-2xl text-pretty text-charcoal/60 lg:text-lg">
+          <p className="mx-auto mt-3 max-w-2xl text-pretty text-ink-soft lg:text-lg">
             {description}
           </p>
         ) : null}

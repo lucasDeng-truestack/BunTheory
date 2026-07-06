@@ -146,7 +146,7 @@ export function TrackOrderView() {
             open.
           </p>
         </div>
-        <Button type="submit" size="lg" className="w-full min-h-12" disabled={loading}>
+        <Button type="submit" variant="hero" size="lg" className="w-full min-h-12" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -184,44 +184,44 @@ export function TrackOrderView() {
 
       {hasSearched && orders.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight text-charcoal">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-bun-ink">
             Active orders
           </h2>
           <ul className="space-y-4">
             {orders.map((order) => (
               <li key={order.id}>
-                <Card className="shadow-card">
+                <Card className="border-2 border-bun-ink shadow-sticker">
                   <CardContent className="space-y-4 p-5">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="font-mono text-base font-medium text-charcoal">
+                      <p className="rounded-full border-2 border-bun-ink bg-bun-yellow px-3 py-0.5 font-mono text-sm font-bold text-bun-ink">
                         {order.slugId ? `#${order.slugId}` : order.id.slice(0, 8)}
                       </p>
-                      <span className="text-sm text-charcoal/50">
+                      <span className="text-sm text-bun-ink-soft/60">
                         {formatWhen(order.createdAt)}
                       </span>
                     </div>
-                    <p className="text-base text-charcoal/70">
+                    <p className="text-base text-bun-ink-soft">
                       {order.customerName} ·{" "}
                       <span className="capitalize">{order.type.toLowerCase()}</span>
                     </p>
-                    <p className="text-sm text-charcoal/65">
-                      <span className="font-display font-semibold text-charcoal/80">
+                    <p className="text-sm text-bun-ink-soft">
+                      <span className="font-display font-bold text-bun-ink">
                         Payment type ·{" "}
                       </span>
                       {paymentChoiceLabel(order)}
                     </p>
                     {order.type === "DELIVERY" &&
                     order.deliveryAddress?.trim() ? (
-                      <p className="text-sm leading-snug text-charcoal/75">
-                        <span className="font-medium text-charcoal/80">Deliver to: </span>
+                      <p className="text-sm leading-snug text-bun-ink-soft">
+                        <span className="font-semibold text-bun-ink">Deliver to: </span>
                         {order.deliveryAddress.trim()}
                       </p>
                     ) : null}
-                    <div className="space-y-3 text-base text-charcoal">
+                    <div className="space-y-3 text-base text-bun-ink">
                       {order.orderItems.map((oi) => (
                         <div key={oi.id}>
                           <p className="font-medium">
-                            <span className="text-roast-red">{oi.quantity}×</span>{" "}
+                            <span className="font-display font-bold text-bun-red">{oi.quantity}×</span>{" "}
                             {oi.menu?.name ?? "Item"}
                           </p>
                           <OrderLineItemExtras oi={oi} className="mt-1 text-sm" />
@@ -238,8 +238,8 @@ export function TrackOrderView() {
       )}
 
       {hasSearched && orders.length === 0 && !loading && (
-        <div className="rounded-2xl border border-charcoal/10 bg-white p-6 text-center text-charcoal/70 shadow-card">
-          <p className="font-medium text-charcoal">No active orders for this number</p>
+        <div className="rounded-4xl border-2 border-bun-ink bg-white p-6 text-center text-bun-ink-soft shadow-sticker">
+          <p className="font-display text-lg font-bold text-bun-ink">No active orders for this number</p>
           <p className="mt-2 text-base">
             If your order is already completed, it won&apos;t appear here. Check WhatsApp
             for your confirmation.

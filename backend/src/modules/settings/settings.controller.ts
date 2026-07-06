@@ -6,6 +6,7 @@ import {
   UpdateMinimumDeliveryDto,
 } from './dto/update-settings.dto';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
+import { UpdateOutletDto } from './dto/update-outlet.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('settings')
@@ -49,5 +50,11 @@ export class SettingsController {
   @UseGuards(JwtAuthGuard)
   updateBranding(@Body() dto: UpdateBrandingDto) {
     return this.settingsService.updateBranding(dto);
+  }
+
+  @Patch('outlet')
+  @UseGuards(JwtAuthGuard)
+  updateOutlet(@Body() dto: UpdateOutletDto) {
+    return this.settingsService.updateOutlet(dto);
   }
 }

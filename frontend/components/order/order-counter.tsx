@@ -7,51 +7,71 @@ interface OrderCounterProps {
   canOrder?: boolean;
   /** e.g. "Thu 27 Mar" or batch label */
   batchLabel?: string | null;
+  /** Dark surface (on the menu hero) vs light card. */
+  tone?: "light" | "dark";
 }
 
+/**
+ * Batch capacity meter ("kitchen load"): how many of the batch's item slots are
+ * taken. Purely presentational — values come from the live `can-order` context.
+ */
 export function OrderCounter({
   current,
   max,
   canOrder = true,
   batchLabel,
+  tone = "light",
 }: OrderCounterProps) {
   const safeMax = max > 0 ? max : 1;
   const pct = Math.min(100, Math.round((current / safeMax) * 100));
+  const dark = tone === "dark";
 
   return (
     <div
       className={cn(
-        "rounded-2xl border border-charcoal/10 bg-white p-4 shadow-card",
-        !canOrder && "border-amber-200/80 bg-amber-50/50"
+        "rounded-2xl border-2 p-4",
+        dark
+          ? "border-bun-cream/15 bg-white/5 text-bun-cream"
+          : "border-bun-ink bg-white text-bun-ink shadow-sticker"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-roast-red/10 text-roast-red">
+          <div
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-xl border-2",
+              dark ? "border-bun-cream/20 bg-bun-red text-white" : "border-bun-ink bg-bun-yellow text-bun-ink"
+            )}
+          >
             <Flame className="h-5 w-5" aria-hidden />
           </div>
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-charcoal/60">
+            <p
+              className={cn(
+                "font-display text-[0.7rem] font-semibold uppercase tracking-[0.14em]",
+                dark ? "text-bun-yellow" : "text-bun-ink-soft"
+              )}
+            >
               Kitchen load{batchLabel ? ` · ${batchLabel}` : ""}
             </p>
-            <p className="text-xl font-bold tabular-nums text-charcoal">
+            <p className="font-display text-xl font-bold tabular-nums">
               {current}
-              <span className="text-base font-semibold text-charcoal/50"> / {max}</span>
+              <span className={cn("text-base font-semibold", dark ? "text-bun-cream/50" : "text-bun-ink-soft/60")}>
+                {" "}
+                / {max}
+              </span>
             </p>
           </div>
         </div>
         {!canOrder && (
-          <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
+          <span className="shrink-0 rounded-full border-2 border-bun-ink bg-bun-yellow px-3 py-1 font-display text-xs font-bold uppercase text-bun-ink">
             Closed
           </span>
         )}
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10">
+      <div className={cn("mt-3 h-2.5 overflow-hidden rounded-full", dark ? "bg-bun-cream/15" : "bg-bun-ink/10")}>
         <div
-          className={cn(
-            "h-full rounded-full transition-all duration-300",
-            canOrder ? "bg-roast-red" : "bg-amber-600"
-          )}
+          className={cn("h-full rounded-full transition-all duration-300", canOrder ? "bg-bun-red" : "bg-bun-yellow")}
           style={{ width: `${pct}%` }}
         />
       </div>

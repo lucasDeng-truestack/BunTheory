@@ -102,9 +102,9 @@ export function Cart({
           isPanel && "py-6"
         )}
       >
-        <ShoppingCart className="mx-auto h-12 w-12 text-charcoal/30" />
-        <p className="mt-2 font-medium text-charcoal/80">Your cart is empty</p>
-        <p className="text-sm text-charcoal/50">Add items from the menu</p>
+        <ShoppingCart className="mx-auto h-12 w-12 text-bun-ink/30" />
+        <p className="mt-2 font-display font-bold text-bun-ink">Your cart is empty</p>
+        <p className="text-sm text-bun-ink-soft">Add items from the menu</p>
       </div>
     );
   }
@@ -134,23 +134,23 @@ export function Cart({
           return (
             <div
               key={item.lineKey}
-              className="flex items-start justify-between gap-2 rounded-xl border border-charcoal/10 bg-cream/20 p-3"
+              className="flex items-start justify-between gap-2 rounded-2xl border-2 border-bun-ink/12 bg-bun-cream-soft p-3"
             >
               <div className="min-w-0 flex-1 pr-1">
-                <p className="font-medium font-display leading-snug">{item.name}</p>
+                <p className="font-display font-bold leading-snug text-bun-ink">{item.name}</p>
                 {optionSummary ? (
-                  <p className="mt-0.5 text-xs leading-snug text-charcoal/70">
-                    <span className="font-medium text-charcoal/75">Add-ons: </span>
+                  <p className="mt-0.5 text-xs leading-snug text-bun-ink-soft">
+                    <span className="font-semibold text-bun-ink/75">Add-ons: </span>
                     {optionSummary}
                   </p>
                 ) : null}
                 {item.remarks ? (
-                  <p className="mt-0.5 text-xs text-charcoal/55 line-clamp-3">
-                    <span className="font-medium text-charcoal/65">Note:</span>{" "}
+                  <p className="mt-0.5 text-xs text-bun-ink-soft/70 line-clamp-3">
+                    <span className="font-semibold text-bun-ink/65">Note:</span>{" "}
                     {item.remarks}
                   </p>
                 ) : null}
-                <p className="mt-1 text-sm text-charcoal/70">
+                <p className="mt-1 font-display text-sm font-bold text-bun-red">
                   RM {(item.unitPrice * item.quantity).toFixed(2)}
                 </p>
                 {onEditCartItem ? (
@@ -158,7 +158,7 @@ export function Cart({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="mt-1.5 h-8 gap-1 px-2 font-display text-xs text-roast-red hover:bg-roast-red/10 hover:text-roast-red"
+                    className="mt-1.5 h-8 gap-1 px-2 font-display text-xs text-bun-red hover:bg-bun-red/10 hover:text-bun-red"
                     onClick={() => onEditCartItem(item)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -197,14 +197,14 @@ export function Cart({
           );
         })}
       </div>
-      <div className="flex items-center justify-between border-t border-charcoal/10 pt-4">
-        <span className="font-semibold text-charcoal/80 font-display">Total</span>
-        <span className="text-lg font-bold text-roast-red">
+      <div className="flex items-center justify-between border-t-2 border-bun-ink/10 pt-4">
+        <span className="font-display font-bold text-bun-ink">Total</span>
+        <span className="font-display text-xl font-bold text-bun-red">
           RM {total().toFixed(2)}
         </span>
       </div>
       {showCheckoutButton && (
-        <Button asChild size="lg" className="w-full min-h-12 font-display">
+        <Button asChild variant="hero" size="lg" className="w-full min-h-12">
           <Link href="/order">
             <ShoppingCart className="mr-2 h-5 w-5" />
             {isPanel ? (

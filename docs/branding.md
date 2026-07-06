@@ -20,10 +20,15 @@ Rounded cards (rounded-xl)
 Food photography
 Large call-to-action buttons
 
-Typography:
-- Display / headings / titles / nav labels / CTA text: Comic Sans fallback stack
-  (`"Comic Sans MS", "Comic Sans", "Chalkboard SE", "Marker Felt", cursive`)
-- Body: DM Sans / system sans fallback for readability
+Typography (premium revamp — 2026):
+- Display / headings / titles: **Fraunces** (warm variable "old-style" serif;
+  loaded via `next/font/google` as `--font-display`). Optical sizing on; tight
+  tracking on large headlines. Reads artisan + premium.
+  - Alternative modern/grotesk option if a punchier look is wanted:
+    **Bricolage Grotesque** (one-line swap in `frontend/app/layout.tsx`).
+- Body / UI / nav labels / buttons: **DM Sans** (`--font-sans`) for legibility.
+  Buttons and nav intentionally use the body sans, not the serif.
+- (Retired: the previous Comic Sans display stack.)
 
 Experience:
 Fast ordering

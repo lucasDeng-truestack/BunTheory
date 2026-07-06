@@ -13,6 +13,8 @@ import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
 import { UpdateAdminDisplayNameDto } from './dto/update-admin-display-name.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -30,7 +32,8 @@ export class AuthController {
   }
 
   @Post('admins')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
   async createAdmin(@Body() dto: CreateAdminDto) {
     return this.authService.createAdmin(dto);
   }

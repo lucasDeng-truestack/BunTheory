@@ -9,6 +9,7 @@ import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { OrderStatus, OrderBatchStatus, PaymentChoice } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BatchesService } from '../batches/batches.service';
+import { OrdersGateway } from './orders.gateway';
 
 const menuForOrder = {
   optionGroups: {
@@ -46,6 +47,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private notifications: NotificationsService,
     private batches: BatchesService,
+    private gateway: OrdersGateway,
   ) {}
 
   async getTodayItemCount() {
@@ -293,11 +295,31 @@ export class OrdersService {
 
     if (paymentChoice === 'PAY_NOW') {
       paymentReceiptUrl = dto.receiptUrl?.trim() || null;
+      if (!paymentReceiptUrl) {
+        // Receipt is mandatory when paying by QR (revamp: no WhatsApp fallback).
+        throw new BadRequestException(
+          'Please upload your payment receipt to pay by QR.',
+        );
+      }
     } else if (dto.receiptUrl?.trim()) {
       throw new BadRequestException(
         'Receipt upload is only used when you choose Pay now.',
       );
     }
+
+    // ─── Money breakdown (tax inclusive, MY SST) ────────────────────────────
+    const deliveryFee = new Prisma.Decimal(
+      dto.type === 'DELIVERY' && settingsRow?.deliveryFee != null
+        ? settingsRow.deliveryFee
+        : 0,
+    );
+    const processingFee = new Prisma.Decimal(settingsRow?.processingFee ?? 0);
+    const total = subtotal.add(deliveryFee).add(processingFee);
+    const taxRate = new Prisma.Decimal(settingsRow?.taxRatePercent ?? 6);
+    const taxAmount = taxRate.gt(0)
+      ? total.mul(taxRate).div(taxRate.add(100)).toDecimalPlaces(2)
+      : new Prisma.Decimal(0);
+    const restaurantComment = dto.restaurantComment?.trim() || null;
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `BT-${dateStr}-`;
@@ -358,6 +380,12 @@ export class OrdersService {
               dto.type === 'DELIVERY' && dto.deliveryNotes?.trim()
                 ? dto.deliveryNotes.trim()
                 : null,
+            restaurantComment,
+            subtotal,
+            deliveryFee,
+            processingFee,
+            taxAmount,
+            total,
             paymentChoice,
             paymentReceiptUrl,
             batch: { connect: { id: batch.id } },
@@ -381,6 +409,7 @@ export class OrdersService {
 
     const order = await this.findOne(created.id);
 
+    this.gateway.broadcastOrderCreated(order);
     await this.notifications.notifyAdminNewOrder(order);
     await this.notifications.notifyCustomerOrderReceived(order);
 
@@ -508,7 +537,10 @@ export class OrdersService {
   async updateStatus(id: string, status: OrderStatus) {
     const order = await this.prisma.order.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        cancelledAt: status === 'CANCELLED' ? new Date() : null,
+      },
       include: orderInclude,
     });
 
@@ -524,6 +556,7 @@ export class OrdersService {
         break;
     }
 
+    this.gateway.broadcastOrderUpdated(order);
     return order;
   }
 }

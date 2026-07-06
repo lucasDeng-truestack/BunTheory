@@ -36,45 +36,42 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-store-gradient px-4 py-12">
-      <div
-        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-roast-red/15 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-mustard/25 blur-3xl"
-        aria-hidden
-      />
-
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-hero-warm px-4 py-12">
       <div className="relative mx-auto w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 rounded-2xl bg-white p-3 shadow-card ring-1 ring-charcoal/10">
+          <div className="mb-4 rounded-3xl border-2 border-bun-ink bg-white p-3 shadow-sticker">
             <BrandLogo size="lg" priority />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-charcoal">
-            Staff sign in
+          <span className="mb-3 inline-flex items-center rounded-full border-2 border-bun-ink bg-bun-yellow px-3 py-0.5 font-display text-xs font-bold uppercase tracking-[0.15em] text-bun-ink shadow-sticker">
+            Staff
+          </span>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-bun-ink">
+            Sign in
           </h1>
-          <p className="mt-1 text-sm text-charcoal/65">
-            {BRAND_FULL_NAME}
-          </p>
+          <p className="mt-1 text-sm text-bun-ink-soft">{BRAND_FULL_NAME}</p>
         </div>
 
-        <Card className="border-charcoal/10 shadow-elevated">
+        <Card className="border-2 border-bun-ink shadow-sticker-lg">
           <CardHeader className="space-y-1 pb-2">
-            <CardTitle className="text-center text-lg">Admin login</CardTitle>
-            <p className="text-center text-sm text-charcoal/65">
+            <div className="admin-accent-bar mb-3" />
+            <CardTitle className="text-center font-display text-xl font-bold text-bun-ink">
+              Admin login
+            </CardTitle>
+            <p className="text-center text-sm text-bun-ink-soft">
               Use your admin credentials to manage orders.
             </p>
           </CardHeader>
           <CardContent className="pt-2">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200/80">
+                <div className="rounded-xl border-2 border-bun-red/30 bg-bun-red/10 px-3 py-2 text-sm font-medium text-bun-red-deep">
                   {error}
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-display font-semibold text-bun-ink">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -88,7 +85,9 @@ export default function AdminLoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="font-display font-semibold text-bun-ink">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -101,7 +100,7 @@ export default function AdminLoginPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full min-h-12" disabled={loading}>
+              <Button type="submit" variant="hero" className="w-full min-h-12" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

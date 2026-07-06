@@ -69,6 +69,12 @@ export class CreateOrderDto {
   @MaxLength(500)
   deliveryNotes?: string;
 
+  /** "Comments for the restaurant" from the confirm screen. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  restaurantComment?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)

@@ -1,6 +1,7 @@
 import { IsEnum } from 'class-validator';
+import { OrderStatus } from '@prisma/client';
 
 export class UpdateOrderStatusDto {
-  @IsEnum(['RECEIVED', 'PREPARING', 'READY', 'DELIVERED'])
-  status: 'RECEIVED' | 'PREPARING' | 'READY' | 'DELIVERED';
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
 }

@@ -26,10 +26,18 @@ function normalizeMenuItem(i: MenuItem): MenuItem {
   };
 }
 
-/** Public storefront: live menu. */
-export async function getMenu(availableOnly = false): Promise<MenuItem[]> {
+/**
+ * Public storefront menu. Pass `revalidate` (seconds) to serve it from the ISR
+ * cache instead of fetching per-request — used by cached marketing pages where
+ * a slightly stale preview is fine (live ordering state comes from batch-status
+ * on the client).
+ */
+export async function getMenu(availableOnly = false, revalidate?: number): Promise<MenuItem[]> {
   const params = availableOnly ? "?available=true" : "";
-  const items = await api<MenuItem[]>(`/menu${params}`);
+  const items = await api<MenuItem[]>(
+    `/menu${params}`,
+    revalidate != null ? { next: { revalidate } } : undefined
+  );
   return items.map(normalizeMenuItem);
 }
 
