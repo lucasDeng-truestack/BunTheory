@@ -140,12 +140,19 @@ export default async function HomePage() {
                   {heroBadge}
                 </span>
 
-                <div className="relative mt-6 inline-block max-w-full overflow-hidden">
+                <div className="relative mt-6 inline-block max-w-full">
                   <h1 className="max-w-full font-display text-5xl font-bold leading-[0.85] tracking-tight text-bun-ink sm:text-7xl lg:text-8xl">
                     <span className="block">
                       <JumpingText
-                        text="FIRE-ROASTED"
+                        text="FIRE"
                         delay={0.2}
+                        className="justify-center lg:justify-start"
+                      />
+                    </span>
+                    <span className="block">
+                      <JumpingText
+                        text="ROASTED"
+                        delay={0.38}
                         className="justify-center lg:justify-start"
                       />
                     </span>
@@ -161,7 +168,8 @@ export default async function HomePage() {
                     className="pointer-events-none absolute -right-1 -top-4 hidden select-none font-display text-5xl font-bold leading-[0.85] tracking-tight text-outline-red opacity-30 sm:block sm:text-7xl lg:text-8xl"
                     aria-hidden
                   >
-                    FIRE-ROASTED
+                    <span className="block">FIRE</span>
+                    <span className="block">ROASTED</span>
                   </span>
                 </div>
 
