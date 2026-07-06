@@ -47,6 +47,14 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.claude/
+.cursor/plans/
+
+# Local npm config (machine-specific prefix/path)
+.npmrc
+
+# User-uploaded files (local dev storage when S3/R2 is not configured)
+backend/uploads/
 
 # Vercel
 .vercel
