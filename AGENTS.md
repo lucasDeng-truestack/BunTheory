@@ -6,7 +6,7 @@
 
 | Service | Port | Start |
 |---------|------|--------|
-| PostgreSQL | 5432 (apt) or **5435** (Docker Compose host map) | See database section below |
+| PostgreSQL | 5432 (apt) or **5437** (Docker Compose host map) | See database section below |
 | NestJS API | 3101 | `cd backend && set -a && source .env && set +a && npm run start:dev` |
 | Next.js storefront | 3000 | `cd frontend && PORT=3000 npm run dev` |
 
@@ -16,7 +16,7 @@ Standard commands are documented in [`README.md`](README.md) and [`docs/setup.md
 
 ### Database
 
-- **Docker** (when available): `npm run docker:up` — Postgres on **localhost:5435** (`docker-compose.yml`). Align `backend/.env` `DATABASE_URL` with port **5435**, not 5432.
+- **Docker** (when available): `npm run docker:up` — Postgres on **localhost:5437** (`docker-compose.yml`). Align `backend/.env` `DATABASE_URL` with port **5437**, not 5432.
 - **Cloud VM without Docker**: system Postgres on **5432** is fine (`postgresql` apt package). Create role/db if needed:
   - User `bun_theory` / password `password`, database `bun_theory`.
 - First-time schema: `npm run db:migrate` (or `cd backend && npx prisma migrate deploy`).
@@ -35,7 +35,7 @@ Copy once if missing:
 - **Ordering closed (`NO_BATCH`)**: Storefront needs a **published** order batch (admin → Batches) before `POST /orders` succeeds. Smoke tests can publish via admin API (`POST /batches`, then `POST /batches/:id/publish`).
 - **Menu items require drink option**: Seeded buns have a required "Drinks" option group; orders must include `selections` with `groupId` / `optionIds`.
 - **Seed admin** (from `backend/src/database/seed.ts`): `denglucasyijin@gmail.com` / `Lucas@123` (not the older README `admin@buntheory.com` example).
-- **Docs vs compose**: `docs/setup.md` mentions Postgres port **5434**; the compose file uses **5435**.
+- **Docs vs compose**: `docs/setup.md` mentions Postgres port **5434**; the compose file uses **5437**.
 
 ### Lint / build / test
 
@@ -50,4 +50,19 @@ No automated E2E test suite in-repo; verify with API curls or the browser agains
 
 ### Optional integrations
 
-Twilio WhatsApp and S3/R2 are optional; the API runs without them (notifications log as skipped; uploads use `backend/uploads/`).
+S3/R2 is optional; the API runs without it (uploads use `backend/uploads/`).
+
+Resend email (Bakar & Roast catering) is optional: set `RESEND_API_KEY`, `EMAIL_FROM` and `PUBLIC_SITE_URL` in `backend/.env`. Without a key, emails are logged as skipped.
+
+### Auth (Better Auth)
+
+- Login for staff and customers is Better Auth inside the backend (`/api/auth/*`). `backend/.env` must have `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `BETTER_AUTH_URL=http://localhost:3101`, or the API will not start.
+- Staff still log in through `POST /auth/login`; the returned `accessToken` is a session token, not a JWT. Protect admin routes with `AdminAuthGuard`; customer routes with `CustomerAuthGuard`.
+- Locally there is no email provider, so customer sign-in codes are printed in the backend log.
+
+### Bakar & Roast site
+
+- `cd bakar-roast && npm run dev` runs the brand and catering site on **3200**. Copy `bakar-roast/.env.local.example` to `.env.local`.
+- Site routes: public `/`, `/catering`, `/catering/book`, `/booking/<token>`, `/account`; owner admin `/admin` (same seed admin login). `/dev/components` shows every UI component.
+- Set `NEXT_PUBLIC_BUN_THEORY_URL` in production, or The Bun Theory links point at localhost.
+- Catering API smoke test: `GET /catering/packages`, `GET /catering/availability`, `POST /catering/bookings`. A date is bookable only inside the notice and window rules, and a second booking for the same date returns `409 DATE_TAKEN`.

@@ -7,7 +7,7 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { UploadsService } from './uploads.service';
 
@@ -38,7 +38,7 @@ function isAllowedPaymentReceiptUpload(file: MulterLikeFile): boolean {
 }
 
 @Controller('uploads')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 

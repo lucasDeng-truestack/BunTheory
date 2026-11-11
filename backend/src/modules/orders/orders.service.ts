@@ -7,7 +7,6 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { OrderStatus, OrderBatchStatus, PaymentChoice } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
 import { BatchesService } from '../batches/batches.service';
 import { OrdersGateway } from './orders.gateway';
 
@@ -45,7 +44,6 @@ export type ActiveBatchInfo = {
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService,
     private batches: BatchesService,
     private gateway: OrdersGateway,
   ) {}
@@ -410,8 +408,6 @@ export class OrdersService {
     const order = await this.findOne(created.id);
 
     this.gateway.broadcastOrderCreated(order);
-    await this.notifications.notifyAdminNewOrder(order);
-    await this.notifications.notifyCustomerOrderReceived(order);
 
     return order;
   }
@@ -543,18 +539,6 @@ export class OrdersService {
       },
       include: orderInclude,
     });
-
-    switch (status) {
-      case 'PREPARING':
-        await this.notifications.notifyCustomerPreparing(order);
-        break;
-      case 'READY':
-        await this.notifications.notifyCustomerReady(order);
-        break;
-      case 'DELIVERED':
-        await this.notifications.notifyCustomerDelivered(order);
-        break;
-    }
 
     this.gateway.broadcastOrderUpdated(order);
     return order;

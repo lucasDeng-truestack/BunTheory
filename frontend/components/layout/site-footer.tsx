@@ -1,7 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { BRAND_TITLE_LINE, BRAND_SUBLINE } from "@/lib/brand";
+import {
+  BRAND_TITLE_LINE,
+  BRAND_SUBLINE,
+  BRAND_PARENT_NAME,
+  BRAND_SITE_URL,
+} from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 type FooterCol = { heading: string; links: { href: string; label: string }[] };
@@ -53,6 +59,13 @@ export function SiteFooter({ className }: { className?: string }) {
               Fire-roasted buns from our home kitchen in Petaling Jaya. Ordering runs in batch
               windows — hop on when a batch is live.
             </p>
+            <a
+              href={BRAND_SITE_URL}
+              className="mt-5 inline-flex items-center gap-1.5 font-display text-sm text-bun-cream/70 transition-colors hover:text-bun-yellow"
+            >
+              A kitchen of {BRAND_PARENT_NAME}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
           </div>
 
           {COLS.map((col) => (

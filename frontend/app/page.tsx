@@ -52,7 +52,7 @@ const STEPS = [
   {
     icon: ShoppingBag,
     title: "Fired & handed over",
-    body: "Pay by QR or cash. We roast to order, pack it fresh, and ping you on WhatsApp when it's ready.",
+    body: "Pay by QR or cash. We roast to order, pack it fresh, and you can track it until it's ready.",
   },
 ] as const;
 

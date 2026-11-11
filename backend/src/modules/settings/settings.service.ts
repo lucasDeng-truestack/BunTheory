@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -39,6 +39,11 @@ export class SettingsService {
       processingFee: s.processingFee != null ? Number(s.processingFee) : null,
       taxRatePercent: Number(s.taxRatePercent),
       deliveryRadiusNote: s.deliveryRadiusNote,
+      // Bakar & Roast booking rules, printed in customer copy. The notify email stays private.
+      cateringMinNoticeDays: s.cateringMinNoticeDays,
+      cateringBookingWindowMonths: s.cateringBookingWindowMonths,
+      cateringHoldExpiryDays: s.cateringHoldExpiryDays,
+      cateringCancelCutoffDays: s.cateringCancelCutoffDays,
       updatedAt: s.updatedAt,
     };
   }
@@ -144,17 +149,68 @@ export class SettingsService {
     return this.prisma.systemSettings.update({ where: { id }, data });
   }
 
+  /** Catering booking rules. Empty cateringNotifyEmail clears it to null. */
+  async updateCatering(dto: {
+    cateringMinNoticeDays?: number;
+    cateringBookingWindowMonths?: number;
+    cateringHoldExpiryDays?: number;
+    cateringCancelCutoffDays?: number;
+    cateringNotifyEmail?: string | null;
+  }) {
+    // Valid as both create and update input, so the no-row path stays simple.
+    const data: Prisma.SystemSettingsUpdateInput &
+      Prisma.SystemSettingsCreateInput = {};
+    if (dto.cateringMinNoticeDays != null)
+      data.cateringMinNoticeDays = dto.cateringMinNoticeDays;
+    if (dto.cateringBookingWindowMonths != null)
+      data.cateringBookingWindowMonths = dto.cateringBookingWindowMonths;
+    if (dto.cateringHoldExpiryDays != null)
+      data.cateringHoldExpiryDays = dto.cateringHoldExpiryDays;
+    if (dto.cateringCancelCutoffDays != null)
+      data.cateringCancelCutoffDays = dto.cateringCancelCutoffDays;
+    if (dto.cateringNotifyEmail !== undefined) {
+      const v = (dto.cateringNotifyEmail ?? '').trim().toLowerCase();
+      data.cateringNotifyEmail = v === '' ? null : v;
+    }
+    if (Object.keys(data).length === 0) return this.getSettings();
+
+    const settings = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    // Merged with the stored row (schema defaults 7 / 6 when none) so a partial
+    // update cannot leave minDate after maxDate.
+    const notice =
+      dto.cateringMinNoticeDays ?? settings?.cateringMinNoticeDays ?? 7;
+    const windowMonths =
+      dto.cateringBookingWindowMonths ??
+      settings?.cateringBookingWindowMonths ??
+      6;
+    if (notice >= windowMonths * 28) {
+      throw new BadRequestException({
+        code: 'INVALID_RULES',
+        message: 'Minimum notice must be shorter than the booking window.',
+      });
+    }
+    if (!settings) {
+      return this.prisma.systemSettings.create({
+        data: { maxOrdersPerDay: 15, orderingEnabled: true, ...data },
+      });
+    }
+    return this.prisma.systemSettings.update({
+      where: { id: settings.id },
+      data,
+    });
+  }
+
   async updateBranding(dto: {
     companyName?: string;
     companyLogoUrl?: string;
     paymentQrUrl?: string;
-    adminWhatsappNumber?: string;
   }) {
     if (
       dto.companyName === undefined &&
       dto.companyLogoUrl === undefined &&
-      dto.paymentQrUrl === undefined &&
-      dto.adminWhatsappNumber === undefined
+      dto.paymentQrUrl === undefined
     ) {
       return this.getSettings();
     }
@@ -170,10 +226,6 @@ export class SettingsService {
     if (dto.paymentQrUrl !== undefined) {
       const v = dto.paymentQrUrl.trim();
       data.paymentQrUrl = v === '' ? null : v;
-    }
-    if (dto.adminWhatsappNumber !== undefined) {
-      const v = dto.adminWhatsappNumber.trim();
-      data.adminWhatsappNumber = v === '' ? null : v;
     }
     let settings = await this.prisma.systemSettings.findFirst({
       orderBy: { id: 'asc' },
@@ -191,9 +243,6 @@ export class SettingsService {
       }
       if (data.paymentQrUrl !== undefined) {
         createData.paymentQrUrl = data.paymentQrUrl as string | null;
-      }
-      if (data.adminWhatsappNumber !== undefined) {
-        createData.adminWhatsappNumber = data.adminWhatsappNumber as string | null;
       }
       settings = await this.prisma.systemSettings.create({
         data: createData,

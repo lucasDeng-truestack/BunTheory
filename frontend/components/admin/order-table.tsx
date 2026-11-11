@@ -44,7 +44,7 @@ export function OrderTable({ orders, token, onUpdate }: OrderTableProps) {
       void refreshPendingOrdersCount();
       onUpdate?.();
       toast.success("Order status updated", {
-        description: `Status set to ${ORDER_STATUS_LABELS[status]}. Customer will receive a WhatsApp notification.`,
+        description: `Status set to ${ORDER_STATUS_LABELS[status]}.`,
       });
     } catch (err) {
       console.error("Failed to update status:", err);

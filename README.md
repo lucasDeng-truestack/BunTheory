@@ -18,7 +18,6 @@ A lightweight GrabFood-style food ordering system for a single restaurant. Custo
 | Frontend | Next.js 15, TypeScript, TailwindCSS, shadcn/ui |
 | Backend  | NestJS, Prisma, PostgreSQL |
 | Deploy   | Vercel (frontend), Railway (backend), Neon (DB) |
-| Notifications | Twilio WhatsApp API |
 
 ## UI Notes
 
@@ -45,7 +44,7 @@ Optional design exports (when added): e.g. `Icons/`, `UI Design/`, `Preview/` â€
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your DATABASE_URL, JWT_SECRET, Twilio credentials
+# Edit .env with your DATABASE_URL and JWT_SECRET
 npm install
 npx prisma migrate dev
 npm run db:seed
@@ -79,7 +78,6 @@ Frontend runs at http://localhost:3000
 
 - View menu, add to cart, checkout (**name + phone**, no account)
 - Pickup or delivery
-- WhatsApp confirmation
 - Live order counter
 - Order status progress
 - **Mobile-first** layout; **desktop** responsive
@@ -108,15 +106,3 @@ Frontend runs at http://localhost:3000
 | POST | /auth/login | - | Admin login |
 | PATCH | /settings/max-orders | Admin | Set max orders |
 | PATCH | /settings/toggle-ordering | Admin | Toggle ordering |
-
-## WhatsApp Setup
-
-1. Create a Twilio account
-2. Enable WhatsApp Sandbox or Business API
-3. Add to `.env`:
-   - `TWILIO_ACCOUNT_SID`
-   - `TWILIO_AUTH_TOKEN`
-   - `TWILIO_WHATSAPP_FROM` (e.g. `whatsapp:+14155238886`)
-   - `ADMIN_WHATSAPP_NUMBER` (e.g. `whatsapp:+60123456789`)
-
-Customer phone numbers must include country code (e.g. `+60123456789`).

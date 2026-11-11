@@ -1,0 +1,30 @@
+<!-- @dsCard group="Admin" height=570 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-admin">
+<div class="br-shell" style="min-height:520px">
+  <nav class="br-side" aria-label="Admin">
+    <div class="br-side__brand">Bakar &amp; Roast</div>
+    <div class="br-side__group">Catering</div>
+    <a href="#" aria-current="page">Requests <span class="br-badge" aria-label="2 pending">2</span></a>
+    <a href="#">Calendar</a>
+    <a href="#">Packages</a>
+    <a href="#">Gallery and testimonials</a>
+    <a href="#">Settings</a>
+    <div class="br-side__group">The Bun Theory, later</div>
+    <a href="#" class="is-later" aria-disabled="true">Orders</a>
+    <a href="#" class="is-later" aria-disabled="true">Menu</a>
+    <div class="br-side__user"><b>John Zachariah</b><button>Sign out</button></div>
+  </nav>
+  <main class="br-main">
+    <h1>Settings</h1>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+      <div class="br-field"><label for="s1">Minimum notice, days</label><input id="s1" class="br-input" style="height:44px;font-size:14px" value="7" inputmode="numeric"></div>
+      <div class="br-field"><label for="s2">Booking window, months</label><input id="s2" class="br-input" style="height:44px;font-size:14px" value="6" inputmode="numeric"></div>
+      <div class="br-field"><label for="s3">Hold expiry, days</label><input id="s3" class="br-input" style="height:44px;font-size:14px" value="3" inputmode="numeric"></div>
+      <div class="br-field"><label for="s4">Cancellation cutoff, days</label><input id="s4" class="br-input" style="height:44px;font-size:14px" value="7" inputmode="numeric"></div>
+    </div>
+    <div class="br-field"><label for="s5">Notification email</label><input id="s5" class="br-input" style="height:44px;font-size:14px" value="hello@example.com" type="email"></div>
+    <div><button class="br-btn br-btn--ember br-btn--sm">Save settings</button></div>
+  </main>
+</div>
+</body></html>

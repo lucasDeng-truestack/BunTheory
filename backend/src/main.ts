@@ -3,35 +3,26 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
-
-function normalizeOrigin(value: string): string {
-  return value.trim().replace(/\/+$/, '');
-}
-
-const DEFAULT_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:3011',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3011',
-] as const;
-
-function getAllowedOrigins(): string[] {
-  const configured = [process.env.FRONTEND_URL, process.env.FRONTEND_URLS]
-    .filter(Boolean)
-    .flatMap((value) => value!.split(','))
-    .map((value) => normalizeOrigin(value))
-    .filter(Boolean);
-
-  /**
-   * Always merge dev-origin defaults so localhost vs 127.0.0.1 mismatches don't break POS fetches (e.g. "Failed to load menu").
-   * Production can still add explicit origins via FRONTEND_URL / FRONTEND_URLS.
-   */
-  return [...new Set([...DEFAULT_ORIGINS, ...configured])];
-}
+import { getAllowedOrigins, normalizeOrigin } from './common/allowed-origins';
+import { NextFunction, Request, Response } from 'express';
+import {
+  Auth,
+  BETTER_AUTH,
+  CLIENT_IP_HEADER,
+  dynamicImport,
+} from './modules/auth/better-auth';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Better Auth must read the raw body, so parsers are added after its handler below.
+    bodyParser: false,
+  });
   const allowedOrigins = getAllowedOrigins();
+  // Behind a reverse proxy, set TRUST_PROXY=1 so rate limits key on the real client IP.
+  // TRUST_PROXY=1 (or a hop count). "true" is accepted as 1 so a common typo is not silently ignored.
+  const trustProxyRaw = process.env.TRUST_PROXY?.trim().toLowerCase();
+  const trustProxyHops = trustProxyRaw === 'true' ? 1 : Number(trustProxyRaw);
+  if (trustProxyHops > 0) app.set('trust proxy', trustProxyHops);
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
   app.enableCors({
@@ -53,7 +44,27 @@ async function bootstrap() {
       callback(null, false);
     },
     credentials: true,
+    // Better Auth's bearer plugin returns the session token in this header.
+    exposedHeaders: ['set-auth-token'],
+    // allowedHeaders stays unset: cors reflects Access-Control-Request-Headers, which allows Authorization.
   });
+
+  const { toNodeHandler } = await dynamicImport<typeof import('better-auth/node')>(
+    'better-auth/node',
+  );
+  const express = app.getHttpAdapter().getInstance();
+  // Better Auth keys rate limits on CLIENT_IP_HEADER only. Overwrite it with Express's req.ip
+  // (which honours TRUST_PROXY) so a client-sent value never survives.
+  express.use('/api/auth', (req: Request, _res: Response, next: NextFunction) => {
+    if (req.ip) req.headers[CLIENT_IP_HEADER] = req.ip;
+    else delete req.headers[CLIENT_IP_HEADER];
+    next();
+  });
+  // Express 4 wildcard. Mounted after CORS and before any body parser.
+  express.all('/api/auth/*', toNodeHandler(app.get<Auth>(BETTER_AUTH)));
+  // Same parsers (and 100kb default limit) Nest registers when bodyParser is left on.
+  app.useBodyParser('json');
+  app.useBodyParser('urlencoded', { extended: true });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

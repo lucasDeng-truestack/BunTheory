@@ -74,7 +74,7 @@ export default function AdminOrderDetailPage() {
       const o = await getOrder(order.id, token);
       setOrder(o);
       toast.success("Order status updated", {
-        description: `Status set to ${ORDER_STATUS_LABELS[status]}. Customer will receive a WhatsApp notification.`,
+        description: `Status set to ${ORDER_STATUS_LABELS[status]}.`,
       });
     } catch {
       toast.error("Failed to update order status");

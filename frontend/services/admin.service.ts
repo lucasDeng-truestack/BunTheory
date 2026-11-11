@@ -69,8 +69,6 @@ export interface SystemSettings {
   companyLogoUrl?: string | null;
   /** Payment transfer QR at checkout; from POST /uploads/image. */
   paymentQrUrl?: string | null;
-  /** E.164 e.g. +60123456789 — new-order WhatsApp to admin (not exposed on public /settings). */
-  adminWhatsappNumber?: string | null;
   // Single-outlet config.
   outletName?: string | null;
   outletAddress?: string | null;
@@ -145,7 +143,6 @@ export async function updateBranding(
     companyName?: string;
     companyLogoUrl?: string;
     paymentQrUrl?: string;
-    adminWhatsappNumber?: string;
   },
   token: string
 ) {

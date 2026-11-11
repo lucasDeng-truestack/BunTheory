@@ -7,15 +7,18 @@ import {
 } from './dto/update-settings.dto';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
 import { UpdateOutletDto } from './dto/update-outlet.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { UpdateCateringSettingsDto } from './dto/update-catering-settings.dto';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
-  /** Full settings including admin WhatsApp — JWT only. */
+  /** Full settings, JWT only. */
   @Get('admin')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   getSettingsAdmin() {
     return this.settingsService.getSettings();
   }
@@ -27,19 +30,19 @@ export class SettingsController {
   }
 
   @Patch('max-orders')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   updateMaxOrders(@Body() dto: UpdateMaxOrdersDto) {
     return this.settingsService.updateMaxOrders(dto.maxOrdersPerDay);
   }
 
   @Patch('toggle-ordering')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   toggleOrdering(@Body() dto: ToggleOrderingDto) {
     return this.settingsService.toggleOrdering(dto.orderingEnabled);
   }
 
   @Patch('minimum-delivery')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   updateMinimumDelivery(@Body() dto: UpdateMinimumDeliveryDto) {
     return this.settingsService.updateMinimumDelivery(
       dto.minimumDeliveryAmount ?? null,
@@ -47,14 +50,22 @@ export class SettingsController {
   }
 
   @Patch('branding')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   updateBranding(@Body() dto: UpdateBrandingDto) {
     return this.settingsService.updateBranding(dto);
   }
 
   @Patch('outlet')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   updateOutlet(@Body() dto: UpdateOutletDto) {
     return this.settingsService.updateOutlet(dto);
+  }
+
+  /** Bakar & Roast catering booking rules. */
+  @Patch('catering')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  updateCatering(@Body() dto: UpdateCateringSettingsDto) {
+    return this.settingsService.updateCatering(dto);
   }
 }

@@ -22,10 +22,8 @@ import {
 } from "@/services/admin.service";
 import { uploadImage } from "@/services/upload.service";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { PhoneDisplayReadonly } from "@/components/admin/phone-display-readonly";
 import { sanitizeIntegerInput } from "@/lib/sanitize-input";
 import { BRAND_FULL_NAME } from "@/lib/brand";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import { Eye, Loader2, Pencil, ShieldPlus } from "lucide-react";
 
 export default function AdminSettingsPage() {
@@ -36,7 +34,6 @@ export default function AdminSettingsPage() {
   const [token, setToken] = useState<string | null>(null);
 
   const [companyName, setCompanyName] = useState("");
-  const [adminWhatsappNumber, setAdminWhatsappNumber] = useState("");
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [paymentQrUrl, setPaymentQrUrl] = useState<string | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -70,7 +67,6 @@ export default function AdminSettingsPage() {
     try {
       const [s, admins] = await Promise.all([getSettings(t), getAdminUsers(t)]);
       setCompanyName(s.companyName?.trim() ?? "");
-      setAdminWhatsappNumber(s.adminWhatsappNumber?.trim() ?? "");
       setCompanyLogoUrl(s.companyLogoUrl ?? null);
       setPaymentQrUrl(s.paymentQrUrl ?? null);
       setAdminUsers(admins);
@@ -90,21 +86,10 @@ export default function AdminSettingsPage() {
 
   const handleSaveBranding = async () => {
     if (!token) return;
-    const phoneTrim = adminWhatsappNumber.trim();
-    if (phoneTrim && !isValidPhoneNumber(phoneTrim)) {
-      toast.error("Invalid admin phone", {
-        description:
-          "Enter a full number with country code (same picker as checkout).",
-      });
-      return;
-    }
     setSaving(true);
     try {
       await updateBranding(
-        {
-          companyName: companyName.trim() || "",
-          adminWhatsappNumber: phoneTrim || "",
-        },
+        { companyName: companyName.trim() || "" },
         token
       );
       await refreshBranding();
@@ -124,7 +109,6 @@ export default function AdminSettingsPage() {
     try {
       const s = await getSettings(token);
       setCompanyName(s.companyName?.trim() ?? "");
-      setAdminWhatsappNumber(s.adminWhatsappNumber?.trim() ?? "");
       setCompanyLogoUrl(s.companyLogoUrl ?? null);
       setEditingCompanyInfo(false);
       await refreshBranding();
@@ -292,8 +276,7 @@ export default function AdminSettingsPage() {
             Company info
           </CardTitle>
           <p className="text-sm text-charcoal/65">
-            Store name and logo appear in the admin sidebar. The admin phone is
-            where new-order WhatsApp alerts are sent (Twilio). Leave the name
+            Store name and logo appear in the admin sidebar. Leave the name
             empty to use the default &quot;{BRAND_FULL_NAME}&quot;. Logo uses the
             same upload pipeline as the menu.
           </p>
@@ -332,19 +315,6 @@ export default function AdminSettingsPage() {
                       )}
                     </p>
                   </div>
-                  <PhoneDisplayReadonly
-                    label="Admin phone (WhatsApp alerts)"
-                    value={adminWhatsappNumber}
-                    emptyContent={
-                      <span className="text-charcoal/50">
-                        — (not set; uses{" "}
-                        <code className="rounded bg-charcoal/5 px-1 text-xs">
-                          ADMIN_WHATSAPP_NUMBER
-                        </code>{" "}
-                        in env if set)
-                      </span>
-                    }
-                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -362,7 +332,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               <p className="text-sm font-medium text-roast-red">
                 Editing company info — save to apply or cancel to discard changes
-                to name and phone. Logo changes save when you upload or remove.
+                to the name. Logo changes save when you upload or remove.
               </p>
               <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                 <div className="flex flex-col items-center gap-2 sm:items-start">
@@ -429,43 +399,6 @@ export default function AdminSettingsPage() {
                       className="max-w-md"
                       maxLength={120}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-whatsapp" className="font-display">
-                      Admin phone (WhatsApp alerts)
-                    </Label>
-                    <PhoneInput
-                      id="admin-whatsapp"
-                      international
-                      defaultCountry="MY"
-                      limitMaxLength
-                      placeholder="Enter phone number"
-                      value={adminWhatsappNumber || undefined}
-                      onChange={(value) =>
-                        setAdminWhatsappNumber(value ?? "")
-                      }
-                      className="order-form-phone max-w-md"
-                      aria-invalid={Boolean(
-                        adminWhatsappNumber &&
-                          !isValidPhoneNumber(adminWhatsappNumber)
-                      )}
-                      aria-describedby="admin-whatsapp-hint"
-                      numberInputProps={{
-                        autoComplete: "tel",
-                      }}
-                    />
-                    <p
-                      id="admin-whatsapp-hint"
-                      className="text-xs text-charcoal/55"
-                    >
-                      New orders notify this number via Twilio WhatsApp. Use
-                      international format (E.164). Clear the field to fall
-                      back to{" "}
-                      <code className="rounded bg-charcoal/5 px-1">
-                        ADMIN_WHATSAPP_NUMBER
-                      </code>{" "}
-                      in server env if set.
-                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button

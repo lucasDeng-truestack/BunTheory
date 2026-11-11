@@ -1,0 +1,313 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  /* Band-aware tokens (Tailwind: text-tone-accent, text-tone-muted, tone-ring). */
+  --tone-accent: theme("colors.ember.DEFAULT");
+  --tone-muted: theme("colors.cream.muted");
+  --tone-ring: theme("colors.ember.DEFAULT");
+}
+
+/* Cream bands: accent word is heat red (ember on cream is 2.8:1), focus ring is ink. */
+[data-tone="cream"] {
+  --tone-accent: theme("colors.ember.heat");
+  --tone-muted: theme("colors.ink.DEFAULT");
+  --tone-ring: theme("colors.ink.DEFAULT");
+}
+/* Ink surfaces nested inside a cream band (cards, dialogs) reset to the ink look. */
+[data-tone="ink"] {
+  --tone-accent: theme("colors.ember.DEFAULT");
+  --tone-muted: theme("colors.cream.muted");
+  --tone-ring: theme("colors.ember.DEFAULT");
+}
+
+:focus-visible {
+  outline: 3px solid var(--tone-ring);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: theme("colors.ember.DEFAULT");
+  color: theme("colors.ink.DEFAULT");
+}
+
+* {
+  border-color: theme("colors.ink.line");
+}
+
+html {
+  scrollbar-color: theme("colors.ink.line") transparent;
+}
+
+body {
+  background-color: theme("colors.ink.DEFAULT");
+  color: theme("colors.cream.DEFAULT");
+  font-family: theme("fontFamily.sans");
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Lenis smooth scroll baseline */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+@layer components {
+  /* Type scale (tokens.json). Display: Bricolage Grotesque at width 80, 800, uppercase.
+     Fluid sizes follow the prototype; the token px value is the desktop ceiling. */
+  .display-hero,
+  .display-xl,
+  .display-lg,
+  .display-md,
+  .display-sm {
+    font-family: theme("fontFamily.display");
+    font-stretch: 80%;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 0.84;
+    letter-spacing: -0.025em;
+  }
+  .display-hero {
+    font-size: clamp(64px, 12.4vw, 210px);
+  }
+  .display-xl {
+    font-size: clamp(48px, 8vw, 128px);
+  }
+  .display-lg {
+    font-size: clamp(36px, 6vw, 80px);
+  }
+  .display-md {
+    font-size: 48px;
+  }
+  .display-sm {
+    font-size: 32px;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+  }
+  .display-hero em,
+  .display-xl em,
+  .display-lg em,
+  .display-md em,
+  .display-sm em {
+    font-style: normal;
+    color: var(--tone-accent);
+  }
+  .type-lead {
+    font-size: clamp(26px, 3.4vw, 40px);
+    line-height: 1.15;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .type-body-lg {
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .type-body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .type-label {
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 600;
+  }
+  .type-small {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .type-eyebrow {
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .type-admin-title {
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .type-admin-body {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .type-admin-meta {
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* PhotoSlot / CtaBand grounds. Plain classes, not bg-* utilities, so cn() never drops them. */
+  .photo-gradient {
+    background-image: radial-gradient(
+      120% 95% at 18% 100%,
+      theme("colors.ember.DEFAULT") 0%,
+      theme("colors.ember.heat") 36%,
+      theme("colors.ink.raised") 78%
+    );
+  }
+  .cta-gradient {
+    background-image: radial-gradient(
+      90% 120% at 50% 110%,
+      theme("colors.ember.DEFAULT") 0%,
+      theme("colors.ember.heat") 40%,
+      theme("colors.ink.raised") 85%
+    );
+  }
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      theme("colors.ink.raised") 0%,
+      theme("colors.ink.line") 50%,
+      theme("colors.ink.raised") 100%
+    );
+    background-size: 200% 100%;
+  }
+
+}
+
+/* Calendar day patterns (components/booking/calendar.tsx). Each state differs by shape or
+   pattern as well as colour: hatch = too soon, strike = unavailable, small ring = not open yet. */
+.cal-hatch {
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, theme("colors.ink.line") 5px 7px);
+}
+.cal-strike::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 50%;
+  height: 1.5px;
+  background: theme("colors.cream.faint");
+  transform: rotate(-45deg);
+}
+.cal-ring {
+  box-shadow: inset 0 0 0 1px theme("colors.cream.faint");
+  border-radius: 9999px;
+  transform: scale(0.72);
+}
+.cal-today::before {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 9999px;
+  background: var(--cal-dot, theme("colors.ember.DEFAULT"));
+}
+
+/* Admin calendar (components/admin/calendar-screen.tsx): blocked = cream hatch over ink-raised;
+   completed = a small check in the top right corner (the tile itself is solid cream). */
+.cal-block {
+  background-image: repeating-linear-gradient(
+    135deg,
+    theme("colors.ink.raised") 0 5px,
+    theme("colors.cream.faint") 5px 7px
+  );
+}
+.cal-done::after {
+  content: "";
+  position: absolute;
+  top: 18%;
+  right: 16%;
+  width: 7px;
+  height: 4px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+/* Hide the native disclosure marker on Accordion summaries. */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Film grain overlay */
+.grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scrubbed lead paragraph: words light up (14% to 100%), pill photos grow from zero width. */
+.lead-word {
+  opacity: 0.14;
+  transition: opacity 0.25s;
+}
+.lead-word[data-on="true"] {
+  opacity: 1;
+}
+.lead-pill {
+  display: inline-block;
+  width: 0;
+  height: 0.86em;
+  border-radius: 999px;
+  vertical-align: -0.06em;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lead-pill[data-on="true"] {
+  width: 2.3em;
+}
+
+/* Preloader (components/preloader.tsx). An inline script sets <html data-preload="cover"> before
+   first paint when the intro plays; "lift" while it wipes away; removed when done. While "cover",
+   scroll is locked and the page's CSS entrances (hero letters, photo settle) wait. */
+.preloader {
+  display: none;
+}
+html[data-preload] .preloader {
+  display: grid;
+}
+html[data-preload="cover"],
+html[data-preload="cover"] body {
+  overflow: hidden;
+}
+html[data-preload="cover"] main * {
+  animation-play-state: paused !important;
+}
+
+/* Reduced motion: every page-level effect rests in its final state. Pinned in CSS (not by
+   branching in React) so the server and client render the same tree. */
+@media (prefers-reduced-motion: reduce) {
+  .rm-static {
+    transform: none !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+  .lead-word {
+    opacity: 1 !important;
+  }
+  .lead-pill {
+    width: 2.3em !important;
+  }
+  /* The hero photo stays inset and rounded, as at the top of the page. */
+  .hero-bleed {
+    clip-path: inset(0 max(theme(spacing.gutter), calc((100% - 1440px) / 2 + theme(spacing.gutter))) round 36px) !important;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -12,7 +12,7 @@ import {
 import { MenuService } from './menu.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 @Controller('menu')
 export class MenuController {
@@ -20,7 +20,7 @@ export class MenuController {
 
   /** Admin: live menu with relations (JWT). */
   @Get('draft')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   findDraft(@Query('available') available?: string) {
     const availableOnly = available === 'true';
     return this.menuService.findAllDraft(availableOnly);
@@ -39,19 +39,19 @@ export class MenuController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   create(@Body() createMenuDto: CreateMenuDto) {
     return this.menuService.create(createMenuDto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   update(@Param('id') id: string, @Body() updateMenuDto: UpdateMenuDto) {
     return this.menuService.update(id, updateMenuDto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   remove(@Param('id') id: string) {
     return this.menuService.remove(id);
   }

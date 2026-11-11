@@ -10,7 +10,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 
 /**
  * Light RBAC: allow the route when the authenticated admin's role is in the
- * `@Roles(...)` list. Must run after `JwtAuthGuard` (which sets `req.user`).
+ * `@Roles(...)` list. Must run after `AdminAuthGuard` (which sets `req.user`).
  */
 @Injectable()
 export class RolesGuard implements CanActivate {

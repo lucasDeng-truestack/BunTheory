@@ -1,0 +1,37 @@
+<!-- @dsCard height=320 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap">
+<style>
+body{margin:0;background:var(--ink-base)}
+.cover{position:relative;width:960px;height:320px;overflow:hidden;background:var(--ink-base)}
+.cover svg{position:absolute;left:480px;top:0}
+.c-ember{fill:var(--ember)}.c-bright{fill:var(--ember-bright)}.c-cream{fill:var(--cream)}.c-raised{fill:var(--ink-raised)}.c-dot{fill:var(--cream-faint)}
+.r-lg{rx:var(--radius-lg)}.r-md{rx:var(--radius-md)}
+.cover__text{position:absolute;left:56px;bottom:32px;max-width:420px}
+.cover__name{font-family:var(--font-display);font-stretch:80%;font-weight:800;text-transform:uppercase;font-size:100px;line-height:.95;letter-spacing:-.025em;color:var(--cream);margin:0}
+.cover__tag{font-family:var(--font-body);font-size:14px;color:var(--cream-muted);margin:16px 0 0}
+</style></head>
+<body>
+<div class="cover">
+  <!--
+  Blocks: ember 208x268 (radius-lg), ember-bright 120x120 (radius-md), cream 156x120 (radius-md), ink-raised 292x72 (pill, rx 36 = radius-lg).
+  Arrangement: one tall ember slab bleeding off the top with satellites to its right, cream bleeding off the right edge. 16px (space-4) gaps.
+  Pattern: discs. "Pills fully round" and the 8px ember eyebrow dot are the system's own shape, so a two-row dot strip at a 32px (space-8) pitch, r 8, three lit in ember.
+  Scales: space-4 gaps, space-8 pitch, radius-md and radius-lg corners, control-height 56 strip.
+  -->
+  <svg width="480" height="320" viewBox="0 0 480 320" aria-hidden="true">
+    <rect class="c-ember r-lg" x="0" y="-36" width="208" height="268"/>
+    <rect class="c-bright r-md" x="224" y="24" width="120" height="120"/>
+    <rect class="c-cream r-md" x="360" y="24" width="156" height="120"/>
+    <rect class="c-raised r-lg" x="224" y="160" width="292" height="72"/>
+    <g id="dots"></g>
+  </svg>
+  <div class="cover__text">
+    <p class="cover__name">Bakar &amp;<br>Roast</p>
+    <p class="cover__tag">Fire. Feast. Family.</p>
+  </div>
+</div>
+<script>
+(function(){var g=document.getElementById('dots'),lit={3:1,19:1,26:1},i=0;
+for(var r=0;r<2;r++)for(var c=0;c<15;c++){var d=document.createElementNS('http://www.w3.org/2000/svg','circle');d.setAttribute('cx',16+c*32);d.setAttribute('cy',264+r*32);d.setAttribute('r',8);d.setAttribute('class',lit[i]?'c-ember':'c-dot');g.appendChild(d);i++}})();
+</script>
+</body></html>

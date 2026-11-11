@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { CreatePosSectionDto } from './dto/create-pos-section.dto';
 import { UpdatePosSectionDto } from './dto/update-pos-section.dto';
 import { CreatePosProductDto } from './dto/create-pos-product.dto';
@@ -18,7 +18,7 @@ import { ReorderProductsDto } from './dto/reorder-products.dto';
 import { PosMenuService } from './pos-menu.service';
 
 @Controller('pos/menu')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class PosMenuController {
   constructor(private readonly posMenuService: PosMenuService) {}
 

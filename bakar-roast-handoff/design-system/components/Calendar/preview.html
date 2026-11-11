@@ -1,0 +1,62 @@
+<!-- @dsCard group="Booking" height=640 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-pad">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start">
+  <div>
+    <p class="br-eyebrow" style="margin-bottom:12px">Customer, step 1</p>
+    <div class="br-cal">
+      <div class="br-cal__head"><button class="br-cal__nav" aria-label="Previous month" disabled>&#8592;</button><div class="br-cal__month" aria-live="polite">December 2026</div><button class="br-cal__nav" aria-label="Next month">&#8594;</button></div>
+      <div class="br-cal__grid" id="pub" role="grid" aria-label="December 2026"></div>
+      <ul class="br-cal__legend">
+        <li><span class="br-day br-day--available"></span>Available</li>
+        <li><span class="br-day br-day--selected"></span>Your date</li>
+        <li><span class="br-day br-day--unavailable"></span>Unavailable</li>
+        <li><span class="br-day br-day--soon"></span>Too soon</li>
+        <li><span class="br-day br-day--beyond"></span>Not open yet</li>
+      </ul>
+      <p class="br-cal__picked" id="picked">Saturday 12 December 2026</p>
+    </div>
+  </div>
+  <div>
+    <p class="br-eyebrow" style="margin-bottom:12px">Admin</p>
+    <div class="br-cal">
+      <div class="br-cal__head"><button class="br-cal__nav" aria-label="Previous month">&#8592;</button><div class="br-cal__month">December 2026</div><button class="br-cal__nav" aria-label="Next month">&#8594;</button></div>
+      <div class="br-cal__grid" id="adm" role="grid" aria-label="December 2026, admin"></div>
+      <ul class="br-cal__legend">
+        <li><span class="br-day br-day--held"></span>Held (pending)</li>
+        <li><span class="br-day br-day--booked"></span>Booked (approved)</li>
+        <li><span class="br-day br-day--blocked"></span>Blocked</li>
+        <li><span class="br-day br-day--available"></span>Free</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var dow=['Mo','Tu','We','Th','Fr','Sa','Su'];
+  function build(id,stateOf,label){
+    var g=document.getElementById(id);
+    dow.forEach(function(d){var h=document.createElement('div');h.className='br-cal__dow';h.textContent=d;g.appendChild(h)});
+    var cells=[{n:30,o:1}];for(var i=1;i<=31;i++)cells.push({n:i});[1,2,3].forEach(function(n){cells.push({n:n,o:1})});
+    cells.forEach(function(c){
+      var s=c.o?'other':stateOf(c.n);var pick=(s==='available'||s==='selected'||s==='held'||s==='booked'||s==='blocked');
+      var b=document.createElement(pick?'button':'div');
+      b.className='br-day br-day--'+s+(c.n===1&&!c.o?' is-today':'');b.textContent=c.n;
+      if(!c.o)b.setAttribute('aria-label',c.n+' December, '+label(s)+(c.n===1?', today':''));
+      if(s==='selected')b.setAttribute('aria-pressed','true');
+      g.appendChild(b);
+    });
+  }
+  var taken=[11,19,20,25];
+  build('pub',function(n){return n<=7?'soon':n===12?'selected':taken.indexOf(n)>-1?'unavailable':'available'},function(s){return {soon:'too soon to book',selected:'selected',unavailable:'unavailable',available:'available'}[s]});
+  build('adm',function(n){return n===12||n===27?'held':n===11||n===19||n===20?'booked':n===24||n===25?'blocked':'available'},function(s){return {held:'held, pending request',booked:'booked',blocked:'blocked',available:'free'}[s]});
+  var names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  document.getElementById('pub').addEventListener('click',function(e){
+    var t=e.target;if(!t.matches('button.br-day'))return;
+    this.querySelectorAll('.br-day--selected').forEach(function(x){x.className=x.className.replace('br-day--selected','br-day--available');x.removeAttribute('aria-pressed')});
+    t.className=t.className.replace('br-day--available','br-day--selected');t.setAttribute('aria-pressed','true');
+    var n=+t.textContent;document.getElementById('picked').textContent=names[n%7]+' '+n+' December 2026';
+  });
+})();
+</script>
+</body></html>

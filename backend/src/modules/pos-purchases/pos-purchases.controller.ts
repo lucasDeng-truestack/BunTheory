@@ -10,12 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { CreatePosPurchaseDto } from './dto/create-pos-purchase.dto';
 import { PosPurchasesService } from './pos-purchases.service';
 
 @Controller('pos/purchases')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class PosPurchasesController {
   constructor(private readonly posPurchasesService: PosPurchasesService) {}
 

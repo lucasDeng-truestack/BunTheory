@@ -159,6 +159,8 @@ enum AdminRole {
   CASHIER
 }
 
+/// DEPRECATED: replaced by `User` (Better Auth). Kept one release as a backup of staff
+/// logins; nothing reads it. Drop in a later migration.
 model Admin {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -169,9 +171,75 @@ model Admin {
   role         AdminRole @default(OWNER)
   createdAt    DateTime @default(now())
 
-  posOrders         PosOrder[] @relation("CreatedByAdmin")
-  posOrdersPaidBy   PosOrder[] @relation("PaidByAdmin")
-  posPurchases      PosPurchase[]
+}
+
+// ─── Better Auth (v1.7): staff and customers share these tables ───────────────
+
+/// One row per person. Staff carry an AdminRole name in `role`; customers are "CUSTOMER".
+/// Staff rows were copied from `Admin` with the same id.
+model User {
+  id            String   @id
+  /// Better Auth's `name` field (mapped via user.fields.name).
+  displayName   String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  /// CUSTOMER | OWNER | MANAGER | KITCHEN | CASHIER. Never settable from a request body.
+  role          String   @default("CUSTOMER")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions         Session[]
+  accounts         Account[]
+  posOrders        PosOrder[]        @relation("CreatedByAdmin")
+  posOrdersPaidBy  PosOrder[]        @relation("PaidByAdmin")
+  posPurchases     PosPurchase[]
+  cateringBookings CateringBooking[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  /// "credential" for email + password; `password` then holds a bcrypt hash.
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 // ─── Weekend Grills POS ───────────────────────────────────────────────────────
@@ -338,10 +406,10 @@ model PosOrder {
   notes           String?
 
   createdByAdminId String?
-  createdBy        Admin?  @relation("CreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  createdBy        User?   @relation("CreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
 
   paidByAdminId String?
-  paidBy        Admin?  @relation("PaidByAdmin", fields: [paidByAdminId], references: [id], onDelete: SetNull)
+  paidBy        User?   @relation("PaidByAdmin", fields: [paidByAdminId], references: [id], onDelete: SetNull)
 
   paidAt      DateTime?
   startedAt   DateTime?
@@ -434,7 +502,7 @@ model PosPurchase {
   amount           Decimal  @db.Decimal(10, 2)
   purchasedAt      DateTime @default(now())
   createdByAdminId String?
-  createdBy        Admin?   @relation(fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  createdBy        User?    @relation(fields: [createdByAdminId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
 
   @@index([purchasedAt])
@@ -451,8 +519,6 @@ model SystemSettings {
   companyLogoUrl          String?
   /// Payment transfer QR shown at checkout (uploaded image / SVG URL).
   paymentQrUrl            String?
-  /// WhatsApp number for admin new-order alerts (E.164 e.g. +60123456789). Overrides .env fallback.
-  adminWhatsappNumber     String?
   // ─── Single-outlet config (fulfillment header, fees, tax, ETA) ──────────────
   /// Public outlet name shown in the pickup block.
   outletName              String?
@@ -470,5 +536,119 @@ model SystemSettings {
   taxRatePercent          Decimal  @default(6) @db.Decimal(5, 2)
   /// Informational delivery-radius note (no geocoding/enforcement).
   deliveryRadiusNote      String?
+  // ─── Bakar & Roast catering booking rules ───────────────────────────────────
+  /// Earliest bookable date = today + this many days (Malaysia local).
+  cateringMinNoticeDays       Int     @default(7)
+  /// Latest bookable date = today + this many months.
+  cateringBookingWindowMonths Int     @default(6)
+  /// A PENDING request holds its date this many days before it expires.
+  cateringHoldExpiryDays      Int     @default(3)
+  /// Customers may cancel until this many days before the event.
+  cateringCancelCutoffDays    Int     @default(3)
+  /// Owner inbox for new-request and customer-cancelled emails (Resend).
+  cateringNotifyEmail         String?
   updatedAt               DateTime @updatedAt
+}
+
+// ─── Bakar & Roast catering ───────────────────────────────────────────────────
+
+enum CateringBookingStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+  EXPIRED
+  COMPLETED
+}
+
+model CateringPackage {
+  id          String   @id @default(cuid())
+  name        String
+  tagline     String?
+  description String
+  includes    String[]
+  imageUrl    String?
+  minGuests   Int      @default(10)
+  maxGuests   Int?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bookings    CateringBooking[]
+}
+
+model CateringBooking {
+  id            String                @id @default(cuid())
+  /// Human reference shown to customer and owner, e.g. BR-7K2M9Q.
+  reference     String                @unique
+  /// Unguessable token for the public status page and cancel link.
+  accessToken   String                @unique
+  status        CateringBookingStatus @default(PENDING)
+  /// Malaysia-local calendar date of the event. Never a timestamp.
+  eventDate     DateTime              @db.Date
+  /// Serving time as "HH:mm", Malaysia local.
+  serviceTime   String
+  packageId     String
+  package       CateringPackage       @relation(fields: [packageId], references: [id])
+  /// Snapshot so later package edits do not rewrite history.
+  packageName   String
+  guests        Int
+  occasion      String
+  customerName  String
+  customerPhone String
+  customerEmail String
+  eventAddress  String
+  dietaryNotes  String?
+  notes         String?
+  quoteAmount   Decimal?  @db.Decimal(10, 2)
+  depositAmount Decimal?  @db.Decimal(10, 2)
+  depositPaidAt DateTime?
+  balancePaidAt DateTime?
+  adminNotes    String?
+  declineReason String?
+  holdExpiresAt DateTime?
+  decidedAt     DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  /// Set when the customer was signed in while booking. Guest bookings stay null.
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  dateHold      CateringDate?
+
+  @@index([status, eventDate])
+  @@index([createdAt])
+  @@index([packageId])
+  @@index([customerEmail, status])
+  @@index([customerPhone, status])
+  @@index([userId])
+}
+
+/// One row per unavailable date. The primary key is the no-double-booking guarantee.
+/// bookingId set = held by a PENDING or APPROVED booking. bookingId null = blocked by owner.
+model CateringDate {
+  date        DateTime         @id @db.Date
+  bookingId   String?          @unique
+  booking     CateringBooking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  blockReason String?
+  createdAt   DateTime         @default(now())
+}
+
+model CateringGalleryImage {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model CateringTestimonial {
+  id        String   @id @default(cuid())
+  quote     String
+  name      String
+  role      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
 }
