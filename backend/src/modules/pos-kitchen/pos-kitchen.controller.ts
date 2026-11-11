@@ -1,9 +1,9 @@
 import { Controller, Get, Param, Patch, Request, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { PosKitchenService } from './pos-kitchen.service';
 
 @Controller('pos/kitchen')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class PosKitchenController {
   constructor(private readonly posKitchenService: PosKitchenService) {}
 

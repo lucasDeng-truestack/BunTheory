@@ -1,0 +1,98 @@
+---
+description: Bakar & Roast landing site — stack, structure, and conventions
+globs:
+alwaysApply: true
+---
+
+# Bakar & Roast — brand landing site
+
+This app is the umbrella brand site for **Bakar & Roast**, the parent brand of
+**The Bun Theory** (fried chicken burgers, the `frontend/` app in this repo) and
+**The Weekend Grill** (`weekend-grills-pos/`). Its flagship offering is
+**catering**. Founders: John Zachariah and Grace Sheila. Based in Petaling Jaya,
+Kuala Lumpur. Tagline: **Fire. Feast. Family.**
+
+## Stack
+
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS v3 (config in `tailwind.config.ts`)
+- `motion` (Framer Motion) for scroll-linked animation and reveals
+- `lenis` for smooth scrolling (`components/smooth-scroll.tsx`)
+- `lucide-react` for icons
+- Fonts: Bricolage Grotesque (display, loaded with the `opsz` and `wdth` axes) + Figtree
+  (body), via `next/font/google` in `app/layout.tsx` (`--font-display`, `--font-sans`)
+
+## Structure
+
+- `app/` — routes: `/` (home), `/story`, `/catering`, `/catering/book` (booking flow),
+  `/booking/[token]` (status page, noindex, own not-found), `/account` (customer sign-in and My bookings, noindex), `/menu`, `/contact`, and the owner
+  admin `/admin` (noindex): `/admin/login`, Today `/admin`, `/admin/requests`,
+  `/admin/requests/[id]`, `/admin/calendar` (`?view=list`, `?month=YYYY-MM`), `/admin/packages`,
+  `/admin/packages/new`, `/admin/packages/[id]`, `/admin/content` (gallery and testimonials),
+  `/admin/settings` (booking rules and the alert email).
+  `/dev/components` is a hidden (noindex) reference page showing every `components/ui`
+  component in all its states on base, raised and cream bands. Check new UI there.
+- `components/ui/`: the design-system components (see `design.mdc`). Build pages from these.
+- `components/admin/`: the owner admin shell and screens (see `design.mdc`). Page files under
+  `app/admin/` stay thin and render a screen from here.
+- `components/booking/`: the booking flow, calendar, summary, status timeline and cancel (see `design.mdc`).
+- `components/account/`: the optional customer account (see `design.mdc`). `/account` (noindex) signs a
+  customer in with an emailed 6-digit code (Better Auth email OTP, `lib/auth-client.ts`). The session is a
+  bearer token in localStorage `br_token`, never a cookie, never in a URL, never logged. `useCustomer()` is
+  the one hook for it (no provider, no store). `/account?next=` only accepts what `safeNext()`
+  (`components/account/next-path.ts`) allows: `/catering/book` or `/booking/<token>`, after URL
+  normalisation; anything else is ignored. An email to prefill is handed over in sessionStorage
+  `br_signin_email` (`SIGNIN_EMAIL_KEY`, read once then removed), never in the URL; it never sends a code.
+- `components/sections/`: page sections built from `components/ui` (see `design.mdc`).
+- `components/`: site chrome helpers only (`preloader`, `smooth-scroll`, `grain-overlay`,
+  `magnetic`, `cursor`, `photo-trail`). See design.mdc "Site-wide motion".
+- `app/layout.tsx` mounts `Preloader`, `SmoothScroll`, `GrainOverlay`, `Header`, `Footer`, `Cursor`
+  (`<html suppressHydrationWarning>` because the preloader script may set `data-preload` first).
+  Header, Footer and grain return null on `/admin`; Footer also on `/catering/book`. The preloader
+  never plays on a page load under `/admin`, and `app/template.tsx` renders plain children there.
+- `lib/content.ts` — **all copy, nav, and image slots live here.** Edit content
+  here, not inline in pages, so the site stays easy to update.
+- `lib/utils.ts` — `cn()` class helper
+- `lib/safe.ts`: `safe(promise, fallback)`. Wrap every backend call a page makes, so a dead
+  API degrades a section instead of the page (`null` fallback when "failed" differs from "empty").
+- `lib/dates.ts`: YYYY-MM-DD helpers read as UTC calendar dates: `formatShort` ("Tue 17 Nov"),
+  `formatLong` ("Saturday 12 December 2026"), `formatDayMonth` ("Friday 13 November"),
+  `formatMonthYear`, `addDaysYmd`, `firstOpenDate(availability)`, `klToday()` / `klYmd(iso)`
+  (Malaysia calendar date, never the device zone), `buildMonthGrid(year, month)` (Monday-first
+  weeks, month 0-based), `monthOf`.
+- `lib/booking.ts`: pure booking helpers (type imports only): `classifyDay` / `isPickable`,
+  `validateField` / `validateDetails` (mirror the backend DTO), `plural`, `formatTime12`,
+  `clampGuests`, `LIMITS`.
+- `lib/api.ts`, `lib/catering-api.ts`, `lib/auth-client.ts`: the backend contract and client.
+- `lib/admin.ts`: pure admin helpers (type imports plus `./dates`): `toCents` / `formatRM` (integer cents,
+  never float maths), `amountsError`, `payHeadline` / `bookingPayHeadline`, `holdLeft`,
+  `requestTab` / `inTab` / `matchesSearch` / `sortRequests`, `activityLog`, `nextStep`, `greeting`,
+  `waitingSentence`, `initials`, `waNumber`; settings `RULES` (server limits), `ruleLines` (what each
+  rule means today), `cutoffWarning`, `isEmailShape`; `validatePackage` (mirrors the DTO);
+  `moveItem` / `nextSortOrder` (ordering); `uploadProblem` (JPG, PNG, WebP up to 5 MB).
+  `lib/dates.ts` adds `klHour()`, `formatStamp()` and `addMonthsYmd()` (month-end clamp, as the server).
+- `lib/admin-session.ts`: admin session in localStorage `br_admin_token` (staff session token) and
+  `br_admin` (the admin object), `readSession` / `saveSession` / `clearSession`, `isSessionGone`
+  (401 only; 403 never logs out). Any 401 clears both and goes to `/admin/login?expired=1`.
+- `lib/motion.ts`: easings (`expo.out`, `expo.inOut`, legacy `ease.out`), `duration.default` 0.8s,
+  `reducedMotion()` / `finePointerMotion()` (direct media checks for effect code after mount).
+- `lib/hooks.ts`: `usePrefersReducedMotion()`, `useIsTouch()` (matchMedia; false on the server and the
+  first client render, real after mount, follow changes; log nothing). Gate effects on them.
+
+## Conventions
+
+- Server components by default. Add `"use client"` only when a component needs
+  state, effects, or `motion` hooks (`useScroll`, `useTransform`).
+- Every photo goes in `<PhotoSlot>` (ember gradient behind, "Photo: ..." note until the real
+  photo lands). `next/image` only, never `<img>`.
+- Animated client components must render the same tree and the same initial styles on server
+  and client. `usePrefersReducedMotion()` is false on the first client render, so never rely on it
+  for the first frame, and never put it in JSX structure, `initial` values or `useTransform`
+  ranges. Turn effects off in CSS instead: `.rm-static` (globals.css) or `motion-reduce:`
+  utilities; skip listeners in effects (use `reducedMotion()` when a first-pass effect must not run).
+- Photos are placeholders: each `photo` string in `lib/content.ts` says what the real photo
+  shows and becomes its alt text when it lands. Owner-managed images come from the API
+  (`imageSrc()`).
+- The contact form (`components/sections/contact-form.tsx`) has no backend. It composes a WhatsApp message and opens
+  `wa.me`. Keep it that way unless a real backend is added.
+- Dev server runs on port 3200 (`npm run dev`).

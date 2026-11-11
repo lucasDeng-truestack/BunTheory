@@ -22,7 +22,7 @@ export type SiteFooterProps = {
 
 export default function SiteFooter({
   className,
-  supportLead = "Questions about your order? You'll get updates on WhatsApp — we roast to order and pack it fresh.",
+  supportLead = "Wondering where your order is? Track it with your phone number. We roast to order and pack it fresh.",
   trackHref = "/track",
   trackLabel = "Track an active order",
   portfolioUrl = "https://lucasdyj.dev/",

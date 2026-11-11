@@ -189,8 +189,8 @@ export function ConfirmPayView({
       toast.success("Order placed!", {
         description:
           method === "QR"
-            ? "We received your payment proof — we'll confirm on WhatsApp."
-            : "Pay on collection / delivery. We'll confirm on WhatsApp.",
+            ? "We received your payment proof. Track your order status on the Track page."
+            : "Pay on collection / delivery. Track your order on the Track page.",
       });
       router.push(`/order/success?id=${order.id}`);
     } catch (err) {
@@ -272,7 +272,7 @@ export function ConfirmPayView({
                   className="order-form-phone"
                   numberInputProps={{ autoComplete: "tel" }}
                 />
-                <p className="text-caption">We&apos;ll confirm on WhatsApp.</p>
+                <p className="text-caption">Use this number to track your order.</p>
               </div>
               <div className="flex items-start justify-between gap-3 rounded-2xl border-2 border-bun-ink/12 bg-bun-cream-soft px-4 py-3">
                 <Label

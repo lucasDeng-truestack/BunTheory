@@ -7,7 +7,6 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { OrderStatus, OrderBatchStatus, PaymentChoice } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
 import { BatchesService } from '../batches/batches.service';
 import { OrdersGateway } from './orders.gateway';
 
@@ -45,7 +44,6 @@ export type ActiveBatchInfo = {
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService,
     private batches: BatchesService,
     private gateway: OrdersGateway,
   ) {}
@@ -55,10 +53,14 @@ export class OrdersService {
     return ctx.current;
   }
 
-  /** Orders still needing attention (not completed / delivered). */
+  /** Orders still needing attention: everything except delivered, completed and cancelled. */
   async countNonDelivered(): Promise<{ count: number }> {
     const count = await this.prisma.order.count({
-      where: { status: { not: OrderStatus.DELIVERED } },
+      where: {
+        status: {
+          notIn: [OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+        },
+      },
     });
     return { count };
   }
@@ -301,6 +303,16 @@ export class OrdersService {
           'Please upload your payment receipt to pay by QR.',
         );
       }
+      // Only what POST /uploads/payment-receipt returns: a local /uploads/ path or an
+      // https storage URL. Staff open this link, so never accept javascript: or data:.
+      if (
+        !/^\/uploads\/[^\s]+$/.test(paymentReceiptUrl) &&
+        !/^https:\/\/[^\s]+$/i.test(paymentReceiptUrl)
+      ) {
+        throw new BadRequestException(
+          'Please upload your payment receipt again.',
+        );
+      }
     } else if (dto.receiptUrl?.trim()) {
       throw new BadRequestException(
         'Receipt upload is only used when you choose Pay now.',
@@ -410,8 +422,6 @@ export class OrdersService {
     const order = await this.findOne(created.id);
 
     this.gateway.broadcastOrderCreated(order);
-    await this.notifications.notifyAdminNewOrder(order);
-    await this.notifications.notifyCustomerOrderReceived(order);
 
     return order;
   }
@@ -543,18 +553,6 @@ export class OrdersService {
       },
       include: orderInclude,
     });
-
-    switch (status) {
-      case 'PREPARING':
-        await this.notifications.notifyCustomerPreparing(order);
-        break;
-      case 'READY':
-        await this.notifications.notifyCustomerReady(order);
-        break;
-      case 'DELIVERED':
-        await this.notifications.notifyCustomerDelivered(order);
-        break;
-    }
 
     this.gateway.broadcastOrderUpdated(order);
     return order;

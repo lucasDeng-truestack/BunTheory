@@ -62,7 +62,7 @@ export default async function OrderSuccessPage({
                 Thank you for your order!
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-pretty text-bun-ink-soft lg:text-lg">
-                We&apos;ve sent a WhatsApp confirmation to your phone.
+                Follow your order status here or on the Track page.
               </p>
               <p className="mt-4 text-sm text-bun-ink-soft/70">
                 Order{" "}

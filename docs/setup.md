@@ -33,7 +33,7 @@ cd backend
 npm run start:dev
 ```
 
-Runs at http://localhost:3001
+Runs at http://localhost:3101
 
 **First time only** (run migrations before seeding — tables must exist first):
 

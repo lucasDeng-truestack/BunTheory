@@ -1,22 +1,40 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { seedPosMenu } from './seed-pos-menu';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // ─── Admin ────────────────────────────────────────────────────────────────
-  const hashedPassword = await bcrypt.hash('Lucas@123', 10);
-
-  const admin = await prisma.admin.upsert({
-    where: { email: 'denglucasyijin@gmail.com' },
+  // ─── Admin (Better Auth User + credential Account) ────────────────────────
+  const adminEmail = 'denglucasyijin@gmail.com';
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
     update: { displayName: 'Lucas Deng' },
     create: {
-      email: 'denglucasyijin@gmail.com',
-      password: hashedPassword,
+      id: randomUUID(),
+      email: adminEmail,
       displayName: 'Lucas Deng',
+      emailVerified: true,
+      role: 'OWNER',
     },
   });
+  // Never overwrite an existing password: only create the credential account when missing.
+  const credential = await prisma.account.findFirst({
+    where: { userId: admin.id, providerId: 'credential' },
+    select: { id: true },
+  });
+  if (!credential) {
+    await prisma.account.create({
+      data: {
+        id: randomUUID(),
+        accountId: admin.id,
+        providerId: 'credential',
+        userId: admin.id,
+        password: await bcrypt.hash('Lucas@123', 10),
+      },
+    });
+  }
 
   // ─── System Settings ──────────────────────────────────────────────────────
   const outletDefaults = {
@@ -137,6 +155,44 @@ async function main() {
 
   // ─── Weekend Grills POS ───────────────────────────────────────────────────
   await seedPosMenu(prisma);
+
+  // ─── Bakar & Roast catering: sample packages (PLACEHOLDER content, edit in admin) ───
+  if ((await prisma.cateringPackage.count()) === 0) {
+    await prisma.cateringPackage.createMany({
+      data: [
+        {
+          name: 'The Gathering',
+          tagline: 'Smoked chicken and sides for the house.',
+          description:
+            'Our apple-wood roast chicken with fire-roasted sides. Built for house gatherings and family tables.',
+          includes: ['Apple-wood roast chicken', 'Two fire-roasted sides', 'House sauces', 'Bread and pickles', 'Setup and serving ware', 'One cook on site'],
+          minGuests: 20,
+          maxGuests: 40,
+          sortOrder: 0,
+        },
+        {
+          name: 'The Feast',
+          tagline: 'The full fire, carved at the table.',
+          description:
+            'Roast chicken and a second meat with sides, carved to order. Made for celebrations.',
+          includes: ['Roast chicken and a second meat', 'Three sides', 'Salad and bread', 'House sauces', 'Carving station', 'Two cooks on site'],
+          minGuests: 20,
+          maxGuests: 80,
+          sortOrder: 1,
+        },
+        {
+          name: 'The Big Fire',
+          tagline: 'Live grill for a crowd.',
+          description:
+            'A live wood-fire grill with the whole team on site. For community tables and big occasions.',
+          includes: ['Live wood-fire grill', 'Three meats', 'Four sides', 'Dessert', 'Full serving team', 'Setup and clear down'],
+          minGuests: 60,
+          maxGuests: 150,
+          sortOrder: 2,
+        },
+      ],
+    });
+  }
 
   console.log('Seed completed:', {
     admin: admin.email,

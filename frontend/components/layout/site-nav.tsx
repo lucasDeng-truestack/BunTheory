@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowUpRight } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
-import { BRAND_TITLE_LINE } from "@/lib/brand";
+import { BRAND_TITLE_LINE, BRAND_PARENT_NAME, BRAND_SITE_URL } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export type SiteNavLink = { href: string; label: string };
@@ -69,6 +69,14 @@ export function SiteNav({
               {l.label}
             </Link>
           ))}
+          <span className="mx-1 h-5 w-px bg-bun-ink/15" aria-hidden />
+          <a
+            href={BRAND_SITE_URL}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 py-2 font-display text-sm text-bun-ink/60 transition-colors hover:text-bun-red"
+          >
+            {BRAND_PARENT_NAME}
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -117,6 +125,14 @@ export function SiteNav({
                   {cta.label}
                 </Link>
               </Button>
+              <a
+                href={BRAND_SITE_URL}
+                onClick={() => setOpen(false)}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-2xl px-4 py-3 font-display text-base text-bun-ink/70 transition-colors hover:bg-bun-ink hover:text-bun-cream"
+              >
+                Visit {BRAND_PARENT_NAME}
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
             </nav>
           </m.div>
         )}

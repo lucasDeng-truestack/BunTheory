@@ -1,0 +1,12 @@
+<!-- @dsCard group="Admin" height=130 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-pad br-admin">
+<div class="br-row" style="gap:32px">
+  <label class="br-toggle"><input type="checkbox" role="switch" checked><span class="br-toggle__track"></span>Deposit paid <span class="br-toggle__state">Yes</span></label>
+  <label class="br-toggle"><input type="checkbox" role="switch"><span class="br-toggle__track"></span>Balance paid <span class="br-toggle__state">No</span></label>
+  <label class="br-toggle"><input type="checkbox" role="switch" checked><span class="br-toggle__track"></span>Show on site <span class="br-toggle__state">Shown</span></label>
+</div>
+<script>
+document.querySelectorAll('.br-toggle input').forEach(function(i){var s=i.parentNode.querySelector('.br-toggle__state');var on=s.textContent;var pair={Yes:'No',No:'Yes',Shown:'Hidden',Hidden:'Shown'};i.addEventListener('change',function(){s.textContent=pair[s.textContent]})});
+</script>
+</body></html>

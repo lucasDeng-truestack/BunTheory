@@ -1,0 +1,166 @@
+---
+description: Bakar & Roast visual design system and copy tone
+globs: app/**/*.tsx,components/**/*.tsx,app/globals.css
+alwaysApply: false
+---
+
+# Design system
+
+Source of truth: `bakar-roast-handoff/` (design-system README, tokens.json, motion.md,
+screens.md, component READMEs, prototype). Where this file and the handoff disagree, the
+handoff wins. Look at `/dev/components` to see every component and state.
+
+Cinematic and moody: ink grounds, cream text, one ember accent, film grain, condensed
+uppercase display type. Design at 390 first, then 1440.
+
+## Tokens (`tailwind.config.ts`)
+
+- Colour: `ink` (DEFAULT #0B0908, `soft`, `raised`, `line`), `cream` (DEFAULT, `muted`,
+  `faint`), `ember` (DEFAULT, `bright`, `heat`, `glow`). No other hue, ever.
+- Band-aware: `text-tone-accent`, `text-tone-muted`, `bg-tone-accent`, `outline-tone-ring`.
+  They read CSS variables that `[data-tone="cream"]` (set by `<Band tone="cream">`) flips to
+  heat red / ink / ink. `[data-tone="ink"]` resets them inside a cream band.
+- Radius: `rounded-card-sm` 16, `rounded-card-md` 24, `rounded-card-lg` 36. Buttons, pills,
+  chips, stamp: `rounded-full`. Tailwind's own `rounded-sm/md/lg` are unchanged.
+- Spacing: `px-gutter` (18 to 56 fluid), `py-section` (88 to 176 fluid), plus fixed
+  `gutter-phone/desktop`, `section-phone/desktop`, `control` 56, `tap` 44. `max-w-content` 1440.
+- Shadow: `shadow-glow-ember` (public pages only).
+- Easing: `ease-expo-out`, `ease-expo-in-out`; `duration-800`, `duration-900`.
+  In JS: `expo.out`, `expo.inOut`, `duration.default` from `lib/motion.ts`.
+- Gradients: `.photo-gradient`, `.cta-gradient` (plain classes, not `bg-*`).
+
+## Type (component classes in `app/globals.css`)
+
+- Display (Bricolage at width 80, 800, uppercase, line height 0.84): `display-hero`
+  (clamp 64 to 210), `display-xl` (clamp 48 to 128, section headlines), `display-lg`
+  (clamp 36 to 80), `display-md` 48, `display-sm` 32. An `<em>` inside takes the accent.
+- Text: `type-lead`, `type-body-lg` (public paragraphs), `type-body` (forms), `type-label`,
+  `type-small`, `type-eyebrow`.
+- Admin: `type-admin-title`, `type-admin-body`, `type-admin-meta` only. Display face only on
+  admin page titles, tile numbers, date blocks and the payment headline.
+- Use these classes, not `text-[..px]` font sizes, and not `text-display-*` (cn() would drop them).
+
+## Components (`components/ui/`, named exports)
+
+- `Button`: pill with arrow chip; `variant` ember/cream/ink/ghost, `size` default 56 / md 48
+  (header) / sm 44 (admin, no chip), `loading` + `loadingLabel`, `href` renders a link, `block`.
+- `Headline`, `Eyebrow`: eyebrow with dot + display headline, `size`, `as`, `tone`.
+- `PhotoSlot`: frame over the ember gradient; `src`, `note`, `radius`, children = chips.
+- `Pill` (aria-pressed, or `mode="radio"`), `Chip` (non-interactive, on photos).
+- `StatusChip`: `status: CateringBookingStatus`. Fixed labels and looks.
+- `Field`, `TextareaField`, `SelectField`: label, help, error, optional, `size` md/sm.
+- `Banner` (error/ok), `EmptyState`, `Skeleton`, `ErrorMark`.
+- `Dialog`: native dialog, controlled `open`/`onClose`, confirm (cream) + cancel (ghost).
+- `AccordionItem`, `TipCard`: native details rows; ember-bright tip card.
+- `Stamp`: spinning circular text; `text`, `label`, `tone`, `size`, `href`.
+- `Marquee`: crossed ribbons, scroll-velocity driven; `words`.
+- `Stat` (+ `useCountUp`): count-up number with ember superscript unit.
+- `Toggle`: admin switch; `label`, `onText`/`offText`.
+- `GuestStepper`: controlled headcount, clamps to `min`/`max`, typed values clamp on blur/Enter.
+- `BookingProgress`: four fixed steps, `current`, back via `backLabel` + `backHref`/`onBack`.
+- `Header` (+ `Wordmark`), `Footer`, `CtaBand`: site chrome and the closing band.
+- `Band` (`tone` base/raised/soft/cream, section padding), `Container` (gutters, 1440 max).
+- Ink surfaces only (hard-coded cream text): `Field`, `Pill`, `EmptyState`, `StatusChip`,
+  `BookingProgress`, `AccordionItem`, `GuestStepper`. Do not place them on cream bands.
+- `components/sections/` (page sections; data comes in as props from the server page):
+  `Hero` (letters rise, photo inset to full bleed; `copy`, `action`, `chips`, `stamp`),
+  `IntroLead` (scrubbed lead with pill photos), `ListRows` (numbered rows, cursor photo),
+  `PackageCard` (`mode` landing/select) + `PackageStack` + `guestRange()`, `StepCards`,
+  `StatRow`, `GalleryRow`, `Testimonials`, `PastTables` (gallery + quotes, absent when empty),
+  `Timeline`, `ValuesList`, `ChatBlock`, `Ventures`, `StoryTeaser`, `ContactForm`.
+  Motion primitives in `sections/motion.tsx`: `Reveal`, `SectionHead` (word masks; accent
+  in `*stars*`), `RevealPhoto` (wipe + 8% parallax), `PhotoLayer`, `PhotoNote`;
+  `accent()` in `sections/accent.tsx`.
+- `components/booking/` (the booking flow and status page; client parts marked):
+  `BookingFlow` (client; all answers in one place, sessionStorage draft `br-booking-draft`
+  cleared on success; account seams `initialContact`, `contactNote`, `customerToken`,
+  `renderDoneAccount({ email, reference })`, `renderPendingHelp()`, which need a client wrapper since they are
+  functions or client data). `steps.tsx`: `StepDate`, `StepPackage`, `StepDetails`, `StepReview`,
+  `DoneScreen`, `radioArrows` (arrow keys in a radiogroup with roving tabIndex).
+  `calendar.tsx`: shared `CalendarShell` (title, prev/next, grid, legend and footer slots),
+  `MonthGrid` (ARIA grid, Monday first, `renderDay`), `LegendItem`, `CalendarSkeleton`, `dayCell`;
+  customer `BookingCalendar` + `DAY_LOOK` (state classes; patterns `.cal-hatch`, `.cal-strike`,
+  `.cal-ring`, `.cal-today` in globals.css). Admin looks: `ADMIN_DAY_LOOK` (held = dashed ember
+  outline, booked = solid ember, completed = solid cream + `.cal-done` check, blocked = `.cal-block`
+  cream hatch, free, past). `booking-summary.tsx`: `SummaryCard` (label/value
+  rows, "Not yet" in cream-faint, optional Edit action), `StickyBar` (phone only, fixed bottom).
+  `status-timeline.tsx`: `StatusTimeline` (one design per status, `back` prop is the account
+  seam: `{ label, href }` or a node such as `<StatusBack />`), `BackLink`. `cancel-booking.tsx` (client): `CancelBooking` (Dialog, handles CANCEL_WINDOW_CLOSED and
+  INVALID_STATE), `DeadlinePassed`.
+- `components/account/` (customer account, client): `useCustomer()` (`status` loading/guest/signed-in,
+  `email`, `name`, `token`, `refresh`, `signOut`; loading on the server and first client render, token
+  cleared only when the session comes back empty or a call returns 401). `AccountScreen` (the stateful
+  `/account`) built from prop-driven `EmailStep`, `CodeStep`, `BookingsView`, `AccountLoading` (shown on
+  `/dev/components`). `BookingWithAccount` wraps `BookingFlow` with the account seams (prefill from the
+  session and the newest booking, "Signed in as" line, token on submit, done-screen lines, links to waiting
+  requests in the TOO_MANY_PENDING banner). `StatusBack` is the status page back action ("All my bookings"
+  when signed in). `safeNext()` in `next-path.ts`. Copy in `accountCopy` (`lib/content.ts`), code lifetime
+  `CODE_MINUTES` mirrors the server. Never say whether an email has an account.
+- `components/admin/` (owner admin, client-rendered behind the token): `AdminShell` (auth gate +
+  frame: 256px `ink-soft` sidebar on laptop; phone sticky top bar, bottom tab bar Today/Requests/
+  Calendar/More, More = native-dialog drawer), `useAdmin()` (token, admin, pending, refreshPending,
+  `run(call)` = API call with 401 hand-off, signOut), `useAdminTopBar({ title, back, status })`
+  (phone top bar override), `AdminActionBar` (phone sticky action bar, hides the tab bar),
+  `AdminPage({ title, eyebrow, lead, actions, titleOnPhone })`, `ADMIN_TITLE` (the display style for
+  page titles), `PendingBadge`, `LoadError` (error Banner + Retry), `describeError(err)`,
+  `useAdminQuery(load, deps)`, `DateBlock({ ymd, size })`, `Tile`, `BookingActionDialog`
+  (approve/decline/cancel/complete), `ADMIN_NAV` in `nav.ts` (groups; add a screen there).
+  Screens: `CalendarScreen` (`calendar-screen.tsx`: Month grid in `ADMIN_DAY_LOOK` beside "month at a
+  glance", or List from today for 12 months; view and month ride in the URL, `?from=calendar` on a
+  request makes Back return there), `PackagesScreen` (`packages-list.tsx`) and `PackageEditorScreen`
+  (`package-editor.tsx`: explicit Save, unsaved-changes Dialog on Discard and same-site links,
+  `beforeunload`; reports back to the list with `?done=added|saved|deleted|hidden&name=`),
+  `ContentScreen` (`content-screen.tsx`: gallery cards and testimonials edited in place; a new
+  testimonial is a local draft until Add), `SettingsScreen` (`settings-screen.tsx`: four rules with
+  debounced, serialized saves that revert to the server value on failure; email saves on blur).
+  `list-tools.tsx`: `useSerial` (one write at a time), `useReorder` + `OrderArrows` (arrow ordering,
+  optimistic, reload on failure), `useUpload` + `PhotoPicker` (browser pre-check, then upload; a
+  failed upload probes the session so a 401 still logs out), `iconBtn`.
+  Admin body text is `type-admin-body`; fields `size="sm"`, buttons `size="sm"`; blocks are
+  `ink-raised` + `rounded-card-sm`. No `<main>` inside the admin (the root layout has one).
+- Magnetic pull is opt-in: wrap a Button in `components/magnetic.tsx` (marketing only). Wrapped today:
+  hero `action`, header "Check a date" (desktop), CtaBand button, landing package "Book this".
+- Site-wide motion (public pages only, all off under reduced motion):
+  - Preloader (`components/preloader.tsx`): first visit per session, never on /admin, /catering/book,
+    /booking, /account. An inline script sets `<html data-preload="cover">` before first paint;
+    globals.css shows `.preloader`, locks scroll and pauses CSS animations in `<main>` (the hero
+    letters) until it becomes "lift"; removed when done. No attribute = hero runs at once.
+  - Page transition (`app/template.tsx`): ember + ink-raised panels with `routeName()` (lib/content.ts)
+    cover the new page and slide away on a pathname change. Not on first load, /admin, query or state
+    changes. Children are never wrapped (fixed elements stay pinned).
+  - Cursor (`components/cursor.tsx`, mounted in the layout): ember dot, grows to a label over any
+    `data-cursor="View"` (landing package cards, gallery cards, linked list rows). Fine pointers only;
+    off on /admin, booking, status and account pages.
+  - Hover photo trail (`components/photo-trail.tsx`): wraps one section per page (IntroLead today).
+  - Footer slide-out: content held still while the footer scrolls in (transform only, `.rm-static`).
+- Icons: `lucide-react`, 16px, `strokeWidth={1.75}`. No emoji.
+
+## Rules that are easy to get wrong
+
+- Labels on ember, ember-bright and cream fills are ink (`#0B0908`), never cream.
+- On cream bands the accent word uses heat red, not ember.
+- Error wording is cream with a heat-red border and icon. Heat red is never small text.
+- Form fields get a `cream-faint` border. `ink-line` is decorative only.
+- Statuses and calendar days must differ by shape, pattern or icon as well as colour.
+- Bricolage Grotesque must be loaded with the `wdth` axis and set at width 80, weight 800, uppercase.
+- The footer brand name is shown whole and scaled to the content width. The typeface has an
+  optical-size axis, so measure and scale more than once.
+- Admin: display face only on page titles, tile numbers, date blocks and the payment headline.
+  No grain, glows or parallax.
+- Every motion effect is off under reduced motion. Cursor and hover-photo effects run only on
+  fine pointers. Booking, account, status and admin use fades and short slides only.
+- Tap targets are at least 44px. Focus rings are 3px ember (ink on cream bands).
+- No prices anywhere public. Booking numbers (notice, window, hold, cutoff) come from settings.
+- `cn()` (tailwind-merge) does not know the custom tokens: do not rely on it to override
+  `rounded-card-*`, `py-section`, `h-control` etc. Pass one value, not two.
+
+## Copy tone
+
+Sparse, confident, sensory. Short lines. Write like a menu, not a brochure. Say "we" and
+"you". Buttons are two or three words. Dates in words, references in capitals.
+
+No em dashes, no "statement, dash, elaboration". No exclamation marks, no emoji.
+Errors say what happened and what to do next.
+
+Frame the past ventures (The Bun Theory, The Weekend Grill) as a proven track record,
+never as "experiments" or "side projects".

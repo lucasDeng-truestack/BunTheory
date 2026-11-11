@@ -241,8 +241,8 @@ export function TrackOrderView() {
         <div className="rounded-4xl border-2 border-bun-ink bg-white p-6 text-center text-bun-ink-soft shadow-sticker">
           <p className="font-display text-lg font-bold text-bun-ink">No active orders for this number</p>
           <p className="mt-2 text-base">
-            If your order is already completed, it won&apos;t appear here. Check WhatsApp
-            for your confirmation.
+            If your order is already completed, it won&apos;t appear here. Check that this is
+            the number you ordered with.
           </p>
           {lastUpdated && (
             <p className="text-fine-print mt-3">

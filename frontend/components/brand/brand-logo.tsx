@@ -32,7 +32,7 @@ function resolveImageSrc(src: string): string {
   const s = src.trim();
   if (/^https?:\/\//i.test(s)) return s;
   if (s.startsWith("/")) {
-    const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(
+    const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3101").replace(
       /\/$/,
       ""
     );

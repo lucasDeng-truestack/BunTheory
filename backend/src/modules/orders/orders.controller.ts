@@ -12,7 +12,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { TrackOrderQueryDto } from './dto/track-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 
 @Controller('orders')
 export class OrdersController {
@@ -40,7 +40,7 @@ export class OrdersController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   findAll(
     @Query('date') date?: string,
     @Query('customer') customer?: string,
@@ -59,7 +59,7 @@ export class OrdersController {
 
   /** Admin: count of orders with status other than DELIVERED (sidebar badge). */
   @Get('pending-count')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   pendingCount() {
     return this.ordersService.countNonDelivered();
   }
@@ -70,7 +70,7 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminAuthGuard)
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,

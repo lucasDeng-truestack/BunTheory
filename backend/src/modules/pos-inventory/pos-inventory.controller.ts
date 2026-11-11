@@ -9,14 +9,14 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { SetProductIngredientsDto } from './dto/set-product-ingredients.dto';
 import { PosInventoryService } from './pos-inventory.service';
 
 @Controller('pos/inventory')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class PosInventoryController {
   constructor(private readonly inventoryService: PosInventoryService) {}
 

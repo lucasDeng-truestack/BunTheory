@@ -1,0 +1,18 @@
+<!-- @dsCard group="Booking" height=170 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-pad">
+<div class="br-field">
+  <span class="br-label" id="gl">How many guests?</span>
+  <div class="br-stepper" role="group" aria-labelledby="gl">
+    <button id="minus" aria-label="Fewer guests">&minus;</button>
+    <output id="out" aria-live="polite">40</output>
+    <button id="plus" aria-label="More guests">+</button>
+  </div>
+  <p class="br-help">The Feast serves 20 to 80 guests.</p>
+</div>
+<script>
+(function(){var v=40,min=20,max=80,o=document.getElementById('out'),m=document.getElementById('minus'),p=document.getElementById('plus');
+function r(){o.textContent=v;m.disabled=v<=min;p.disabled=v>=max}
+m.onclick=function(){v=Math.max(min,v-5);r()};p.onclick=function(){v=Math.min(max,v+5);r()};r()})();
+</script>
+</body></html>

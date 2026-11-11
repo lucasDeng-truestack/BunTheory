@@ -10,13 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PosOrderStatus } from '@prisma/client';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { CreatePosOrderDto } from './dto/create-pos-order.dto';
 import { UpdatePosPaymentDto } from './dto/update-pos-payment.dto';
 import { PosOrdersService } from './pos-orders.service';
 
 @Controller('pos/orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminAuthGuard)
 export class PosOrdersController {
   constructor(private readonly posOrdersService: PosOrdersService) {}
 

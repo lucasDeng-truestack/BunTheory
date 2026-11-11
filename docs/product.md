@@ -31,7 +31,17 @@ Single-restaurant ordering (GrabFood-style flow) for **The Bun Theory by Bakar &
 
 ## Notifications
 
-- WhatsApp (Twilio) for admin/customer notifications as configured in environment variables. See the root [`README.md`](../README.md) for WhatsApp setup.
+- The Bun Theory ordering app sends no automated admin or customer messages. Order status is shown on the order tracking page.
+- Bakar & Roast catering sends email through Resend (request received, approved, declined, cancelled, expired; new request and customer cancellation to the owner). With no `RESEND_API_KEY` the API runs and emails are skipped.
+
+## Bakar & Roast catering bookings
+
+- Customers book on the Bakar & Roast site (`bakar-roast/`, port 3200): pick an open date, a package and headcount, give event and contact details. One event per day.
+- A new request is **PENDING** and holds its date at once. The owner calls the customer, then approves or declines in the admin. Statuses: PENDING, APPROVED, DECLINED, CANCELLED, EXPIRED, COMPLETED.
+- Rules the owner can change (`PATCH /settings/catering`): minimum notice (7 days), booking window (6 months), pending hold expiry (3 days), customer cancellation cutoff (7 days before the event), notification email.
+- A customer can have at most 2 pending requests (matched by email or phone).
+- No prices are shown to customers. The owner records quote, deposit and balance privately on the booking.
+- API lives in `backend/src/modules/catering/` (public routes under `/catering`, admin routes under `/catering/admin`). Full contract: [`bakar-roast-catering-plan.md`](./bakar-roast-catering-plan.md).
 
 ## Cart & menu (technical)
 

@@ -1,0 +1,20 @@
+<!-- @dsCard group="Actions" height=170 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-pad">
+<div class="br-stack">
+  <div class="br-row" role="radiogroup" aria-label="Occasion" id="g">
+    <button class="br-pill" role="radio" aria-checked="false">House gathering</button>
+    <button class="br-pill" role="radio" aria-checked="true">Celebration</button>
+    <button class="br-pill" role="radio" aria-checked="false">Community or church</button>
+    <button class="br-pill" role="radio" aria-checked="false">Corporate</button>
+    <button class="br-pill" role="radio" aria-checked="false">Something else</button>
+  </div>
+  <div class="br-row">
+    <span class="br-chip">Now booking</span>
+    <span class="br-chip br-chip--cream">Next open date: Sat 12 Dec</span>
+  </div>
+</div>
+<script>
+document.querySelectorAll('#g .br-pill').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#g .br-pill').forEach(function(x){x.setAttribute('aria-checked',x===b)})})});
+</script>
+</body></html>

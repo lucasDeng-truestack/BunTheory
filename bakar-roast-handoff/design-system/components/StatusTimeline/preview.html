@@ -1,0 +1,28 @@
+<!-- @dsCard group="Booking" height=560 -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Figtree:wght@400..800&display=swap"></head>
+<body class="br-pad">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:start">
+  <section class="br-stack">
+    <span class="br-status br-status--pending"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>Pending</span>
+    <h2 class="br-display" style="font-size:40px">We have your <em>request.</em></h2>
+    <div class="br-ref" style="font-size:32px">BR-7K2M9Q</div>
+    <ol class="br-track">
+      <li class="is-done"><b>Request sent</b><span>Tuesday 10 November</span></li>
+      <li aria-current="step"><b>We call you</b><span>Date held until Friday 13 November</span></li>
+      <li><b>Confirmed</b><span>After we agree the menu and quote</span></li>
+      <li><b>We cook</b><span>Saturday 12 December 2026</span></li>
+    </ol>
+    <button class="br-btn br-btn--ghost" style="justify-self:start">Cancel request</button>
+  </section>
+  <section class="br-stack">
+    <span class="br-status br-status--declined"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 4l8 8M12 4l-8 8"/></svg>Declined</span>
+    <h2 class="br-display" style="font-size:40px">We cannot take <em>this one.</em></h2>
+    <p class="br-muted" style="margin:0">Thank you for asking us. "We are away that weekend."</p>
+    <ol class="br-track">
+      <li class="is-done"><b>Request sent</b><span>Tuesday 10 November</span></li>
+      <li class="is-stopped"><b>Declined</b><span>Wednesday 11 November</span></li>
+    </ol>
+    <a class="br-btn br-btn--ember" href="#" style="justify-self:start">Pick another date <span class="br-btn__chip"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+  </section>
+</div>
+</body></html>

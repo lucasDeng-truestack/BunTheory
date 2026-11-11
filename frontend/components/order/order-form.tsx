@@ -231,13 +231,13 @@ export function OrderForm({
       let payNowMsg: string;
       if (payNowWithReceipt) {
         payNowMsg =
-          "We received your payment proof — we'll confirm on WhatsApp.";
+          "We received your payment proof. Track your order status on the Track page.";
       } else if (payNowPendingReceipt) {
         payNowMsg = openedWa
           ? "We opened WhatsApp — send your receipt there with your order number."
           : "Send your payment receipt on WhatsApp with your order number from the next screen.";
       } else {
-        payNowMsg = "You'll receive a WhatsApp confirmation shortly.";
+        payNowMsg = "Track your order status on the Track page.";
       }
       toast.success("Order placed!", { description: payNowMsg });
       router.push(`/order/success?id=${order.id}`);
