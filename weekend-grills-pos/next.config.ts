@@ -19,8 +19,8 @@ function uploadRemotePatterns(): RemotePattern[] {
     dedupe.set(key, pattern);
   }
 
-  add("http", "localhost", "3001");
-  add("http", "127.0.0.1", "3001");
+  add("http", "localhost", "3101");
+  add("http", "127.0.0.1", "3101");
 
   const base = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (base) {

@@ -5,7 +5,7 @@ import { io, type Socket } from "socket.io-client";
 import type { Order } from "@/types/order";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3101";
 
 type Handlers = {
   onCreated?: (order: Order) => void;

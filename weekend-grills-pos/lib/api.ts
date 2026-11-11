@@ -1,6 +1,6 @@
 import { handleUnauthorized } from '@/lib/auth-session';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3101';
 
 export function getApiUrl(path: string) {
   return `${API_BASE}${path}`;

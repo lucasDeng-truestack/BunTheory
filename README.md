@@ -52,14 +52,14 @@ npm run db:seed
 npm run start:dev
 ```
 
-Backend runs at http://localhost:3001
+Backend runs at http://localhost:3101
 
 ### 2. Frontend
 
 ```bash
 cd frontend
 cp .env.local.example .env.local
-# Set NEXT_PUBLIC_API_URL=http://localhost:3001
+# Set NEXT_PUBLIC_API_URL=http://localhost:3101
 npm install
 npm run dev
 ```

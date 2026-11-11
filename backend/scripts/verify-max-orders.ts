@@ -2,9 +2,9 @@
  * Verification script for max items (burgers) per day limit.
  * Run: npx ts-node scripts/verify-max-orders.ts
  *
- * Requires: API running at localhost:3001, menu items in DB
+ * Requires: API running at localhost:3101, menu items in DB
  */
-const API = process.env.API_URL || 'http://localhost:3001';
+const API = process.env.API_URL || 'http://localhost:3101';
 
 async function getCanOrder() {
   const res = await fetch(`${API}/orders/can-order`);

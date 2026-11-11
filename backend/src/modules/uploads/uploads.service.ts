@@ -8,7 +8,7 @@ export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
   private uploadDir: string;
   private readonly bucket = process.env.S3_BUCKET?.trim() ?? '';
-  private readonly publicUrl = (process.env.PUBLIC_URL || 'http://localhost:3001/uploads')
+  private readonly publicUrl = (process.env.PUBLIC_URL || 'http://localhost:3101/uploads')
     .trim()
     .replace(/\/+$/, '');
   private readonly s3Client: S3Client | null;

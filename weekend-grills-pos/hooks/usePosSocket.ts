@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { PosOrder } from '@/types/pos';
 
-const WS_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const WS_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3101';
 
 interface PosSocketOptions {
   onOrderCreated?: (order: PosOrder) => void;
