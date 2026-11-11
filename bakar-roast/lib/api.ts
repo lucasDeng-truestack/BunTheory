@@ -38,7 +38,9 @@ export async function api<T>(
     const message = Array.isArray(raw) ? raw.join(" ") : String(raw || res.statusText);
     throw new ApiError(message || "Request failed", res.status, err?.code);
   }
-  return res.json();
+  // Some endpoints (e.g. DELETE /batches/:id) answer 200 with no body.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 // ─── Catering contract. Mirrors backend/src/modules/catering/catering.types.ts ───

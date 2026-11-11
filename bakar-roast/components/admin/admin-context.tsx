@@ -13,6 +13,9 @@ export type AdminContextValue = {
   /** Pending requests, null until the first count arrives. Polled every 60s. */
   pending: number | null;
   refreshPending: () => void;
+  /** Bun Theory orders not yet delivered, null until the first count arrives. Polled with pending. */
+  ordersPending: number | null;
+  refreshOrdersPending: () => void;
   /**
    * Call the API with the token. A 401 ends the session (keys cleared, off to the login with
    * "Your session ended") and the promise rejects; every other error is the caller's.

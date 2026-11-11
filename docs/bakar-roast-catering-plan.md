@@ -325,7 +325,8 @@ Run 2 (Bakar & Roast UI, after the Claude Design output). All `implementer-opus`
 | U8 Admin catering screens | `app/admin/page.tsx` (requests), `bookings/[id]`, `calendar`, `packages`, `gallery`, `settings` | U7 |
 
 Run 3: one unit per Bun Theory admin screen group, moved into the U7 shell and restyled dark;
-then delete `frontend/app/admin` and `frontend/components/admin`. Planned in detail when run 2 is done.
+then delete `frontend/app/admin` and `frontend/components/admin`. Planned in detail in
+"Run 3 plan" at the end of this file.
 
 ## Orchestrator-owned work (run 1)
 
@@ -379,3 +380,114 @@ Form states to cover everywhere: empty, focus, invalid, submitting, success, ser
 7. Resend needs a verified sending domain and an API key from you before emails actually send.
 8. Added after approval: the 2-pending-requests cap per customer and expiry on the status read.
 9. Out of scope: online payment, customer accounts, multiple events per day, automatic reminders.
+
+## Run 3 plan: move the Bun Theory admin into the Bakar & Roast admin
+
+Planned 2026-11-11 after run 2 was committed (`dd72167`). Not started.
+
+### Decisions taken
+
+1. The Bun Theory screens get their own group under `/admin/bun-theory/*`, listed below
+   Catering in the side menu.
+2. Roles are set later. For now every staff login sees the same menu, and access stays
+   as it is today: the backend already limits catering screens to OWNER and MANAGER,
+   and Bun Theory routes accept any staff login.
+3. The storefront's `/admin/*` redirects to the Bakar & Roast admin. The old admin code and
+   the packages only it used are deleted.
+4. Staff management becomes one shared **Team** screen (`/admin/team`). The sidebar
+   logo and name setting ("Company info") is dropped, because the admin is now Bakar & Roast
+   branded. Payment QR, kitchen capacity, minimum delivery, ordering on/off and outlet stay in
+   Bun Theory settings.
+
+### Screens
+
+| Old (`frontend/app/admin`) | New (`bakar-roast/app/admin`) |
+|---|---|
+| `dashboard` | `bun-theory` (overview) |
+| `board` (Socket.io, sound on new order) | `bun-theory/board` |
+| `orders`, `orders/[id]` | `bun-theory/orders`, `bun-theory/orders/[id]` |
+| `payments` (receipts) | `bun-theory/receipts` |
+| `batches` | `bun-theory/batches` |
+| `menu` (editor and item dialog) | `bun-theory/menu` |
+| `feedback` | `bun-theory/feedback` |
+| `settings` (minus Company info and Admin access) | `bun-theory/settings` |
+| `settings` Admin access | `team` |
+
+### Backend change
+
+- The `/orders` socket accepts anyone and sends every order, with the customer's name,
+  phone number and address, to whoever connects. Require a staff session token in the
+  connection handshake and limit allowed origins to the CORS list.
+- Later, with roles: `@Roles` on Bun Theory routes, a role-filtered menu, who may change
+  another staff member's password, and whether a MANAGER may create an OWNER.
+
+### Units (one at a time)
+
+| Unit | Work | Tier |
+|---|---|---|
+| R3-0 Contract (orchestrator) | Order, batch, menu, feedback and storefront-settings types plus calls in `bakar-roast/lib`, mirrored from `frontend/types` and `frontend/services`; the Bun Theory nav group in `components/admin/nav.ts`; install `socket.io-client` | — |
+| R3-1 Socket auth | The backend change above | opus-high |
+| R3-2 Shell | Bun Theory group in the menu and phone drawer, pending-orders badge | opus |
+| R3-3 Orders and receipts | Orders list, order detail with receipt, receipts screen | opus |
+| R3-4 Live board | Socket with token, new-order sound, status moves | opus-high (realtime) |
+| R3-5 Batches | List, create, publish, close, reopen, delete | opus-high (capacity and batch rules) |
+| R3-6 Menu | Editor, item dialog with option groups and image upload | opus |
+| R3-7 Overview and feedback | Dashboard numbers, chart, top items, feedback list | opus |
+| R3-8 Settings and Team | Bun Theory settings; the shared Team screen | opus |
+| R3-9 Remove old admin (orchestrator) | Storefront redirect `/admin/:path*`, delete old admin files and the services, hooks and packages only it used | — |
+
+### Verify
+
+- `npx tsc --noEmit` in `backend`, `bakar-roast` and `frontend`, plus `npm run lint` in
+  `frontend`.
+- Live checks:
+  - A socket connection without a token is refused.
+  - A storefront order shows on the board in real time.
+  - Opening and closing a batch changes whether the storefront takes orders.
+- Browser: each new screen at phone and desktop width, no console errors. The old
+  `localhost:3000/admin` redirects.
+- `code-review` high on the run 3 changes, at most 3 cycles.
+
+### Assumptions to confirm
+
+1. The live board keeps its sound alert.
+2. Each Bun Theory screen keeps the features it has today; the redesign changes how it
+   looks, not what it does.
+
+## Run 3 as built (2026-11-11)
+
+All the Bun Theory admin screens now live in the Bakar & Roast admin. The storefront's
+`/admin/*` redirects there.
+
+- **Routes:**
+  - Under `/admin/bun-theory`: overview, `board`, `orders`, `orders/[id]`, `receipts`,
+    `batches`, `menu` (`new` and `[id]` editors), `feedback`, `settings`.
+  - Shared staff management is at `/admin/team`.
+  - The side menu has three groups, Catering, The Bun Theory and Staff, and is the same for
+    every staff login. Roles come later.
+- **Code:**
+  - Calls are in `bakar-roast/lib/bun-theory-api.ts`, and pure helpers (money in cents,
+    Malaysia time) in `lib/bun-theory.ts`.
+  - Screens are in `components/admin/bun-theory/`, plus `components/admin/team-screen.tsx`.
+  - The live board socket is `lib/use-orders-socket.ts`.
+- **Backend:**
+  - The `/orders` and `/pos` sockets need a staff session (`common/staff-socket.ts`). They
+    only accept our own sites, and they re-check open connections every minute.
+  - `pending-count` no longer counts completed or cancelled orders.
+  - A Pay now receipt URL must be an `/uploads/` path or an https URL.
+  - Clearing a menu item's description or image stores null.
+- **Storefront:**
+  - The old admin, its services and the admin-only helpers are deleted.
+  - `next.config.mjs` redirects to `BAKAR_ROAST_URL`. Its uploads image host now follows
+    `NEXT_PUBLIC_API_URL`; it was still on port 3001.
+  - `frontend/hooks/use-orders-socket.ts` is unused and still to delete (with
+    `socket.io-client`).
+- **Behaviour changes, agreed with the owner:**
+  - The order detail shows a full money breakdown, plus Call and WhatsApp buttons.
+  - Batch times are entered in Malaysia time.
+  - Settings save as you go.
+  - Overview revenue leaves out cancelled orders.
+- **Later:**
+  - Roles: menu filtered by role, and `@Roles` on Bun Theory routes.
+  - Who may change another person's password, and whether a manager may create an owner.
+  - Pending-count is refreshed twice per status change on the board, which is minor.

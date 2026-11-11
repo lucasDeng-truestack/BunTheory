@@ -7,6 +7,7 @@ import { useLenis } from "lenis/react";
 import { motion } from "motion/react";
 import { ArrowLeft, Ellipsis, X } from "lucide-react";
 import { adminPendingCount } from "@/lib/catering-api";
+import { ordersPendingCount } from "@/lib/bun-theory-api";
 import {
   clearSession,
   EXPIRED_PATH,
@@ -22,7 +23,17 @@ import { Skeleton } from "@/components/ui/banner";
 import { StatusChip } from "@/components/ui/status-chip";
 import { AdminContext, type AdminContextValue, type TopBar } from "@/components/admin/admin-context";
 import { PendingBadge } from "@/components/admin/admin-page";
-import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS } from "@/components/admin/nav";
+import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS, type AdminNavItem } from "@/components/admin/nav";
+
+type Counts = { pending: number | null; ordersPending: number | null };
+
+/** The badge on one menu item, or nothing. */
+function NavBadge({ item, counts, className }: { item: AdminNavItem; counts: Counts; className?: string }) {
+  if (item.badge === "catering") return <PendingBadge count={counts.pending} className={className} />;
+  if (item.badge === "orders")
+    return <PendingBadge count={counts.ordersPending} label="not delivered" className={className} />;
+  return null;
+}
 
 const POLL_MS = 60_000;
 
@@ -57,6 +68,7 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
   const router = useRouter();
   const pathname = usePathname() ?? "/admin";
   const [pending, setPending] = useState<number | null>(null);
+  const [ordersPending, setOrdersPending] = useState<number | null>(null);
   const [topBar, setTopBar] = useState<TopBar | null>(null);
   const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
   const [hasActionBar, setHasActionBar] = useState(false);
@@ -90,11 +102,23 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
     );
   }, [run]);
 
+  const refreshOrdersPending = useCallback(() => {
+    if (gone.current) return;
+    run(ordersPendingCount).then(
+      (r) => setOrdersPending(r.count),
+      () => {},
+    );
+  }, [run]);
+
   useEffect(() => {
-    refreshPending();
-    const t = setInterval(refreshPending, POLL_MS);
+    const tick = () => {
+      refreshPending();
+      refreshOrdersPending();
+    };
+    tick();
+    const t = setInterval(tick, POLL_MS);
     return () => clearInterval(t);
-  }, [refreshPending]);
+  }, [refreshPending, refreshOrdersPending]);
 
   useEffect(() => setDrawer(false), [pathname]);
 
@@ -110,16 +134,21 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
       admin: session.admin,
       pending,
       refreshPending,
+      ordersPending,
+      refreshOrdersPending,
       run,
       signOut,
       setTopBar,
       actionSlot,
       setHasActionBar,
     }),
-    [session, pending, refreshPending, run, signOut, actionSlot],
+    [session, pending, refreshPending, ordersPending, refreshOrdersPending, run, signOut, actionSlot],
   );
+  const counts: Counts = { pending, ordersPending };
 
   const section = currentItem(pathname);
+  // The phone header shows the count for the group you are in: requests in Catering, orders in The Bun Theory.
+  const groupBadge = ADMIN_NAV.find((g) => section && g.items.includes(section))?.items.find((i) => i.badge);
   const onTab = TAB_HREFS.some((h) => isCurrent(pathname, h));
 
   return (
@@ -129,7 +158,7 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
           data-lenis-prevent
           className="fixed inset-y-0 left-0 z-40 hidden w-64 overflow-y-auto border-r border-ink-line bg-ink-soft lg:block"
         >
-          <SideNav pathname={pathname} pending={pending} session={session} onSignOut={signOut} />
+          <SideNav pathname={pathname} counts={counts} session={session} onSignOut={signOut} />
         </aside>
 
         <div className="lg:pl-64">
@@ -144,9 +173,9 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
               </Link>
             )}
             <p className="m-0 mr-auto min-w-0 truncate font-display text-2xl font-extrabold uppercase leading-none [font-stretch:80%]">
-              {topBar?.title ?? section?.label ?? "Admin"}
+              {topBar?.title ?? section?.title ?? section?.label ?? "Admin"}
             </p>
-            {topBar?.status ? <StatusChip status={topBar.status} /> : !topBar && <PendingBadge count={pending} />}
+            {topBar?.status ? <StatusChip status={topBar.status} /> : !topBar && groupBadge && <NavBadge item={groupBadge} counts={counts} />}
           </header>
 
           <div
@@ -183,7 +212,7 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
                 >
                   <Icon aria-hidden size={20} strokeWidth={1.6} className={cn(current && "text-ember")} />
                   {item.label}
-                  {item.pendingBadge && <PendingBadge count={pending} className="absolute left-[calc(50%+6px)] top-1" />}
+                  <NavBadge item={item} counts={counts} className="absolute left-[calc(50%+6px)] top-1" />
                 </Link>
               );
             })}
@@ -209,7 +238,7 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
         />
 
         <Drawer open={drawer} onClose={() => setDrawer(false)}>
-          <SideNav pathname={pathname} pending={pending} session={session} onSignOut={signOut} />
+          <SideNav pathname={pathname} counts={counts} session={session} onSignOut={signOut} />
         </Drawer>
       </div>
     </AdminContext.Provider>
@@ -218,12 +247,12 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
 
 function SideNav({
   pathname,
-  pending,
+  counts,
   session,
   onSignOut,
 }: {
   pathname: string;
-  pending: number | null;
+  counts: Counts;
   session: AdminSession;
   onSignOut: () => void;
 }) {
@@ -236,7 +265,7 @@ function SideNav({
       >
         Bakar <span className="text-ember">&amp;</span> Roast
       </Link>
-      <p className="m-0 px-3 pb-3 text-xs text-cream-faint">Owner admin</p>
+      <p className="m-0 px-3 pb-3 text-xs text-cream-faint">Admin</p>
       {ADMIN_NAV.map((g) => (
         <div key={g.group} className="grid gap-0.5">
           <p className="type-admin-meta m-0 px-3 pb-1.5 pt-3.5 text-cream-faint">{g.group}</p>
@@ -259,7 +288,7 @@ function SideNav({
                   <Icon aria-hidden size={20} strokeWidth={1.6} className={cn("flex-none", current && "text-ember")} />
                   {item.label}
                 </span>
-                {item.pendingBadge && <PendingBadge count={pending} />}
+                <NavBadge item={item} counts={counts} />
               </Link>
             );
           })}
@@ -360,7 +389,7 @@ function ShellSkeleton() {
     <div aria-busy="true" className="min-h-screen bg-ink">
       <div className="fixed inset-y-0 left-0 hidden w-64 border-r border-ink-line bg-ink-soft p-6 lg:grid lg:content-start lg:gap-4">
         <Skeleton className="h-7 w-40" />
-        {Array.from({ length: 6 }, (_, i) => (
+        {Array.from({ length: 8 }, (_, i) => (
           <Skeleton key={i} className="h-9 w-full" />
         ))}
       </div>

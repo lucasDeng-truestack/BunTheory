@@ -53,10 +53,14 @@ export class OrdersService {
     return ctx.current;
   }
 
-  /** Orders still needing attention (not completed / delivered). */
+  /** Orders still needing attention: everything except delivered, completed and cancelled. */
   async countNonDelivered(): Promise<{ count: number }> {
     const count = await this.prisma.order.count({
-      where: { status: { not: OrderStatus.DELIVERED } },
+      where: {
+        status: {
+          notIn: [OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+        },
+      },
     });
     return { count };
   }
@@ -297,6 +301,16 @@ export class OrdersService {
         // Receipt is mandatory when paying by QR (revamp: no WhatsApp fallback).
         throw new BadRequestException(
           'Please upload your payment receipt to pay by QR.',
+        );
+      }
+      // Only what POST /uploads/payment-receipt returns: a local /uploads/ path or an
+      // https storage URL. Staff open this link, so never accept javascript: or data:.
+      if (
+        !/^\/uploads\/[^\s]+$/.test(paymentReceiptUrl) &&
+        !/^https:\/\/[^\s]+$/i.test(paymentReceiptUrl)
+      ) {
+        throw new BadRequestException(
+          'Please upload your payment receipt again.',
         );
       }
     } else if (dto.receiptUrl?.trim()) {

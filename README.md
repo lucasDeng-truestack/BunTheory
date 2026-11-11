@@ -1,6 +1,6 @@
 # The Bun Theory by Bakar & Roast
 
-A lightweight GrabFood-style food ordering system for a single restaurant. Customers order **without an account** (name and phone at checkout). Staff use an **admin area** to manage orders and the menu.
+A lightweight GrabFood-style food ordering system for a single restaurant. Customers order **without an account** (name and phone at checkout). Staff manage orders and the menu in the Bakar & Roast admin (`bakar-roast/`, `/admin/bun-theory`).
 
 ## Documentation
 
@@ -67,7 +67,7 @@ Frontend runs at http://localhost:3000
 
 ### 3. Admin access
 
-- **Customer site** has no login; do not link the admin UI from public pages. Bookmark the admin URL (e.g. `/admin/...`) for staff only — see [docs/product.md](docs/product.md).
+- **Customer site** has no login; do not link the admin UI from public pages. The admin now lives in `bakar-roast/` at `/admin`; the storefront's `/admin/...` redirects there — see [docs/product.md](docs/product.md).
 - **Admin login** (for protected API routes), if enabled in your build:
   - Email: `admin@buntheory.com`
   - Password: `admin123`

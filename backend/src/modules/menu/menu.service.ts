@@ -167,9 +167,10 @@ export class MenuService {
     const data: Prisma.MenuUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.slug !== undefined) data.slug = dto.slug;
-    if (dto.description !== undefined) data.description = dto.description;
+    // An empty string clears the field.
+    if (dto.description !== undefined) data.description = dto.description.trim() || null;
     if (dto.price !== undefined) data.price = new Prisma.Decimal(dto.price);
-    if (dto.image !== undefined) data.image = dto.image;
+    if (dto.image !== undefined) data.image = dto.image.trim() || null;
     if (dto.isFavorite !== undefined) data.isFavorite = dto.isFavorite;
     if (dto.available !== undefined) data.available = dto.available;
     if (dto.category !== undefined) {

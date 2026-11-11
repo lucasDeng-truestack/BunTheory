@@ -61,11 +61,20 @@ export function AdminActionBar({ children }: { children: ReactNode }) {
 }
 
 /** The ember count badge. Hidden at zero. */
-export function PendingBadge({ count, className }: { count: number | null | undefined; className?: string }) {
+export function PendingBadge({
+  count,
+  className,
+  label = "pending",
+}: {
+  count: number | null | undefined;
+  className?: string;
+  /** Read after the number by screen readers: "3 pending", "2 not delivered". */
+  label?: string;
+}) {
   if (!count) return null;
   return (
     <span
-      aria-label={`${count} pending`}
+      aria-label={`${count} ${label}`}
       className={cn(
         "inline-block h-5 min-w-5 rounded-[10px] bg-ember px-1.5 text-center text-xs font-bold not-italic leading-5 text-ink",
         className,
