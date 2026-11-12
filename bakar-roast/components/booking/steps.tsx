@@ -1,12 +1,12 @@
 "use client";
 
-import type { KeyboardEvent, ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import type { CateringAvailability, CateringPackagePublic } from "@/lib/api";
 import type { CateringRules } from "@/lib/catering-api";
 import { bookingCopy, waLink } from "@/lib/content";
 import { formatLong } from "@/lib/dates";
 import {
-  DELIVERY_SLOTS,
+  DELIVERY_PERIODS,
   formatRm,
   formatTime12,
   joinAddress,
@@ -18,8 +18,9 @@ import {
 } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 import { Field, SelectField, TextareaField } from "@/components/ui/field";
+import { Pill } from "@/components/ui/pill";
 import { GuestStepper } from "@/components/ui/guest-stepper";
-import { Banner } from "@/components/ui/banner";
+import { Banner, ErrorMark } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "@/components/sections/package-card";
 import { accent } from "@/components/sections/accent";
@@ -198,18 +199,14 @@ export function StepDetails({
         <h2 id="bk-delivery-h" className={heading}>
           Delivery
         </h2>
-        <div className="grid items-start gap-5 sm:grid-cols-2">
-          <SelectField {...select("serviceTime")} label="Delivery time" help="When the food should reach you.">
-            <option value="" disabled>
-              Pick a time
-            </option>
-            {DELIVERY_SLOTS.map((t) => (
-              <option key={t} value={t}>
-                {formatTime12(t)}
-              </option>
-            ))}
-          </SelectField>
-        </div>
+        <DeliveryTimePicker
+          value={answers.serviceTime}
+          error={errors.serviceTime}
+          onChange={(t) => {
+            onChange("serviceTime", t);
+            onBlur("serviceTime");
+          }}
+        />
         <Field
           {...text("addressLine1")}
           label="Address line 1"
@@ -310,6 +307,92 @@ export function StepDetails({
         className="absolute -left-[10000px] h-px w-px overflow-hidden opacity-0"
       />
     </form>
+  );
+}
+
+/**
+ * Delivery time in two taps: a part of the day, then one of its few slots. No long list,
+ * so it stays easy on a phone. The first pill carries the field id for error focus.
+ */
+function DeliveryTimePicker({
+  value,
+  error,
+  onChange,
+}: {
+  value: string;
+  error?: string;
+  onChange: (time: string) => void;
+}) {
+  const fromValue = DELIVERY_PERIODS.find((p) => p.slots.includes(value))?.key ?? null;
+  const [period, setPeriod] = useState<string | null>(fromValue);
+  const current = DELIVERY_PERIODS.find((p) => p.key === (period ?? fromValue));
+  const errorId = "bk-serviceTime-error";
+  return (
+    <div className="grid gap-3">
+      <span id="bk-time-label" className="text-sm font-semibold text-cream">
+        Delivery time
+        {value && <span className="font-normal text-cream-muted">: {formatTime12(value)}</span>}
+      </span>
+      <div
+        role="radiogroup"
+        aria-labelledby="bk-time-label"
+        aria-describedby={error ? errorId : undefined}
+        onKeyDown={radioArrows}
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      >
+        {DELIVERY_PERIODS.map((p, i) => {
+          const chosen = current?.key === p.key;
+          return (
+            <Pill
+              key={p.key}
+              id={i === 0 ? fieldId("serviceTime") : undefined}
+              mode="radio"
+              selected={chosen}
+              tabIndex={chosen || (!current && i === 0) ? 0 : -1}
+              onClick={() => setPeriod(p.key)}
+              className="justify-center"
+            >
+              <span className="grid leading-tight">
+                <span>{p.label}</span>
+                <span className="text-xs font-normal opacity-75">{p.range}</span>
+              </span>
+            </Pill>
+          );
+        })}
+      </div>
+      {current && (
+        <div
+          role="radiogroup"
+          aria-label={`${current.label} times`}
+          onKeyDown={radioArrows}
+          className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(112px,1fr))]"
+        >
+          {current.slots.map((t, i) => {
+            const chosen = value === t;
+            return (
+              <Pill
+                key={t}
+                mode="radio"
+                selected={chosen}
+                tabIndex={chosen || (!current.slots.includes(value) && i === 0) ? 0 : -1}
+                onClick={() => onChange(t)}
+                className="justify-center whitespace-nowrap px-3"
+              >
+                {formatTime12(t)}
+              </Pill>
+            );
+          })}
+        </div>
+      )}
+      {error ? (
+        <p id={errorId} className="type-small m-0 flex items-center gap-2 text-cream">
+          <ErrorMark />
+          {error}
+        </p>
+      ) : (
+        <p className="type-small m-0 text-cream-muted">When the food should reach you.</p>
+      )}
+    </div>
   );
 }
 

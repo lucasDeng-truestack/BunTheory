@@ -70,6 +70,14 @@ export function orderAmounts(
   return { total, half: Math.round(total / 2) };
 }
 
+/** Delivery times, grouped so the picker shows a few at a time. */
+export const DELIVERY_PERIODS: { key: string; label: string; range: string; slots: string[] }[] = [
+  { key: "morning", label: "Morning", range: "10 to 11:30 am", slots: ["10:00", "10:30", "11:00", "11:30"] },
+  { key: "lunch", label: "Lunch", range: "12 to 2:30 pm", slots: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30"] },
+  { key: "afternoon", label: "Afternoon", range: "3 to 5:30 pm", slots: ["15:00", "15:30", "16:00", "16:30", "17:00", "17:30"] },
+  { key: "evening", label: "Evening", range: "6 to 9 pm", slots: ["18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00"] },
+];
+
 /** Delivery slots offered in the time picker: 10:00 am to 9:00 pm, every 30 minutes. */
 export const DELIVERY_SLOTS: string[] = Array.from({ length: 23 }, (_, i) => {
   const mins = 10 * 60 + i * 30;
