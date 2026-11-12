@@ -13,6 +13,8 @@ import {
   type CateringGalleryImagePublic,
   type CateringPackageAdmin,
   type CateringPackagePublic,
+  type CateringPaymentChoice,
+  type CateringPriceUnit,
   type CateringTestimonialPublic,
 } from "./api";
 
@@ -43,6 +45,11 @@ export interface CateringRules {
 
 export interface CateringAdminSettings extends CateringRules {
   cateringNotifyEmail: string | null;
+  cateringDailySets: number;
+  cateringBankName: string | null;
+  cateringBankAccountName: string | null;
+  cateringBankAccountNumber: string | null;
+  cateringPaymentQrUrl: string | null;
 }
 
 export interface CreateBookingInput {
@@ -50,7 +57,7 @@ export interface CreateBookingInput {
   serviceTime: string; // HH:mm
   packageId: string;
   guests: number;
-  occasion: string;
+  paymentChoice: CateringPaymentChoice;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -76,6 +83,8 @@ export interface PackageInput {
   imageUrl?: string;
   minGuests: number;
   maxGuests?: number | null;
+  price?: number | null;
+  priceUnit?: CateringPriceUnit;
   isActive?: boolean;
   sortOrder?: number;
 }
@@ -115,6 +124,16 @@ export const createBooking = (input: CreateBookingInput, customerToken?: string)
 export const getBooking = (accessToken: string) =>
   api<CateringBookingPublic>(`/catering/bookings/${encodeURIComponent(accessToken)}`);
 
+/** Payment receipt from the booking page. JPG, PNG, WebP or PDF up to 5 MB. */
+export function uploadReceipt(accessToken: string, file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return api<CateringBookingPublic>(`/catering/bookings/${encodeURIComponent(accessToken)}/receipts`, {
+    method: "POST",
+    body,
+  });
+}
+
 export const cancelBooking = (accessToken: string) =>
   api<CateringBookingPublic>(`/catering/bookings/${encodeURIComponent(accessToken)}/cancel`, json("POST"));
 
@@ -141,7 +160,7 @@ export const adminGetBooking = (token: string, id: string) =>
 export const adminApprove = (
   token: string,
   id: string,
-  body: { quoteAmount?: number; depositAmount?: number; adminNotes?: string } = {},
+  body: { quoteAmount?: number; depositAmount?: number; adminNotes?: string; markPaid?: boolean } = {},
 ) => api<CateringBookingAdmin>(`/catering/admin/bookings/${id}/approve`, json("PATCH", body, token));
 
 export const adminDecline = (token: string, id: string, reason?: string) =>
@@ -179,6 +198,18 @@ export const adminBlockDate = (token: string, date: string, reason?: string) =>
 
 export const adminUnblockDate = (token: string, date: string) =>
   api<{ date: string }>(`/catering/admin/blocked-dates/${date}`, json("DELETE", undefined, token));
+
+/** Close every date from..to. Bookings already made stay. */
+export const adminCloseDays = (token: string, from: string, to: string, reason?: string) =>
+  api<CateringBlockedDate[]>("/catering/admin/days/close", json("POST", { from, to, reason }, token));
+
+/** Open every date from..to again. */
+export const adminOpenDays = (token: string, from: string, to: string) =>
+  api<{ opened: number }>("/catering/admin/days/open", json("POST", { from, to }, token));
+
+/** Sets for one day; null goes back to the default in Settings. */
+export const adminSetDaySets = (token: string, date: string, capacity: number | null) =>
+  api<{ date: string; capacity: number | null }>(`/catering/admin/days/${date}`, json("PATCH", { capacity }, token));
 
 export const adminListPackages = (token: string) =>
   api<CateringPackageAdmin[]>("/catering/admin/packages", { token });
@@ -233,7 +264,16 @@ export const adminGetSettings = (token: string) =>
 /** 400 INVALID_RULES when minimum notice is not shorter than the booking window. */
 export const adminUpdateSettings = (
   token: string,
-  input: Partial<CateringRules & { cateringNotifyEmail: string }>,
+  input: Partial<
+    CateringRules & {
+      cateringNotifyEmail: string;
+      cateringDailySets: number;
+      cateringBankName: string;
+      cateringBankAccountName: string;
+      cateringBankAccountNumber: string;
+      cateringPaymentQrUrl: string;
+    }
+  >,
 ) => api<CateringAdminSettings>("/settings/catering", json("PATCH", input, token));
 
 /** Multipart upload. JPG, PNG or WebP up to 5 MB. Errors are ApiError like every other call. */

@@ -149,7 +149,7 @@ export function TodayView({
                       <span className="grid min-w-0 gap-0.5">
                         <b className="text-base [overflow-wrap:anywhere]">{b.customerName}</b>
                         <span className="text-[13px] text-cream-muted [overflow-wrap:anywhere]">
-                          {b.packageName} · {plural(b.guests, "guest")} · {b.occasion}
+                          {b.packageName} · {b.guests} pax · {formatTime12(b.serviceTime)}
                         </span>
                         <span className={cn("text-[13px] font-semibold", hold.urgent ? "text-ember" : "text-cream")}>
                           Hold: {hold.text.toLowerCase()}

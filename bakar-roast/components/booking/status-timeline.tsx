@@ -4,12 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import type { CateringBookingPublic, CateringBookingStatus } from "@/lib/api";
 import { statusCopy } from "@/lib/content";
 import { formatDayMonth, formatLong, klYmd } from "@/lib/dates";
-import { formatTime12 } from "@/lib/booking";
+import { formatRm, formatTime12 } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { StatusChip, statusLabel } from "@/components/ui/status-chip";
 import { accent } from "@/components/sections/accent";
 import { SummaryCard } from "@/components/booking/booking-summary";
+import { PaymentPanel } from "@/components/booking/payment-panel";
 import { CancelBooking, DeadlinePassed, StatusFocus } from "@/components/booking/cancel-booking";
 
 type Dot = "done" | "current" | "ahead" | "stopped";
@@ -17,24 +18,28 @@ type TrackStep = { dot: Dot; title: string; line?: string };
 
 function track(b: CateringBookingPublic, heldUntil: string | null): TrackStep[] {
   const sent: TrackStep = { dot: "done", title: "Request sent", line: formatDayMonth(klYmd(b.createdAt)) };
-  const cook = formatLong(b.eventDate);
+  const delivery = `${formatLong(b.eventDate)}, ${formatTime12(b.serviceTime)}`;
   switch (b.status) {
-    case "PENDING":
+    case "PENDING": {
+      const sentReceipt = b.receipts.length > 0;
       return [
         sent,
-        { dot: "current", title: "We call you", line: heldUntil ? `Date held until ${heldUntil}` : undefined },
-        { dot: "ahead", title: "Confirmed", line: "After we agree the menu and quote" },
-        { dot: "ahead", title: "We cook", line: cook },
+        sentReceipt
+          ? { dot: "done", title: "Receipt sent", line: "We are checking it" }
+          : { dot: "current", title: "Pay and upload the receipt", line: heldUntil ? `Spot held until ${heldUntil}` : undefined },
+        { dot: sentReceipt ? "current" : "ahead", title: "Confirmed", line: "Once we see your payment" },
+        { dot: "ahead", title: "We deliver", line: delivery },
       ];
+    }
     case "APPROVED":
       return [
         sent,
-        { dot: "done", title: "We called you", line: "Menu and quote agreed" },
+        { dot: "done", title: "Paid" },
         { dot: "done", title: "Confirmed" },
-        { dot: "current", title: "We cook", line: cook },
+        { dot: "current", title: "We deliver", line: delivery },
       ];
     case "COMPLETED":
-      return [sent, { dot: "done", title: "Confirmed" }, { dot: "done", title: "We cooked", line: cook }];
+      return [sent, { dot: "done", title: "Confirmed" }, { dot: "done", title: "Delivered", line: delivery }];
     default:
       return [sent, { dot: "stopped", title: statusLabel(b.status) }];
   }
@@ -139,11 +144,13 @@ export function StatusTimeline({
         title={statusCopy.summary}
         rows={[
           { label: "Date", value: formatLong(b.eventDate) },
-          { label: "Package", value: `${b.packageName}, ${b.guests} guests` },
-          { label: "Serving time", value: formatTime12(b.serviceTime) },
-          { label: "Where", value: b.eventAddress },
+          { label: "Package", value: `${b.packageName}, ${b.guests} pax` },
+          { label: "Delivery time", value: formatTime12(b.serviceTime) },
+          { label: "Deliver to", value: b.eventAddress },
+          { label: "Total", value: b.totalAmount ? formatRm(Math.round(Number(b.totalAmount) * 100)) : null },
         ]}
       />
+      <PaymentPanel booking={b} token={token} />
       <ol aria-label="Progress" className="m-0 grid list-none p-0">
         {steps.map((t, i) => (
           <li

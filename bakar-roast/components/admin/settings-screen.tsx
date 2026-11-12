@@ -11,6 +11,9 @@ import { Field } from "@/components/ui/field";
 import { useAdmin } from "@/components/admin/admin-context";
 import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
 import { useAdminQuery } from "@/components/admin/use-admin-query";
+import { PhotoPicker, useUpload } from "@/components/admin/list-tools";
+import { Button } from "@/components/ui/button";
+import { imageSrc } from "@/lib/catering-api";
 
 const QUESTIONS: [RuleKey, string][] = [
   ["cateringMinNoticeDays", "How much notice do you need?"],
@@ -28,8 +31,19 @@ type Notice = { title: string; help?: string } | null;
 export function SettingsScreen() {
   const q = useAdminQuery(adminGetSettings, []);
   return (
-    <AdminPage title="Settings" lead="Four booking rules and where alerts go. Changes save as you make them.">
-      {q.data === undefined ? q.error ? <LoadError onRetry={q.reload} /> : <SettingsSkeleton /> : <SettingsForm initial={q.data} />}
+    <AdminPage title="Settings" lead="Orders per day, how customers pay you, and the booking rules.">
+      {q.data === undefined ? (
+        q.error ? (
+          <LoadError onRetry={q.reload} />
+        ) : (
+          <SettingsSkeleton />
+        )
+      ) : (
+        <>
+          <OrdersAndPayment initial={q.data} />
+          <SettingsForm initial={q.data} />
+        </>
+      )}
     </AdminPage>
   );
 }
@@ -289,5 +303,126 @@ function SettingsSkeleton() {
       <Skeleton className="h-[380px]" />
       <Skeleton className="h-32" />
     </div>
+  );
+}
+
+/**
+ * Orders per day and the payment details customers see on their booking page.
+ * Saved together with one button, so half-typed bank details never reach customers.
+ */
+function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
+  const { run } = useAdmin();
+  const { upload, uploading } = useUpload();
+  const [sets, setSets] = useState(initial.cateringDailySets ?? 5);
+  const [bank, setBank] = useState(initial.cateringBankName ?? "");
+  const [holder, setHolder] = useState(initial.cateringBankAccountName ?? "");
+  const [account, setAccount] = useState(initial.cateringBankAccountNumber ?? "");
+  const [qr, setQr] = useState(initial.cateringPaymentQrUrl ?? "");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; title: string } | null>(null);
+
+  const save = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await run((t) =>
+        adminUpdateSettings(t, {
+          cateringDailySets: sets,
+          cateringBankName: bank,
+          cateringBankAccountName: holder,
+          cateringBankAccountNumber: account,
+          cateringPaymentQrUrl: qr,
+        }),
+      );
+      setNotice({ tone: "ok", title: "Saved. New bookings and booking pages use these now." });
+    } catch (err) {
+      setNotice({ tone: "error", ...describeError(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby="pay-h" className="grid max-w-[720px] gap-5 rounded-card-md bg-ink-raised p-4 sm:p-6">
+      <h2 id="pay-h" className="m-0 text-lg font-bold">
+        Orders and payment
+      </h2>
+      {notice && <Banner tone={notice.tone} title={notice.title} />}
+
+      <div className="grid gap-2">
+        <span className="text-[13px] font-semibold">How many orders (sets) can you do a day?</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="One fewer"
+            disabled={sets <= 1}
+            onClick={() => setSets((n) => Math.max(1, n - 1))}
+            className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
+          >
+            <Minus aria-hidden size={16} />
+          </button>
+          <span className="min-w-12 text-center text-2xl font-extrabold tabular-nums" aria-live="polite">
+            {sets}
+          </span>
+          <button
+            type="button"
+            aria-label="One more"
+            disabled={sets >= 200}
+            onClick={() => setSets((n) => Math.min(200, n + 1))}
+            className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
+          >
+            <Plus aria-hidden size={16} />
+          </button>
+        </div>
+        <p className="type-small m-0 text-cream-muted">The usual for every day. Change a single day on the Calendar.</p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field size="sm" label="Bank" placeholder="Maybank" maxLength={80} value={bank} onChange={(e) => setBank(e.target.value)} />
+        <Field size="sm" label="Account name" maxLength={120} value={holder} onChange={(e) => setHolder(e.target.value)} />
+        <Field
+          size="sm"
+          label="Account number"
+          inputMode="numeric"
+          maxLength={40}
+          value={account}
+          onChange={(e) => setAccount(e.target.value)}
+        />
+      </div>
+
+      <div className="grid gap-2">
+        <span className="text-[13px] font-semibold">DuitNow or bank QR</span>
+        <div className="flex flex-wrap items-center gap-3">
+          {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element -- owner upload, any host
+            <img src={imageSrc(qr)} alt="Your payment QR" className="h-28 w-28 rounded-card-sm bg-white object-contain p-1.5" />
+          ) : (
+            <span className="text-sm text-cream-muted">No QR yet.</span>
+          )}
+          <PhotoPicker
+            uploading={uploading}
+            onFile={async (file) => {
+              const res = await upload(file);
+              if ("url" in res) setQr(res.url);
+              else setNotice({ tone: "error", title: res.error });
+            }}
+          >
+            {qr ? "Change QR" : "Upload QR"}
+          </PhotoPicker>
+          {qr && (
+            <Button size="sm" variant="ghost" onClick={() => setQr("")}>
+              Remove
+            </Button>
+          )}
+        </div>
+        <p className="type-small m-0 text-cream-muted">Customers see these on their booking page, with the amount to pay.</p>
+      </div>
+
+      <div>
+        <Button size="sm" onClick={() => void save()} loading={busy} loadingLabel="Saving">
+          Save
+        </Button>
+      </div>
+    </section>
   );
 }

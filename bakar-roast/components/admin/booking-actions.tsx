@@ -70,6 +70,7 @@ export function BookingActionDialog({
   const [quote, setQuote] = useState("");
   const [deposit, setDeposit] = useState("");
   const [reason, setReason] = useState("");
+  const [markPaid, setMarkPaid] = useState(false);
   const [fieldErr, setFieldErr] = useState({ quote: "", deposit: "" });
   const [error, setError] = useState<{ title: string; help?: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -79,6 +80,8 @@ export function BookingActionDialog({
     setQuote(booking.quoteAmount ? String(toCents(booking.quoteAmount)! / 100) : "");
     setDeposit(booking.depositAmount ? String(toCents(booking.depositAmount)! / 100) : "");
     setReason("");
+    // A receipt is in: approving usually means the money arrived.
+    setMarkPaid(booking.receipts.length > 0 && !booking.depositPaidAt);
     setFieldErr({ quote: "", deposit: "" });
     setError(null);
     // Reset when a dialog opens, not when the same booking re-renders.
@@ -98,9 +101,10 @@ export function BookingActionDialog({
       const errs = amountsError(q, d);
       setFieldErr(errs);
       if (errs.quote || errs.deposit) return;
-      const body: { quoteAmount?: number; depositAmount?: number } = {};
+      const body: { quoteAmount?: number; depositAmount?: number; markPaid?: boolean } = {};
       if (q !== null) body.quoteAmount = centsToAmount(q);
       if (d !== null) body.depositAmount = centsToAmount(d);
+      if (markPaid) body.markPaid = true;
       call = (t) => adminApprove(t, booking.id, body);
     } else if (kind === "decline") {
       call = (t) => adminDecline(t, booking.id, reason.trim() || undefined);
@@ -198,6 +202,24 @@ export function BookingActionDialog({
             error={fieldErr.deposit}
             onChange={(e) => setDeposit(e.target.value)}
           />
+          {!booking.depositPaidAt && (
+            <label className="col-span-full flex cursor-pointer items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={markPaid}
+                onChange={(e) => setMarkPaid(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[rgb(var(--ember))]"
+              />
+              <span>
+                <b className="block">Payment received</b>
+                <span className="text-cream-muted">
+                  {booking.receipts.length
+                    ? `I checked the receipt (${booking.paymentChoice === "FULL" ? "paid in full" : "half paid"}).`
+                    : "No receipt uploaded yet. Tick only if the money is in."}
+                </span>
+              </span>
+            </label>
+          )}
         </div>
       )}
       {kind === "decline" && (

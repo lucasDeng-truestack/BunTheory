@@ -1,5 +1,6 @@
 "use client";
 
+import { priceLabel } from "@/lib/booking";
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { motion, motionValue, useTransform, type MotionValue } from "motion/react";
@@ -28,7 +29,7 @@ export type PackageCardProps =
 
 /**
  * The catering package card: photo left, tinted panel right (ember, bright, cream by index),
- * number, name, tagline, included items, guest range. No price, ever.
+ * number, name, tagline, included items, guest range, and the price when the owner set one.
  * - mode "landing": "Book this" links to /catering/book?package=<id>; photo settles from 1.3x
  *   and the list slides in from the right when seen.
  * - mode "select" (booking step 2): the card itself is the radio (role="radio", aria-checked,
@@ -111,7 +112,7 @@ export function PackageCard(props: PackageCardProps) {
           </span>
         )}
       </div>
-      <p className="m-0 text-[13px]">{packagesCopy.quote}</p>
+      <p className="m-0 text-[13px]">{priceLabel(pkg) ?? packagesCopy.quote}</p>
     </div>
   );
 

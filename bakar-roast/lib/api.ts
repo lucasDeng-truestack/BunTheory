@@ -62,6 +62,26 @@ export interface CateringPackagePublic {
   imageUrl: string | null;
   minGuests: number;
   maxGuests: number | null;
+  /** Decimal string, e.g. "45.00". Null = quoted after the request. */
+  price: string | null;
+  priceUnit: CateringPriceUnit;
+}
+
+export type CateringPriceUnit = "PER_SET" | "PER_PAX";
+export type CateringPaymentChoice = "DEPOSIT" | "FULL";
+
+export interface CateringPaymentDetails {
+  bankName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  qrUrl: string | null;
+}
+
+export interface CateringReceipt {
+  id: string;
+  fileUrl: string;
+  fileName: string | null;
+  createdAt: string;
 }
 
 export interface CateringPackageAdmin extends CateringPackagePublic {
@@ -69,11 +89,13 @@ export interface CateringPackageAdmin extends CateringPackagePublic {
   sortOrder: number;
 }
 
-/** Dates are YYYY-MM-DD, Malaysia local. `unavailable` never says why. */
+/** Dates are YYYY-MM-DD, Malaysia local. `unavailable` (closed or full) never says why. */
 export interface CateringAvailability {
   minDate: string;
   maxDate: string;
   unavailable: string[];
+  /** Sets still open on dates with 3 or fewer left. */
+  fewLeft?: Record<string, number>;
 }
 
 export interface CateringBookingCreated {
@@ -84,15 +106,24 @@ export interface CateringBookingCreated {
   holdExpiresAt: string | null;
 }
 
-/** Customer status page. No money, no admin notes, no accessToken echo. */
+/** Customer status page. No admin notes, no accessToken echo. */
 export interface CateringBookingPublic {
   reference: string;
   status: CateringBookingStatus;
   eventDate: string;
+  /** Delivery time, HH:mm. */
   serviceTime: string;
   packageName: string;
   guests: number;
-  occasion: string;
+  occasion: string | null;
+  totalAmount: string | null;
+  /** What to pay now: half, or the total. */
+  amountDue: string | null;
+  paymentChoice: CateringPaymentChoice;
+  depositPaidAt: string | null;
+  balancePaidAt: string | null;
+  receipts: CateringReceipt[];
+  payment: CateringPaymentDetails;
   customerName: string;
   eventAddress: string;
   declineReason: string | null;
@@ -119,7 +150,9 @@ export interface CateringBookingAdmin {
   packageId: string;
   packageName: string;
   guests: number;
-  occasion: string;
+  occasion: string | null;
+  paymentChoice: CateringPaymentChoice;
+  receipts: CateringReceipt[];
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -145,13 +178,20 @@ export interface CateringBlockedDate {
   reason: string | null;
 }
 
-/** Admin calendar: every unavailable date and why. */
+/** Admin calendar: every date that is closed, has its own number of sets, or has bookings. */
 export interface CateringCalendarDay {
   date: string;
-  kind: "PENDING" | "APPROVED" | "COMPLETED" | "BLOCKED";
-  bookingId: string | null;
-  reference: string | null;
+  closed: boolean;
   reason: string | null;
+  capacity: number;
+  customCapacity: boolean;
+  bookings: Array<{
+    id: string;
+    reference: string;
+    status: "PENDING" | "APPROVED" | "COMPLETED";
+    customerName: string;
+    serviceTime: string;
+  }>;
 }
 
 export interface CateringGalleryImagePublic {

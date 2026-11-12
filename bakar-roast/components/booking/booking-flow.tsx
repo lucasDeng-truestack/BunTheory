@@ -20,6 +20,7 @@ import {
   DETAIL_FIELDS,
   formatTime12,
   isPickable,
+  joinAddress,
   validateDetails,
   validateField,
   type DetailsField,
@@ -50,8 +51,12 @@ const EMPTY: Answers = {
   packageId: null,
   guests: null,
   serviceTime: "",
-  eventAddress: "",
-  occasion: "",
+  addressLine1: "",
+  addressLine2: "",
+  postcode: "",
+  city: "",
+  state: "",
+  paymentChoice: "DEPOSIT",
   dietaryNotes: "",
   notes: "",
   customerName: "",
@@ -138,7 +143,8 @@ export function BookingFlow({
       next.packageId = fromUrl.id;
       next.guests = next.guests == null ? fromUrl.minGuests : clampGuests(next.guests, fromUrl.minGuests, fromUrl.maxGuests);
     }
-    if (initialOccasion && bookingCopy.occasions.includes(initialOccasion)) next.occasion = initialOccasion;
+    // The occasion is no longer asked for; ?occasion= links from the home page still land here.
+    if (next.paymentChoice !== "FULL") next.paymentChoice = "DEPOSIT";
     for (const k of ["customerName", "customerPhone", "customerEmail"] as const) {
       if (!next[k] && initialContact?.[k]) next[k] = initialContact[k]!;
     }
@@ -261,11 +267,11 @@ export function BookingFlow({
       serviceTime: answers.serviceTime,
       packageId: pkg.id,
       guests: answers.guests,
-      occasion: answers.occasion,
+      paymentChoice: answers.paymentChoice,
       customerName: answers.customerName.trim(),
       customerPhone: answers.customerPhone.trim(),
       customerEmail: answers.customerEmail.trim(),
-      eventAddress: answers.eventAddress.trim(),
+      eventAddress: joinAddress(answers),
       dietaryNotes: answers.dietaryNotes.trim() || undefined,
       notes: answers.notes.trim() || undefined,
       website: answers.website,
@@ -341,11 +347,7 @@ export function BookingFlow({
       if (first) {
         setTouched(Object.fromEntries(DETAIL_FIELDS.map((f) => [f, true])));
         // Focus the first invalid field: its message is linked with aria-describedby.
-        const el =
-          first === "occasion"
-            ? document.querySelector<HTMLElement>('[aria-labelledby="bk-occasion-label"] [tabindex="0"]')
-            : document.getElementById(fieldId(first));
-        el?.focus();
+        document.getElementById(fieldId(first))?.focus();
         return;
       }
       return goTo(4);
@@ -355,7 +357,7 @@ export function BookingFlow({
 
   const copy = bookingCopy.steps[step - 1];
   const dateWords = answers.date ? formatLong(answers.date) : null;
-  const barBits = [answers.date && formatShort(answers.date), pkg?.name, pkg && answers.guests != null && `${answers.guests} guests`].filter(Boolean);
+  const barBits = [answers.date && formatShort(answers.date), pkg?.name, pkg && answers.guests != null && `${answers.guests} pax`].filter(Boolean);
   const nextButton = (
     <Button onClick={next} loading={sending} loadingLabel="Sending" aria-disabled={sending || undefined}>
       {copy.next}
@@ -457,7 +459,13 @@ export function BookingFlow({
                       onBlur={(f) => setTouched((t) => (t[f] ? t : { ...t, [f]: true }))}
                     />
                   )}
-                  {step === 4 && <StepReview answers={answers} pkg={pkg} rules={rules} onEdit={(s) => goTo(s)} />}
+                  {step === 4 && <StepReview
+                      answers={answers}
+                      pkg={pkg}
+                      rules={rules}
+                      onEdit={(s) => goTo(s)}
+                      onPaymentChoice={(c) => set("paymentChoice", c)}
+                    />}
                 </>
               )}
             </motion.div>
@@ -474,9 +482,9 @@ export function BookingFlow({
             rows={[
               { label: "Date", value: dateWords },
               { label: "Package", value: pkg?.name },
-              { label: "Guests", value: pkg ? answers.guests : null },
-              { label: "Serving time", value: formatTime12(answers.serviceTime) },
-              { label: "Where", value: answers.eventAddress.trim() },
+              { label: "Guests (pax)", value: pkg ? answers.guests : null },
+              { label: "Delivery time", value: formatTime12(answers.serviceTime) },
+              { label: "Deliver to", value: joinAddress(answers) },
             ]}
           />
           <TipCard>

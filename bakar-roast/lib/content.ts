@@ -407,12 +407,13 @@ export const bookingCopy = {
   steps: [
     { headline: "Pick a *date.*", back: "Back to catering", next: "Choose a package" },
     { headline: "Choose a *package.*", back: "Back to date", next: "Add details" },
-    { headline: "Tell us about your *table.*", back: "Back to package", next: "Review" },
+    { headline: "Where do we *deliver?*", back: "Back to package", next: "Review" },
     { headline: "Check it *over.*", back: "Back to details", next: "Send request" },
   ],
   dateIntro: (r: CateringRules) =>
-    `One event a day. Dates open ${days(r.cateringMinNoticeDays)} ahead, up to ${months(r.cateringBookingWindowMonths)} out.`,
-  hold: (r: CateringRules) => `Your date is held for ${days(r.cateringHoldExpiryDays)} while we confirm. No payment now.`,
+    `We deliver. Dates open ${days(r.cateringMinNoticeDays)} ahead, up to ${months(r.cateringBookingWindowMonths)} out. Greyed-out days are full or closed.`,
+  hold: (r: CateringRules) =>
+    `Your spot is held for ${days(r.cateringHoldExpiryDays)}. Pay and upload the receipt on your booking page, and we confirm.`,
   quote: "No price list. We agree the quote with you by call.",
   noDate: "No date picked yet",
   noOpenDates: "No open dates this month. Try the next one.",
@@ -424,11 +425,11 @@ export const bookingCopy = {
   guestMoved: (n: number) => ` We moved your count to ${n} to fit.`,
   contactNote: "No account needed. We only use these to reach you about this booking.",
   tip: (r: CateringRules) =>
-    `We take one event a day. You can cancel from your booking page until ${days(r.cateringCancelCutoffDays)} before the event.`,
+    `We cook a few orders a day and deliver them. You can cancel from your booking page until ${days(r.cateringCancelCutoffDays)} before delivery.`,
   faq: (r: CateringRules) => [
-    { q: "When do I see a price?", a: "On the call. We agree the menu and the quote together." },
-    { q: "What happens after I send this?", a: "Your date is held at once. We call or WhatsApp you, then confirm." },
-    { q: "How long is my date held?", a: `For ${days(r.cateringHoldExpiryDays)} while we confirm.` },
+    { q: "How do I pay?", a: "Pay half or in full by bank transfer or DuitNow QR, then upload the receipt on your booking page." },
+    { q: "Paid on your phone but booked on a computer?", a: "Your booking page shows a QR code. Scan it with your phone and upload the screenshot from there." },
+    { q: "How long is my spot held?", a: `For ${days(r.cateringHoldExpiryDays)} while you pay and we confirm.` },
   ],
   occasions: eventTypes,
   errors: {
@@ -448,8 +449,8 @@ export const bookingCopy = {
     eyebrow: "Request sent",
     headline: "We have your *request.*",
     callLine: (phone: string) => `We will call you on ${phone}.`,
-    heldLine: (day: string) => ` Your date is held until ${day}.`,
-    action: "See your booking",
+    heldLine: (day: string) => ` Your spot is held until ${day}.`,
+    action: "Pay and send receipt",
   },
   packagesFailed: "We could not load the packages just now. Message us and we will book you in by chat.",
   packagesEmpty: "No packages are open for booking just now. Message us and we will sort out your table.",
@@ -471,9 +472,9 @@ export const statusCopy = {
   body: {
     PENDING: (heldUntil: string | null) =>
       heldUntil
-        ? `Your date is held until ${heldUntil}. We will call you to agree the menu and the quote.`
-        : "Your date is held. We will call you to agree the menu and the quote.",
-    APPROVED: "The fire is booked. We will be in touch before the day.",
+        ? `Your spot is held until ${heldUntil}. Pay below and upload the receipt, and we confirm.`
+        : "Your spot is held. Pay below and upload the receipt, and we confirm.",
+    APPROVED: "You are on our list. We will be in touch before delivery.",
     DECLINED: "Thank you for asking us.",
     CANCELLED: "The date is open again. We hope to cook for you another time.",
     EXPIRED: "The hold has ended and the date is open again. Sorry we missed you.",

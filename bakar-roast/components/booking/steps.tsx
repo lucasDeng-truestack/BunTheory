@@ -5,11 +5,21 @@ import type { CateringAvailability, CateringPackagePublic } from "@/lib/api";
 import type { CateringRules } from "@/lib/catering-api";
 import { bookingCopy, waLink } from "@/lib/content";
 import { formatLong } from "@/lib/dates";
-import { formatTime12, LIMITS, type DetailsField } from "@/lib/booking";
-import { Field, TextareaField } from "@/components/ui/field";
-import { Pill } from "@/components/ui/pill";
+import {
+  DELIVERY_SLOTS,
+  formatRm,
+  formatTime12,
+  joinAddress,
+  LIMITS,
+  MY_STATES,
+  orderAmounts,
+  priceLabel,
+  type DetailsField,
+} from "@/lib/booking";
+import { cn } from "@/lib/utils";
+import { Field, SelectField, TextareaField } from "@/components/ui/field";
 import { GuestStepper } from "@/components/ui/guest-stepper";
-import { Banner, ErrorMark } from "@/components/ui/banner";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "@/components/sections/package-card";
 import { accent } from "@/components/sections/accent";
@@ -22,8 +32,13 @@ export type Answers = {
   packageId: string | null;
   guests: number | null;
   serviceTime: string;
-  eventAddress: string;
-  occasion: string;
+  addressLine1: string;
+  addressLine2: string;
+  postcode: string;
+  city: string;
+  state: string;
+  /** Pay half now, or everything. */
+  paymentChoice: "DEPOSIT" | "FULL";
   dietaryNotes: string;
   notes: string;
   customerName: string;
@@ -168,93 +183,121 @@ export function StepDetails({
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(field, e.target.value),
     onBlur: () => onBlur(field),
   });
-  const occasionErr = errors.occasion;
+  const select = (field: DetailsField) => ({
+    id: fieldId(field),
+    name: field,
+    value: answers[field],
+    error: errors[field],
+    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange(field, e.target.value),
+    onBlur: () => onBlur(field),
+  });
+  const heading = "type-eyebrow m-0 text-cream-muted";
   return (
-    <form
-      noValidate
-      onSubmit={(e) => e.preventDefault()}
-      className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))]"
-    >
-      <Field {...text("serviceTime")} label="Serving time" type="time" autoComplete="off" />
-      <Field
-        {...text("eventAddress")}
-        label="Event address"
-        placeholder="Street, area, city"
-        autoComplete="street-address"
-        maxLength={LIMITS.eventAddress}
-      />
-      <div className="col-span-full grid gap-2">
-        <span id="bk-occasion-label" className="text-sm font-semibold text-cream">
-          Occasion
-        </span>
-        <div
-          role="radiogroup"
-          aria-labelledby="bk-occasion-label"
-          aria-describedby={occasionErr ? "bk-occasion-error" : undefined}
-          aria-invalid={occasionErr ? true : undefined}
-          onKeyDown={radioArrows}
-          className="flex flex-wrap gap-2"
-        >
-          {bookingCopy.occasions.map((o, i) => {
-            const chosen = answers.occasion === o;
-            const stop = answers.occasion ? chosen : i === 0;
-            return (
-              <Pill
-                key={o}
-                id={i === 0 ? fieldId("occasion") : undefined}
-                mode="radio"
-                selected={chosen}
-                tabIndex={stop ? 0 : -1}
-                onClick={() => onChange("occasion", o)}
-                onBlur={(e) => {
-                  // Validate when focus leaves the whole group, not between pills.
-                  if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) onBlur("occasion");
-                }}
-              >
-                {o}
-              </Pill>
-            );
-          })}
+    <form noValidate onSubmit={(e) => e.preventDefault()} className="grid gap-10">
+      <section aria-labelledby="bk-delivery-h" className="grid gap-5">
+        <h2 id="bk-delivery-h" className={heading}>
+          Delivery
+        </h2>
+        <div className="grid items-start gap-5 sm:grid-cols-2">
+          <SelectField {...select("serviceTime")} label="Delivery time" help="When the food should reach you.">
+            <option value="" disabled>
+              Pick a time
+            </option>
+            {DELIVERY_SLOTS.map((t) => (
+              <option key={t} value={t}>
+                {formatTime12(t)}
+              </option>
+            ))}
+          </SelectField>
         </div>
-        {occasionErr && (
-          <p id="bk-occasion-error" className="type-small m-0 flex items-center gap-2 text-cream">
-            <ErrorMark />
-            {occasionErr}
-          </p>
-        )}
-      </div>
-      <TextareaField
-        id={fieldId("dietaryNotes")}
-        name="dietaryNotes"
-        label="Dietary notes"
-        optional
-        placeholder="Allergies, no beef, vegetarian guests"
-        maxLength={LIMITS.dietaryNotes}
-        value={answers.dietaryNotes}
-        onChange={(e) => onChange("dietaryNotes", e.target.value)}
-      />
-      <TextareaField
-        id={fieldId("notes")}
-        name="notes"
-        label="Anything else"
-        optional
-        placeholder="Parking, power, surprises"
-        maxLength={LIMITS.notes}
-        value={answers.notes}
-        onChange={(e) => onChange("notes", e.target.value)}
-      />
-      <div className="type-small col-span-full m-0 text-cream-muted">{contactNote ?? bookingCopy.contactNote}</div>
-      <Field {...text("customerName")} label="Your name" placeholder="Full name" autoComplete="name" maxLength={LIMITS.customerName} />
-      <Field {...text("customerPhone")} label="Phone" type="tel" inputMode="tel" placeholder="012 345 6789" autoComplete="tel" />
-      <Field
-        {...text("customerEmail")}
-        label="Email"
-        type="email"
-        inputMode="email"
-        placeholder="you@example.com"
-        autoComplete="email"
-        maxLength={LIMITS.customerEmail}
-      />
+        <Field
+          {...text("addressLine1")}
+          label="Address line 1"
+          placeholder="House number and street"
+          autoComplete="address-line1"
+          maxLength={150}
+        />
+        <Field
+          {...text("addressLine2")}
+          label="Address line 2"
+          optional
+          placeholder="Apartment, unit, taman"
+          autoComplete="address-line2"
+          maxLength={150}
+        />
+        <div className="grid items-start gap-5 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
+          <Field
+            {...text("postcode")}
+            label="Postcode"
+            inputMode="numeric"
+            placeholder="47300"
+            autoComplete="postal-code"
+            maxLength={5}
+          />
+          <Field {...text("city")} label="City" placeholder="Petaling Jaya" autoComplete="address-level2" maxLength={60} />
+          <SelectField {...select("state")} label="State" autoComplete="address-level1">
+            <option value="" disabled>
+              Pick a state
+            </option>
+            {MY_STATES.map((st) => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      </section>
+
+      <section aria-labelledby="bk-notes-h" className="grid gap-5">
+        <h2 id="bk-notes-h" className={heading}>
+          Notes
+        </h2>
+        <div className="grid items-start gap-5 sm:grid-cols-2">
+          <TextareaField
+            id={fieldId("dietaryNotes")}
+            name="dietaryNotes"
+            label="Dietary notes"
+            optional
+            placeholder="Allergies, no beef, vegetarian guests"
+            maxLength={LIMITS.dietaryNotes}
+            value={answers.dietaryNotes}
+            onChange={(e) => onChange("dietaryNotes", e.target.value)}
+          />
+          <TextareaField
+            id={fieldId("notes")}
+            name="notes"
+            label="Anything else"
+            optional
+            placeholder="Gate code, where to leave it, call on arrival"
+            maxLength={LIMITS.notes}
+            value={answers.notes}
+            onChange={(e) => onChange("notes", e.target.value)}
+          />
+        </div>
+      </section>
+
+      <section aria-labelledby="bk-contact-h" className="grid gap-5">
+        <div className="grid gap-1">
+          <h2 id="bk-contact-h" className={heading}>
+            Contact
+          </h2>
+          <div className="type-small m-0 text-cream-muted">{contactNote ?? bookingCopy.contactNote}</div>
+        </div>
+        <div className="grid items-start gap-5 sm:grid-cols-3">
+          <Field {...text("customerName")} label="Your name" placeholder="Full name" autoComplete="name" maxLength={LIMITS.customerName} />
+          <Field {...text("customerPhone")} label="Phone" type="tel" inputMode="tel" placeholder="012 345 6789" autoComplete="tel" />
+          <Field
+            {...text("customerEmail")}
+            label="Email"
+            type="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            maxLength={LIMITS.customerEmail}
+          />
+        </div>
+      </section>
+
       {/* Honeypot: hidden from people and assistive tech; bots that fill every field get rejected. */}
       <input
         type="text"
@@ -277,12 +320,15 @@ export function StepReview({
   pkg,
   rules,
   onEdit,
+  onPaymentChoice,
 }: {
   answers: Answers;
   pkg: CateringPackagePublic | null;
   rules: CateringRules;
   onEdit: (step: 1 | 2 | 3) => void;
+  onPaymentChoice: (c: "DEPOSIT" | "FULL") => void;
 }) {
+  const amounts = orderAmounts(pkg, answers.guests);
   const edit = (step: 1 | 2 | 3, what: string) => (
     <button type="button" onClick={() => onEdit(step)} aria-label={`Edit ${what}`} className={`${linkClass} min-h-11 text-sm`}>
       Edit
@@ -297,17 +343,17 @@ export function StepReview({
         action={edit(2, "package")}
         rows={[
           { label: "Package", value: pkg?.name },
-          { label: "Guests", value: answers.guests },
+          { label: "Guests (pax)", value: answers.guests },
+          { label: "Price", value: pkg ? priceLabel(pkg) : null },
         ]}
       />
       <SummaryCard
-        title="Event"
+        title="Delivery"
         emptyText="None"
-        action={edit(3, "event details")}
+        action={edit(3, "delivery details")}
         rows={[
-          { label: "Serving time", value: formatTime12(answers.serviceTime) },
-          { label: "Where", value: answers.eventAddress.trim() },
-          { label: "Occasion", value: answers.occasion },
+          { label: "Delivery time", value: formatTime12(answers.serviceTime) },
+          { label: "Deliver to", value: joinAddress(answers) },
           { label: "Dietary notes", value: answers.dietaryNotes.trim() },
           { label: "Anything else", value: answers.notes.trim() },
         ]}
@@ -322,6 +368,44 @@ export function StepReview({
           { label: "Email", value: answers.customerEmail.trim() },
         ]}
       />
+      {amounts ? (
+        <fieldset className="m-0 mt-3 grid gap-3 border-0 p-0">
+          <legend className="mb-1 text-base font-semibold text-cream">
+            Total {formatRm(amounts.total)}. How would you like to pay?
+          </legend>
+          {(
+            [
+              { v: "DEPOSIT", title: `Pay half now: ${formatRm(amounts.half)}`, text: "The rest before delivery." },
+              { v: "FULL", title: `Pay in full: ${formatRm(amounts.total)}`, text: "Nothing left to pay later." },
+            ] as const
+          ).map((o) => (
+            <label
+              key={o.v}
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-card-sm bg-ink-raised p-4 shadow-[inset_0_0_0_1px_theme(colors.ink.line)]",
+                answers.paymentChoice === o.v && "shadow-[inset_0_0_0_2px_theme(colors.ember.DEFAULT)]",
+              )}
+            >
+              <input
+                type="radio"
+                name="bk-payment"
+                checked={answers.paymentChoice === o.v}
+                onChange={() => onPaymentChoice(o.v)}
+                className="mt-1 h-4 w-4 accent-[rgb(var(--ember))]"
+              />
+              <span className="grid gap-0.5">
+                <b>{o.title}</b>
+                <span className="type-small text-cream-muted">{o.text}</span>
+              </span>
+            </label>
+          ))}
+          <p className="type-small m-0 text-cream-muted">
+            After you send this, your booking page shows how to pay and lets you upload the receipt.
+          </p>
+        </fieldset>
+      ) : (
+        <p className="type-body m-0 mt-3 text-cream-muted">{bookingCopy.quote}</p>
+      )}
       <p className="type-body m-0 mt-3 text-cream-muted">{bookingCopy.hold(rules)}</p>
     </div>
   );

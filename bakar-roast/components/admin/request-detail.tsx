@@ -1,5 +1,7 @@
 "use client";
 
+import { imageSrc } from "@/lib/catering-api";
+
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -219,12 +221,12 @@ export function RequestDetailView({
               </Button>
             </div>
           </Block>
-          <Block title="Event">
+          <Block title="Delivery">
             <Rows
               rows={[
                 ["Date", formatLong(b.eventDate)],
-                ["Serving", formatTime12(b.serviceTime)],
-                ["Where", b.eventAddress],
+                ["Delivery time", formatTime12(b.serviceTime)],
+                ["Deliver to", b.eventAddress],
                 ["Occasion", b.occasion],
                 ["Dietary", b.dietaryNotes],
                 ["Notes", b.notes],
@@ -235,7 +237,8 @@ export function RequestDetailView({
             <Rows
               rows={[
                 ["Package", b.packageName],
-                ["Guests", plural(b.guests, "guest")],
+                ["Guests", `${b.guests} pax`],
+                ["Customer chose", b.paymentChoice === "FULL" ? "Pay in full" : "Pay half first"],
                 ["Reason", b.status === "DECLINED" ? b.declineReason : null],
               ]}
             />
@@ -243,6 +246,7 @@ export function RequestDetailView({
           <NotesBlock booking={b} save={save} />
         </div>
         <div className="grid min-w-0 content-start gap-4">
+          <ReceiptsBlock booking={b} />
           <PaymentBlock booking={b} save={save} onError={(n) => setNotice(n)} />
           <Block title="Activity">
             <ol className="m-0 grid list-none gap-2.5 p-0">
@@ -495,5 +499,38 @@ function DetailSkeleton() {
         <Skeleton className="h-64" />
       </div>
     </div>
+  );
+}
+
+/** Payment receipts the customer uploaded from their booking page. */
+function ReceiptsBlock({ booking: b }: { booking: CateringBookingAdmin }) {
+  return (
+    <Block title="Receipts">
+      {b.receipts.length ? (
+        <ul className="m-0 grid list-none gap-2 p-0">
+          {b.receipts.map((r) => {
+            const src = imageSrc(r.fileUrl);
+            const isPdf = /\.pdf($|\?)/i.test(r.fileUrl);
+            return (
+              <li key={r.id} className="grid gap-2">
+                <a href={src} target="_blank" rel="noopener noreferrer" className="block">
+                  {isPdf ? (
+                    <span className="inline-flex min-h-11 items-center font-semibold underline decoration-ember underline-offset-4">
+                      Open PDF receipt
+                    </span>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- customer upload, any host
+                    <img src={src} alt={`Receipt from ${b.customerName}`} className="max-h-72 w-full rounded-card-sm bg-white object-contain" />
+                  )}
+                </a>
+                <small className="text-cream-muted">Uploaded {formatStamp(r.createdAt)}</small>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="m-0 text-sm text-cream-muted">No receipt yet. The customer uploads it on their booking page.</p>
+      )}
+    </Block>
   );
 }

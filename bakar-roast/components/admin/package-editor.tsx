@@ -35,6 +35,8 @@ const toDraft = (p?: CateringPackageAdmin): PackageDraft => ({
   imageUrl: p?.imageUrl ?? "",
   minGuests: p ? String(p.minGuests) : "",
   maxGuests: p?.maxGuests != null ? String(p.maxGuests) : "",
+  price: p?.price != null ? String(Number(p.price)) : "",
+  priceUnit: p?.priceUnit ?? "PER_SET",
 });
 
 /** Same content, ignoring blank included rows and outer spaces (what Save would send). */
@@ -48,6 +50,7 @@ const same = (a: PackageDraft, b: PackageDraft) => {
       includes: d.includes.map((s) => s.trim()).filter(Boolean),
       minGuests: d.minGuests.trim(),
       maxGuests: d.maxGuests.trim(),
+      price: d.price.trim(),
     });
   return norm(a) === norm(b);
 };
@@ -81,7 +84,7 @@ export function PackageEditorScreen({ id }: { id?: string }) {
 }
 
 type FieldKey = keyof PackageErrors;
-const FIELD_ORDER: FieldKey[] = ["name", "description", "includes", "minGuests", "maxGuests"];
+const FIELD_ORDER: FieldKey[] = ["name", "description", "includes", "price", "minGuests", "maxGuests"];
 
 // leaveTo value for the browser Back button.
 const BACK = "#back";
@@ -417,7 +420,47 @@ function PackageEditor({ pkg, all }: { pkg?: CateringPackageAdmin; all: Catering
             )}
           </Block>
 
-          <Block title="Guests">
+          <Block title="Price">
+            <div className="grid grid-cols-2 items-start gap-3">
+              <Field
+                id="pkg-price"
+                size="sm"
+                label="Price (RM)"
+                optional
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="Quote on request"
+                value={d.price}
+                error={errors.price}
+                onChange={(e) => set({ price: e.target.value.replace(/[^\d.]/g, "") })}
+              />
+              <div role="radiogroup" aria-label="Price is" className="grid gap-1.5">
+                <span className="text-[13px] font-semibold">Price is</span>
+                <div className="inline-flex gap-0.5 rounded-full bg-ink p-1">
+                  {(["PER_SET", "PER_PAX"] as const).map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      role="radio"
+                      aria-checked={d.priceUnit === u}
+                      onClick={() => set({ priceUnit: u })}
+                      className={cn(
+                        "min-h-10 flex-1 rounded-full px-3 text-sm font-semibold",
+                        d.priceUnit === u ? "bg-cream text-ink" : "text-cream-muted",
+                      )}
+                    >
+                      {u === "PER_SET" ? "Per set" : "Per pax"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="type-small m-0 text-cream-muted">
+              Per pax multiplies by the guests the customer picks. Leave the price empty to quote each booking yourself.
+            </p>
+          </Block>
+
+          <Block title="Guests (pax)">
             <div className="grid grid-cols-2 items-start gap-3">
               <Field
                 id="pkg-minGuests"

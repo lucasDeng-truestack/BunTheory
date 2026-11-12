@@ -216,13 +216,13 @@ export function AdminCalendarLooksDemo() {
 const SAMPLE_MINE: CateringBookingMine[] = [
   {
     reference: "BR-7K2M9Q", status: "PENDING", eventDate: "2026-12-12", serviceTime: "19:00", packageName: "The Feast",
-    guests: 40, occasion: "Celebration", customerName: "Aisha", eventAddress: "Petaling Jaya", declineReason: null,
+    guests: 40, occasion: "Celebration", totalAmount: "1800.00", amountDue: "900.00", paymentChoice: "DEPOSIT" as const, depositPaidAt: null, balancePaidAt: null, receipts: [], payment: { bankName: "Maybank", accountName: "Bakar & Roast", accountNumber: "5123 4567 8901", qrUrl: null }, customerName: "Aisha", eventAddress: "Petaling Jaya", declineReason: null,
     holdExpiresAt: null, createdAt: "2026-11-10T08:00:00Z", canCancel: true, cancelDeadline: "2026-12-05",
     accessToken: "sample-token", customerPhone: "012 345 6789",
   },
   {
     reference: "BR-3H8D2L", status: "COMPLETED", eventDate: "2026-06-20", serviceTime: "12:30", packageName: "The Gathering",
-    guests: 1, occasion: "House gathering", customerName: "Aisha", eventAddress: "Subang Jaya", declineReason: null,
+    guests: 1, occasion: "House gathering", totalAmount: "1800.00", amountDue: "900.00", paymentChoice: "DEPOSIT" as const, depositPaidAt: null, balancePaidAt: null, receipts: [], payment: { bankName: "Maybank", accountName: "Bakar & Roast", accountNumber: "5123 4567 8901", qrUrl: null }, customerName: "Aisha", eventAddress: "Subang Jaya", declineReason: null,
     holdExpiresAt: null, createdAt: "2026-05-01T08:00:00Z", canCancel: false, cancelDeadline: "2026-06-13",
     accessToken: "sample-token-2", customerPhone: "012 345 6789",
   },

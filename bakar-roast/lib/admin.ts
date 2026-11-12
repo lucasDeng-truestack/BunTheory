@@ -263,9 +263,14 @@ export type PackageDraft = {
   imageUrl: string;
   minGuests: string;
   maxGuests: string;
+  /** "45" or "45.50"; empty = quote on request. */
+  price: string;
+  priceUnit: "PER_SET" | "PER_PAX";
 };
 
-export type PackageErrors = Partial<Record<"name" | "description" | "includes" | "minGuests" | "maxGuests", string>>;
+export type PackageErrors = Partial<
+  Record<"name" | "description" | "includes" | "minGuests" | "maxGuests" | "price", string>
+>;
 
 /** Mirrors the server DTO. Blank included rows are dropped. Returns the body to send, or the errors. */
 export function validatePackage(d: PackageDraft): { errors: PackageErrors; input: PackageInput | null } {
@@ -289,6 +294,9 @@ export function validatePackage(d: PackageDraft): { errors: PackageErrors; input
   if (!(min >= 1 && min <= 5000)) errors.minGuests = "Enter 1 to 5000 guests.";
   if (max !== null && !(max >= 1 && max <= 5000)) errors.maxGuests = "Up to 5000, or leave it empty.";
   else if (max !== null && !errors.minGuests && max < min) errors.maxGuests = "The maximum cannot be lower than the minimum.";
+  const priceText = d.price.trim();
+  const price = priceText === "" ? null : /^\d+(\.\d{1,2})?$/.test(priceText) ? Number(priceText) : Number.NaN;
+  if (price !== null && !(price >= 0 && price <= 1000000)) errors.price = "Enter a price like 45 or 45.50, or leave it empty.";
 
   if (Object.keys(errors).length) return { errors, input: null };
   return {
@@ -301,6 +309,8 @@ export function validatePackage(d: PackageDraft): { errors: PackageErrors; input
       imageUrl: d.imageUrl,
       minGuests: min,
       maxGuests: max,
+      price,
+      priceUnit: d.priceUnit,
     },
   };
 }
