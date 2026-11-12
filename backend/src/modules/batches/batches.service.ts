@@ -81,7 +81,7 @@ export class BatchesService {
         )
       ) {
         throw new BadRequestException(
-          `This time window overlaps another published session (${b.label ?? b.id}).`,
+          `This time window overlaps another batch that is on (${b.label ?? b.id}).`,
         );
       }
     }
@@ -143,7 +143,7 @@ export class BatchesService {
       throw new NotFoundException('Batch not found');
     }
     if (batch.status !== OrderBatchStatus.DRAFT) {
-      throw new BadRequestException('Only draft sessions can be published.');
+      throw new BadRequestException('Only a draft batch can be opened for orders.');
     }
 
     await this.assertNoOverlapWithPublished(
@@ -167,7 +167,7 @@ export class BatchesService {
       throw new NotFoundException('Batch not found');
     }
     if (batch.status !== OrderBatchStatus.PUBLISHED) {
-      throw new BadRequestException('Only an open session can be closed.');
+      throw new BadRequestException('Only a batch that is on can be stopped.');
     }
     return this.prisma.orderBatch.update({
       where: { id },
@@ -188,7 +188,7 @@ export class BatchesService {
     const now = new Date();
     if (batch.closesAt <= now) {
       throw new BadRequestException(
-        'This batch’s time window has already ended. Edit opens/closes times before reopening.',
+        'This batch’s time window has already ended. Change its times before turning it back on.',
       );
     }
 
@@ -216,10 +216,10 @@ export class BatchesService {
       throw new NotFoundException('Batch not found');
     }
     if (batch.status !== OrderBatchStatus.DRAFT) {
-      throw new BadRequestException('Only draft sessions can be deleted.');
+      throw new BadRequestException('Only a draft batch can be deleted.');
     }
     if (batch._count.orders > 0) {
-      throw new BadRequestException('Cannot delete a session with orders.');
+      throw new BadRequestException('This batch has orders, so it cannot be deleted.');
     }
     await this.prisma.orderBatch.delete({ where: { id } });
   }
