@@ -8,10 +8,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { SetProductIngredientsDto } from './dto/set-product-ingredients.dto';
+import { AdjustStockDto } from './dto/adjust-stock.dto';
 
 const MOVEMENT_COOK_START = 'COOK_START';
 const MOVEMENT_REVERT_COOK = 'REVERT_COOK';
 const MOVEMENT_CANCEL_COOK = 'CANCEL_COOK';
+/** Manual changes from the inventory screen. restoreAfterCook reads COOK_START only. */
+const MOVEMENT_RESTOCK = 'RESTOCK';
+const MOVEMENT_REMOVE = 'MANUAL_REMOVE';
+const MOVEMENT_COUNT = 'STOCK_COUNT';
 
 export type PosProductAvailability = {
   soldOut: boolean;
@@ -115,6 +120,169 @@ export class PosInventoryService {
     if (!existing) throw new NotFoundException('Inventory item not found');
     await this.prisma.posInventoryItem.delete({ where: { id } });
     return { ok: true };
+  }
+
+  /**
+   * Add, remove or set a stock count, as a change on the server plus a movement row.
+   * A count that would go below zero is refused with how much is left.
+   */
+  async adjustStock(id: string, dto: AdjustStockDto) {
+    const mode = dto.mode ?? 'add';
+    const item = await this.prisma.$transaction(async (tx) => {
+      // Lock the row first, so a kitchen deduction cannot land between this read and the
+      // update. Without it a "set" count could save a different number than was typed.
+      await tx.$queryRaw`SELECT id FROM "PosInventoryItem" WHERE id = ${id} FOR UPDATE`;
+      const existing = await tx.posInventoryItem.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Inventory item not found');
+
+      const amount = new Prisma.Decimal(dto.amount);
+      const delta =
+        mode === 'set' ? amount.sub(existing.quantityOnHand) : amount;
+      if (mode === 'set' && amount.isNegative()) {
+        throw new BadRequestException('A stock count cannot be below zero.');
+      }
+      if (delta.isZero()) return existing;
+
+      const updated = await tx.posInventoryItem.update({
+        where: { id },
+        data: { quantityOnHand: { increment: delta } },
+      });
+      if (updated.quantityOnHand.isNegative()) {
+        // Throwing rolls the increment back.
+        throw new BadRequestException(
+          `Only ${toNumber(existing.quantityOnHand)} ${existing.unit ?? ''} of ${existing.name} left.`.replace(
+            /\s+/g,
+            ' ',
+          ),
+        );
+      }
+      await tx.posInventoryMovement.create({
+        data: {
+          inventoryItemId: id,
+          delta,
+          reason:
+            mode === 'set'
+              ? MOVEMENT_COUNT
+              : delta.isNegative()
+                ? MOVEMENT_REMOVE
+                : MOVEMENT_RESTOCK,
+        },
+      });
+      return updated;
+    });
+    return this.mapItem(item);
+  }
+
+  /**
+   * Everything the stock screen needs in one call: every menu item with its on/off switch,
+   * servings left and recipe, and every stock item with the menu items that use it.
+   */
+  async getOverview() {
+    const [sections, items, links] = await Promise.all([
+      this.prisma.posMenuSection.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        include: {
+          products: {
+            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+            select: { id: true, name: true, available: true, type: true },
+          },
+        },
+      }),
+      this.prisma.posInventoryItem.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.posProductIngredient.findMany({
+        include: { inventoryItem: true },
+      }),
+    ]);
+
+    const productIds = sections.flatMap((s) => s.products.map((p) => p.id));
+    const servings = this.computeServings(productIds, links);
+    const productName = new Map(
+      sections.flatMap((s) => s.products.map((p) => [p.id, p.name] as const)),
+    );
+
+    return {
+      sections: sections.map((section) => ({
+        id: section.id,
+        name: section.name,
+        products: section.products.map((p) => {
+          const s = servings.get(p.id);
+          return {
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            available: p.available,
+            tracked: s?.tracked ?? false,
+            servingsLeft: s?.maxServings ?? null,
+            limitedBy: s?.limitedBy ?? null,
+            recipe: links
+              .filter((l) => l.productId === p.id)
+              .map((l) => ({
+                inventoryItemId: l.inventoryItemId,
+                name: l.inventoryItem.name,
+                unit: l.inventoryItem.unit,
+                isCountable: l.inventoryItem.isCountable,
+                quantityPerUnit: toNumber(l.quantityPerUnit),
+              })),
+          };
+        }),
+      })),
+      items: items.map((item) => ({
+        ...this.mapItem(item),
+        usedBy: links
+          .filter((l) => l.inventoryItemId === item.id)
+          .map((l) => ({
+            productId: l.productId,
+            name: productName.get(l.productId) ?? '',
+            quantityPerUnit: toNumber(l.quantityPerUnit),
+          })),
+      })),
+    };
+  }
+
+  /** Servings each product can still make from its counted ingredients, and which one runs out first. */
+  private computeServings(
+    productIds: string[],
+    links: Array<{
+      productId: string;
+      quantityPerUnit: Prisma.Decimal;
+      inventoryItem: {
+        name: string;
+        isCountable: boolean;
+        quantityOnHand: Prisma.Decimal;
+      };
+    }>,
+  ) {
+    const result = new Map<
+      string,
+      { tracked: boolean; maxServings: number | null; limitedBy: string | null }
+    >();
+    for (const productId of productIds) {
+      let maxServings = Number.POSITIVE_INFINITY;
+      let limitedBy: string | null = null;
+      for (const link of links) {
+        if (link.productId !== productId || !link.inventoryItem.isCountable) {
+          continue;
+        }
+        const perUnit = toNumber(link.quantityPerUnit);
+        if (perUnit <= 0) continue;
+        const n = Math.floor(
+          toNumber(link.inventoryItem.quantityOnHand) / perUnit,
+        );
+        if (n < maxServings) {
+          maxServings = n;
+          limitedBy = link.inventoryItem.name;
+        }
+      }
+      const tracked = maxServings !== Number.POSITIVE_INFINITY;
+      result.set(productId, {
+        tracked,
+        maxServings: tracked ? Math.max(0, maxServings) : null,
+        limitedBy: tracked ? limitedBy : null,
+      });
+    }
+    return result;
   }
 
   /**

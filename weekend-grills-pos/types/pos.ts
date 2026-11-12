@@ -253,6 +253,37 @@ export interface PosInventoryItem {
   updatedAt: string;
 }
 
+/** GET /pos/inventory/overview: one menu item on the stock screen. */
+export interface PosStockProduct {
+  id: string;
+  name: string;
+  type: PosProductType;
+  /** The manual on/off switch. Off hides it from the till whatever the stock. */
+  available: boolean;
+  /** True when at least one counted stock item is in its recipe. */
+  tracked: boolean;
+  /** Plates the counted stock can still make. Null when not tracked. */
+  servingsLeft: number | null;
+  /** The stock item that runs out first. Null when not tracked. */
+  limitedBy: string | null;
+  recipe: Array<{
+    inventoryItemId: string;
+    name: string;
+    unit: string | null;
+    isCountable: boolean;
+    quantityPerUnit: number;
+  }>;
+}
+
+export interface PosStockItem extends PosInventoryItem {
+  usedBy: Array<{ productId: string; name: string; quantityPerUnit: number }>;
+}
+
+export interface PosStockOverview {
+  sections: Array<{ id: string; name: string; products: PosStockProduct[] }>;
+  items: PosStockItem[];
+}
+
 export interface PosProductIngredientLink {
   id: string;
   inventoryItemId: string;

@@ -1,8 +1,19 @@
 import { api } from '@/lib/api';
-import { PosInventoryItem, PosProductIngredientLink } from '@/types/pos';
+import {
+  PosInventoryItem,
+  PosProductIngredientLink,
+  PosStockOverview,
+} from '@/types/pos';
 
 export const posInventoryService = {
   listItems: () => api.get<PosInventoryItem[]>('/pos/inventory/items'),
+
+  /** Menu items with servings left and recipes, plus stock items with what uses them. */
+  getOverview: () => api.get<PosStockOverview>('/pos/inventory/overview'),
+
+  /** "add" a positive or negative amount, or "set" the counted total. Recorded on the server. */
+  adjustStock: (id: string, body: { mode?: 'add' | 'set'; amount: number }) =>
+    api.post<PosInventoryItem>(`/pos/inventory/items/${id}/adjust`, body),
 
   createItem: (body: {
     name: string;

@@ -13,6 +13,7 @@ import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { SetProductIngredientsDto } from './dto/set-product-ingredients.dto';
+import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { PosInventoryService } from './pos-inventory.service';
 
 @Controller('pos/inventory')
@@ -23,6 +24,16 @@ export class PosInventoryController {
   @Get('items')
   listItems() {
     return this.inventoryService.findAllItems();
+  }
+
+  @Get('overview')
+  overview() {
+    return this.inventoryService.getOverview();
+  }
+
+  @Post('items/:id/adjust')
+  adjustStock(@Param('id') id: string, @Body() dto: AdjustStockDto) {
+    return this.inventoryService.adjustStock(id, dto);
   }
 
   @Post('items')
