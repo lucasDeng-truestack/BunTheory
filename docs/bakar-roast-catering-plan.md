@@ -289,7 +289,7 @@ Built from the Claude Design handoff in `bakar-roast-handoff/`. The app's own ru
 
 - **Design system:** `components/ui/` (19 components, Bricolage Grotesque + Figtree, dark ember
   palette). Every component in every state: `/dev/components` (noindex).
-- **Public pages** (`components/sections/`): `/`, `/catering`, `/story`, `/menu`, `/contact`.
+- **Public pages** (`components/sections/`): `/` (home and catering in one page; `/catering` redirects there), `/story`, `/menu`, `/contact`.
   Gallery and testimonials render only when the owner has added some.
 - **Booking** (`components/booking/`): `/catering/book` (four steps, done screen),
   `/booking/[token]` (status, cancel). Draft kept in sessionStorage.
@@ -375,7 +375,7 @@ Form states to cover everywhere: empty, focus, invalid, submitting, success, ser
 2. Resend emails are for catering only. Bun Theory orders collect no email, so they get no messages once Twilio is gone.
 3. Customer email becomes a required booking field (needed for Resend).
 4. Dropping `adminWhatsappNumber` deletes the one stored phone number. Not recoverable from the DB.
-5. The WhatsApp enquiry form stays on `/contact` as the "just chatting" path; `/catering` links to the booking flow instead.
+5. The WhatsApp enquiry form stays on `/contact` as the "just chatting" path; the home page (the catering page) links to the booking flow instead.
 6. The home page stat counters (120+ events and so on) stay as editable content; you supply real numbers.
 7. Resend needs a verified sending domain and an API key from you before emails actually send.
 8. Added after approval: the 2-pending-requests cap per customer and expiry on the status read.

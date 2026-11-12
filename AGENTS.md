@@ -63,7 +63,7 @@ Resend email (Bakar & Roast catering) is optional: set `RESEND_API_KEY`, `EMAIL_
 ### Bakar & Roast site
 
 - `cd bakar-roast && npm run dev` runs the brand and catering site on **3200**. Copy `bakar-roast/.env.local.example` to `.env.local`.
-- Site routes: public `/`, `/catering`, `/catering/book`, `/booking/<token>`, `/account`; owner admin `/admin` (same seed admin login). `/dev/components` shows every UI component.
+- Site routes: public `/` (home and catering in one page; `/catering` redirects there), `/catering/book`, `/booking/<token>`, `/account`; owner admin `/admin` (same seed admin login). `/dev/components` shows every UI component.
 - The admin for everything lives here: catering at `/admin/*`, The Bun Theory at `/admin/bun-theory/*` (board, orders, receipts, batches, menu, feedback, settings), staff at `/admin/team`. The storefront's old `/admin/*` redirects here; set `BAKAR_ROAST_URL` on the storefront in production.
 - The live order feeds (`/orders`, `/pos` sockets) need a staff session: connect with `auth: { token }`.
 - Set `NEXT_PUBLIC_BUN_THEORY_URL` in production, or The Bun Theory links point at localhost.

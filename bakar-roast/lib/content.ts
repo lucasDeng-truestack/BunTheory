@@ -23,7 +23,7 @@ export function waLink(message?: string) {
 
 // Header and phone menu, in this order. The wordmark links home.
 export const nav = [
-  { label: "Catering", href: "/catering" },
+  { label: "Packages", href: "/#packages" },
   { label: "Menu", href: "/menu" },
   { label: "Story", href: "/story" },
   { label: "Contact", href: "/contact" },
@@ -47,7 +47,7 @@ export const footerColumns: {
   {
     title: "Catering",
     links: [
-      { label: "Packages", href: "/catering" },
+      { label: "Packages", href: "/#packages" },
       { label: "Check a date", href: "/catering/book" },
       { label: "My bookings", href: "/account" },
     ],
@@ -158,6 +158,13 @@ export const homeHero: HeroCopy = {
   photo: "Photo: a long table at dusk, the fire behind it, guests mid-meal.",
 };
 
+/** The home page's "other kitchens" band (catering is the page itself, so it is left out there). */
+export const otherKitchensCopy = {
+  eyebrow: "Our other kitchens",
+  headline: "Where we *earned* it.",
+  intro: "Before the catering came The Bun Theory and The Weekend Grill. Both are still cooking.",
+};
+
 export const venturesCopy = {
   eyebrow: "What we do",
   headline: "Three kitchens. *One* fire.",
@@ -174,7 +181,7 @@ export const ventures = [
     photo: "Photo: a catered table, full, the fire glowing behind.",
     href: "/catering/book",
     cta: "Check a date",
-    more: { label: "See packages", href: "/catering" },
+    more: { label: "See packages", href: "/#packages" },
   },
   {
     key: "bun-theory",
@@ -451,7 +458,7 @@ export const bookingCopy = {
 
 export const statusCopy = {
   title: "Your booking | Bakar & Roast",
-  back: { label: "Back to catering", href: "/catering" },
+  back: { label: "Back to catering", href: "/" },
   summary: "Your table",
   headline: {
     PENDING: "We have your *request.*",

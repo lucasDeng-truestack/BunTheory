@@ -1,21 +1,26 @@
-import { ventures, venturesCopy } from "@/lib/content";
+import { otherKitchensCopy, ventures, venturesCopy } from "@/lib/content";
+import { cn } from "@/lib/utils";
 import { Band, Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/pill";
 import { Reveal, RevealPhoto, SectionHead } from "@/components/sections/motion";
 
 /**
- * Home: the three kitchens. Catering is the wide flagship card (into the booking flow);
+ * The three kitchens. Catering is the wide flagship card (into the booking flow);
  * The Bun Theory and The Weekend Grill follow as the track record behind it.
+ * `only="others"` drops the catering card, for the home page, which is the catering page.
  */
-export function Ventures() {
+export function Ventures({ only }: { only?: "others" } = {}) {
   const [catering, ...rest] = ventures;
+  const copy = only === "others" ? otherKitchensCopy : venturesCopy;
   return (
-    <Band tone="raised">
+    // On the home page this follows the raised stats band, so it sits on the base ground with raised cards.
+    <Band tone={only === "others" ? "base" : "raised"}>
       <Container>
-        <SectionHead eyebrow={venturesCopy.eyebrow}>{venturesCopy.headline}</SectionHead>
-        <p className="type-body-lg -mt-4 mb-12 max-w-[52ch] text-cream-muted">{venturesCopy.intro}</p>
+        <SectionHead eyebrow={copy.eyebrow}>{copy.headline}</SectionHead>
+        <p className="type-body-lg -mt-4 mb-12 max-w-[52ch] text-cream-muted">{copy.intro}</p>
 
+        {only !== "others" && (
         <Reveal className="grid overflow-hidden rounded-card-lg bg-ink min-[900px]:grid-cols-2">
           <div className="relative">
             <RevealPhoto note={catering.photo} radius="" className="h-full min-h-[280px]" sizes="(min-width: 900px) 50vw, 100vw" />
@@ -39,10 +44,15 @@ export function Ventures() {
             </div>
           </div>
         </Reveal>
+        )}
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <div className={only === "others" ? "grid gap-6 md:grid-cols-2" : "mt-6 grid gap-6 md:grid-cols-2"}>
           {rest.map((v, i) => (
-            <Reveal key={v.key} index={i + 1} className="grid content-start overflow-hidden rounded-card-lg bg-ink">
+            <Reveal
+              key={v.key}
+              index={i + 1}
+              className={cn("grid content-start overflow-hidden rounded-card-lg", only === "others" ? "bg-ink-raised" : "bg-ink")}
+            >
               <RevealPhoto note={v.photo} radius="" className="aspect-[16/10]" sizes="(min-width: 768px) 50vw, 100vw" />
               <div className="grid justify-items-start gap-3 p-6 sm:p-8">
                 <h3 className="display-sm m-0">{v.name}</h3>

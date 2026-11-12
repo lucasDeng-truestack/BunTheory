@@ -5,6 +5,10 @@ const api = new URL(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001");
 const nextConfig = {
   // This app has its own lockfile inside a larger repo; pin the tracing root.
   outputFileTracingRoot: import.meta.dirname,
+  // Catering and the home page were merged into "/". Keep old links and bookmarks working.
+  async redirects() {
+    return [{ source: "/catering", destination: "/", permanent: true }];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

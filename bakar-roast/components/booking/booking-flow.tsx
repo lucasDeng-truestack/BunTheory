@@ -377,7 +377,7 @@ export function BookingFlow({
               <BookingProgress
                 current={step}
                 backLabel={copy.back}
-                {...(step === 1 ? { backHref: "/catering" } : { onBack: () => goTo((step - 1) as BookingStep) })}
+                {...(step === 1 ? { backHref: "/" } : { onBack: () => goTo((step - 1) as BookingStep) })}
               />
             </div>
           )}
