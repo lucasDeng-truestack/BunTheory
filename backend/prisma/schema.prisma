@@ -555,6 +555,9 @@ model SystemSettings {
   cateringBankAccountNumber   String?
   /// DuitNow / bank QR image URL.
   cateringPaymentQrUrl        String?
+  /// Delivery hours customers can pick from, "HH:mm" Malaysia time. A CateringDay can override.
+  cateringDeliveryStart       String  @default("10:00")
+  cateringDeliveryEnd         String  @default("21:00")
   updatedAt               DateTime @updatedAt
 }
 
@@ -659,6 +662,9 @@ model CateringDay {
   capacity  Int?
   /// Why it is closed, shown to the owner only.
   note      String?
+  /// This day's delivery hours, "HH:mm". Null = the defaults in SystemSettings.
+  deliveryStart String?
+  deliveryEnd   String?
   updatedAt DateTime @updatedAt
 }
 

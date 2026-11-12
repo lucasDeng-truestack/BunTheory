@@ -32,6 +32,9 @@ export interface CateringAvailability {
   unavailable: string[];
   /** Sets still open on dates with few left (3 or fewer), for a "2 left" hint. */
   fewLeft: Record<string, number>;
+  /** Delivery hours, "HH:mm": the usual ones, and days that differ. */
+  hours: { start: string; end: string };
+  dayHours: Record<string, { start: string; end: string }>;
 }
 
 /** How the customer pays: shown on their booking page. */
@@ -140,6 +143,10 @@ export interface CateringCalendarDay {
   capacity: number;
   /** True when the owner set this day's capacity. */
   customCapacity: boolean;
+  /** This day's delivery hours (its own, or the usual ones). */
+  deliveryStart: string;
+  deliveryEnd: string;
+  customHours: boolean;
   /** Pending, approved and completed bookings on this day. */
   bookings: Array<{
     id: string;

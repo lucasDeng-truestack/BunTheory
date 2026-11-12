@@ -70,6 +70,8 @@ type Rules = {
   cateringHoldExpiryDays: number;
   cateringCancelCutoffDays: number;
   cateringDailySets: number;
+  cateringDeliveryStart: string;
+  cateringDeliveryEnd: string;
 };
 
 const DEFAULT_RULES: Rules = {
@@ -78,6 +80,8 @@ const DEFAULT_RULES: Rules = {
   cateringHoldExpiryDays: 3,
   cateringCancelCutoffDays: 3,
   cateringDailySets: 5,
+  cateringDeliveryStart: '10:00',
+  cateringDeliveryEnd: '21:00',
 };
 
 function isPrismaError(
@@ -125,6 +129,8 @@ export class CateringService {
         cateringHoldExpiryDays: true,
         cateringCancelCutoffDays: true,
         cateringDailySets: true,
+        cateringDeliveryStart: true,
+        cateringDeliveryEnd: true,
       },
     });
     return row ?? DEFAULT_RULES;
@@ -208,7 +214,9 @@ export class CateringService {
     // and it keeps the query bounded whatever the caller sends.
     const from = q.from && q.from > minDate ? q.from : minDate;
     const to = q.to && q.to < maxDate ? q.to : maxDate;
-    if (from > to) return { minDate, maxDate, unavailable: [], fewLeft: {} };
+    const rules0 = await this.rules();
+    const hours = { start: rules0.cateringDeliveryStart, end: rules0.cateringDeliveryEnd };
+    if (from > to) return { minDate, maxDate, unavailable: [], fewLeft: {}, hours, dayHours: {} };
     const fromD = toDateOnly(from);
     const toD = toDateOnly(to);
     const [rules, days, counts] = await Promise.all([
@@ -224,6 +232,15 @@ export class CateringService {
     const dates = new Set([...dayMap.keys(), ...counts.keys()]);
     const unavailable: string[] = [];
     const fewLeft: Record<string, number> = {};
+    const dayHours: Record<string, { start: string; end: string }> = {};
+    for (const d of days) {
+      if (d.deliveryStart || d.deliveryEnd) {
+        dayHours[fromDateOnly(d.date)] = {
+          start: d.deliveryStart ?? hours.start,
+          end: d.deliveryEnd ?? hours.end,
+        };
+      }
+    }
     for (const date of [...dates].sort()) {
       const day = dayMap.get(date);
       const cap = day?.capacity ?? rules.cateringDailySets;
@@ -231,7 +248,7 @@ export class CateringService {
       if (day?.closed || left <= 0) unavailable.push(date);
       else if (left <= 3) fewLeft[date] = left;
     }
-    return { minDate, maxDate, unavailable, fewLeft };
+    return { minDate, maxDate, unavailable, fewLeft, hours, dayHours };
   }
 
   /** `userId` comes only from a verified session (OptionalAuthGuard), never from the body. */
@@ -320,8 +337,21 @@ export class CateringService {
           // two customers cannot both take the last set.
           await tx.$executeRaw`INSERT INTO "CateringDay" ("date", "closed", "updatedAt") VALUES (${dto.eventDate}::date, false, now()) ON CONFLICT ("date") DO NOTHING`;
           const [day] = await tx.$queryRaw<
-            { closed: boolean; capacity: number | null }[]
-          >`SELECT "closed", "capacity" FROM "CateringDay" WHERE "date" = ${dto.eventDate}::date FOR UPDATE`;
+            {
+              closed: boolean;
+              capacity: number | null;
+              deliveryStart: string | null;
+              deliveryEnd: string | null;
+            }[]
+          >`SELECT "closed", "capacity", "deliveryStart", "deliveryEnd" FROM "CateringDay" WHERE "date" = ${dto.eventDate}::date FOR UPDATE`;
+          const start = day?.deliveryStart ?? rules.cateringDeliveryStart;
+          const end = day?.deliveryEnd ?? rules.cateringDeliveryEnd;
+          if (dto.serviceTime < start || dto.serviceTime > end) {
+            throw new BadRequestException({
+              code: 'TIME_OUT_OF_RANGE',
+              message: `We deliver between ${clock12(start)} and ${clock12(end)} that day. Please pick another time.`,
+            });
+          }
           const capacity = day?.capacity ?? rules.cateringDailySets;
           const booked = await tx.cateringBooking.count({
             where: { eventDate, status: { in: ACTIVE } },
@@ -690,6 +720,9 @@ export class CateringService {
           reason: null,
           capacity: rules.cateringDailySets,
           customCapacity: false,
+          deliveryStart: rules.cateringDeliveryStart,
+          deliveryEnd: rules.cateringDeliveryEnd,
+          customHours: false,
           bookings: [],
         };
         out.set(date, d);
@@ -698,13 +731,18 @@ export class CateringService {
     };
     for (const r of days) {
       // Lock-only rows (created by a booking, nothing changed) say nothing new.
-      if (!r.closed && r.capacity == null) continue;
+      if (!r.closed && r.capacity == null && !r.deliveryStart && !r.deliveryEnd) continue;
       const d = dayOf(fromDateOnly(r.date));
       d.closed = r.closed;
       d.reason = r.note;
       if (r.capacity != null) {
         d.capacity = r.capacity;
         d.customCapacity = true;
+      }
+      if (r.deliveryStart || r.deliveryEnd) {
+        d.deliveryStart = r.deliveryStart ?? d.deliveryStart;
+        d.deliveryEnd = r.deliveryEnd ?? d.deliveryEnd;
+        d.customHours = true;
       }
     }
     for (const b of bookings) {
@@ -800,18 +838,67 @@ export class CateringService {
     return { opened: res.count };
   }
 
-  /** Sets for one day. null goes back to the default from Settings. */
-  async setDayCapacity(
+  /** Delivery hours for every date in a range; null start and end go back to the usual hours. */
+  async setRangeHours(dto: {
+    from: string;
+    to: string;
+    start: string | null;
+    end: string | null;
+  }): Promise<{ updated: number }> {
+    const dates = this.datesBetween(dto.from, dto.to);
+    const start = dto.start ?? null;
+    const end = dto.end ?? null;
+    if ((start === null) !== (end === null)) {
+      throw new BadRequestException('Pick both a start and an end time.');
+    }
+    if (start !== null && end !== null && start >= end) {
+      throw new BadRequestException('Deliveries must end after they start.');
+    }
+    await this.prisma.$transaction(
+      dates.map((d) =>
+        this.prisma.cateringDay.upsert({
+          where: { date: toDateOnly(d) },
+          create: { date: toDateOnly(d), deliveryStart: start, deliveryEnd: end },
+          update: { deliveryStart: start, deliveryEnd: end },
+        }),
+      ),
+    );
+    return { updated: dates.length };
+  }
+
+  /**
+   * One day's sets and delivery hours. A field left out stays; null goes back to the
+   * default from Settings.
+   */
+  async setDay(
     dateParam: string,
-    capacity: number | null,
-  ): Promise<{ date: string; capacity: number | null }> {
+    dto: { capacity?: number | null; deliveryStart?: string | null; deliveryEnd?: string | null },
+  ): Promise<{ date: string }> {
     const date = toDateOnly(dateParam);
+    const [rules, current] = await Promise.all([
+      this.rules(),
+      this.prisma.cateringDay.findUnique({ where: { date } }),
+    ]);
+    const start =
+      (dto.deliveryStart !== undefined ? dto.deliveryStart : current?.deliveryStart) ??
+      rules.cateringDeliveryStart;
+    const end =
+      (dto.deliveryEnd !== undefined ? dto.deliveryEnd : current?.deliveryEnd) ??
+      rules.cateringDeliveryEnd;
+    if (start >= end) {
+      throw new BadRequestException('Deliveries must end after they start.');
+    }
+    const data = {
+      ...(dto.capacity !== undefined ? { capacity: dto.capacity } : {}),
+      ...(dto.deliveryStart !== undefined ? { deliveryStart: dto.deliveryStart } : {}),
+      ...(dto.deliveryEnd !== undefined ? { deliveryEnd: dto.deliveryEnd } : {}),
+    };
     await this.prisma.cateringDay.upsert({
       where: { date },
-      create: { date, capacity },
-      update: { capacity },
+      create: { date, ...data },
+      update: data,
     });
-    return { date: dateParam, capacity };
+    return { date: dateParam };
   }
 
   // ─── Receipts ───────────────────────────────────────────────────────────────
@@ -873,6 +960,12 @@ export class CateringService {
     const [rules, payment] = await Promise.all([this.rules(), this.paymentDetails()]);
     return toBookingPublic(updated, rules.cateringCancelCutoffDays, payment);
   }
+}
+
+/** "14:00" -> "2:00 pm" */
+function clock12(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
 }
 
 /** Amount asked first: the whole total, or half rounded to the sen. */

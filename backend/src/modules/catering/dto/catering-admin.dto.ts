@@ -87,13 +87,38 @@ export class CateringDateRangeDto {
   reason?: string;
 }
 
-/** Sets for one day. null = back to the default. */
+/** Delivery hours for every date from..to. null start and end = back to the usual hours. */
+export class CateringRangeHoursDto {
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from: string;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to: string;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  start: string | null;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  end: string | null;
+}
+
+/** One day's sets and delivery hours. A field left out stays as it is; null goes back to the default. */
 export class SetCateringDayDto {
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(200)
-  capacity: number | null;
+  capacity?: number | null;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  deliveryStart?: string | null;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  deliveryEnd?: string | null;
 }
 
 export class BlockCateringDateDto {

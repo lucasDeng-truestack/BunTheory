@@ -22,6 +22,7 @@ import {
   ApproveCateringBookingDto,
   BlockCateringDateDto,
   CateringDateRangeDto,
+  CateringRangeHoursDto,
   SetCateringDayDto,
   DeclineCateringBookingDto,
   UpdateCateringBookingDto,
@@ -143,12 +144,20 @@ export class CateringAdminController {
     return this.catering.openRange(dto);
   }
 
+  /** Delivery hours for every date in a range. */
+  @Post('days/hours')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  rangeHours(@Body() dto: CateringRangeHoursDto) {
+    return this.catering.setRangeHours(dto);
+  }
+
   /** How many sets one day takes. */
   @Patch('days/:date')
   @UseGuards(AdminAuthGuard, RolesGuard)
   @Roles('OWNER', 'MANAGER')
   setDay(@Param('date') date: string, @Body() dto: SetCateringDayDto) {
-    return this.catering.setDayCapacity(date, dto.capacity ?? null);
+    return this.catering.setDay(date, dto);
   }
 
   // ─── Packages ───────────────────────────────────────────────────────────────

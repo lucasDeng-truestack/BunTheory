@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 /** Partial update of the catering booking rules. Empty string clears the notify email. */
 export class UpdateCateringSettingsDto {
@@ -59,4 +59,13 @@ export class UpdateCateringSettingsDto {
   @IsString()
   @MaxLength(2048)
   cateringPaymentQrUrl?: string;
+
+  /** Delivery hours customers can pick from, "HH:mm". */
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  cateringDeliveryStart?: string;
+
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  cateringDeliveryEnd?: string;
 }

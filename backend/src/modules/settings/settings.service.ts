@@ -50,6 +50,8 @@ export class SettingsService {
       cateringBankAccountName: s.cateringBankAccountName,
       cateringBankAccountNumber: s.cateringBankAccountNumber,
       cateringPaymentQrUrl: s.cateringPaymentQrUrl,
+      cateringDeliveryStart: s.cateringDeliveryStart,
+      cateringDeliveryEnd: s.cateringDeliveryEnd,
       updatedAt: s.updatedAt,
     };
   }
@@ -167,6 +169,8 @@ export class SettingsService {
     cateringBankAccountName?: string | null;
     cateringBankAccountNumber?: string | null;
     cateringPaymentQrUrl?: string | null;
+    cateringDeliveryStart?: string;
+    cateringDeliveryEnd?: string;
   }) {
     // Valid as both create and update input, so the no-row path stays simple.
     const data: Prisma.SystemSettingsUpdateInput &
@@ -198,6 +202,19 @@ export class SettingsService {
       data.cateringBankAccountNumber = text(dto.cateringBankAccountNumber);
     if (dto.cateringPaymentQrUrl !== undefined)
       data.cateringPaymentQrUrl = text(dto.cateringPaymentQrUrl);
+    if (dto.cateringDeliveryStart != null || dto.cateringDeliveryEnd != null) {
+      const current = await this.prisma.systemSettings.findFirst({ orderBy: { id: 'asc' } });
+      const start = dto.cateringDeliveryStart ?? current?.cateringDeliveryStart ?? '10:00';
+      const end = dto.cateringDeliveryEnd ?? current?.cateringDeliveryEnd ?? '21:00';
+      if (start >= end) {
+        throw new BadRequestException({
+          code: 'INVALID_RULES',
+          message: 'Deliveries must end after they start.',
+        });
+      }
+      data.cateringDeliveryStart = start;
+      data.cateringDeliveryEnd = end;
+    }
     if (Object.keys(data).length === 0) return this.getSettings();
 
     const settings = await this.prisma.systemSettings.findFirst({
