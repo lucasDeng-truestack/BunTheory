@@ -181,7 +181,7 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
 
           <div
             className={cn(
-              "grid min-w-0 max-w-[1200px] content-start px-4 pt-5 lg:px-[clamp(16px,3vw,44px)] lg:pb-[72px] lg:pt-9",
+              "grid min-w-0 max-w-[1680px] content-start px-4 pt-5 lg:px-[clamp(16px,3vw,44px)] lg:pb-[72px] lg:pt-9",
               "pb-[calc(120px+env(safe-area-inset-bottom))]",
             )}
           >
@@ -397,7 +397,7 @@ function ShellSkeleton() {
       </div>
       <div className="lg:pl-64">
         <div className="h-[60px] border-b border-ink-line lg:hidden" />
-        <div className="grid max-w-[1200px] gap-5 px-4 pt-5 lg:px-[clamp(16px,3vw,44px)] lg:pt-9">
+        <div className="grid max-w-[1680px] gap-5 px-4 pt-5 lg:px-[clamp(16px,3vw,44px)] lg:pt-9">
           <Skeleton className="h-12 w-2/3 max-w-md" />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: 4 }, (_, i) => (

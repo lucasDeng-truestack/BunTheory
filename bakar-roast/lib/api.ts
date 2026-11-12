@@ -96,6 +96,9 @@ export interface CateringAvailability {
   unavailable: string[];
   /** Sets still open on dates with 3 or fewer left. */
   fewLeft?: Record<string, number>;
+  /** Delivery hours "HH:mm": the usual ones, and days that differ. */
+  hours?: { start: string; end: string };
+  dayHours?: Record<string, { start: string; end: string }>;
 }
 
 export interface CateringBookingCreated {
@@ -185,6 +188,9 @@ export interface CateringCalendarDay {
   reason: string | null;
   capacity: number;
   customCapacity: boolean;
+  deliveryStart: string;
+  deliveryEnd: string;
+  customHours: boolean;
   bookings: Array<{
     id: string;
     reference: string;

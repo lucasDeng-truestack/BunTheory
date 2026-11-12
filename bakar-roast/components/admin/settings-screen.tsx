@@ -7,7 +7,8 @@ import { adminGetSettings, adminUpdateSettings, type CateringAdminSettings, type
 import { cutoffWarning, isEmailShape, RULES, ruleLines, ruleValue, type RuleKey } from "@/lib/admin";
 import { klToday } from "@/lib/dates";
 import { Banner, Skeleton } from "@/components/ui/banner";
-import { Field } from "@/components/ui/field";
+import { Field, SelectField } from "@/components/ui/field";
+import { formatTime12, HALF_HOURS } from "@/lib/booking";
 import { useAdmin } from "@/components/admin/admin-context";
 import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
 import { useAdminQuery } from "@/components/admin/use-admin-query";
@@ -39,10 +40,12 @@ export function SettingsScreen() {
           <SettingsSkeleton />
         )
       ) : (
-        <>
+        <div className="grid items-start gap-5 xl:grid-cols-2">
           <OrdersAndPayment initial={q.data} />
-          <SettingsForm initial={q.data} />
-        </>
+          <div className="grid min-w-0 content-start gap-5">
+            <SettingsForm initial={q.data} />
+          </div>
+        </div>
       )}
     </AdminPage>
   );
@@ -139,7 +142,7 @@ function SettingsForm({ initial }: { initial: CateringAdminSettings }) {
   return (
     <>
       {warn && (
-        <Banner tone="ok" title="Heads up: earliest bookings can barely be cancelled online." className="max-w-[760px]">
+        <Banner tone="ok" title="Heads up: earliest bookings can barely be cancelled online." className="w-full">
           With {ruleValue(values.cateringMinNoticeDays, "day")} notice and a cutoff of{" "}
           {ruleValue(values.cateringCancelCutoffDays, "day")}, a customer who books the first open date can cancel online on the day they book at most. Set the cutoff lower than the
           notice to give them time.
@@ -163,7 +166,7 @@ function SettingsForm({ initial }: { initial: CateringAdminSettings }) {
         </p>
       </Block>
       {notice && (
-        <Banner tone="error" title={notice.title} className="max-w-[760px]">
+        <Banner tone="error" title={notice.title} className="w-full">
           {notice.help}
         </Banner>
       )}
@@ -290,7 +293,7 @@ function RuleStepper({
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="grid max-w-[760px] content-start gap-2.5 rounded-card-sm bg-ink-raised p-4">
+    <section className="grid w-full content-start gap-2.5 rounded-card-sm bg-ink-raised p-4">
       <h2 className="type-admin-meta m-0 text-cream-faint">{title}</h2>
       {children}
     </section>
@@ -299,7 +302,7 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 
 function SettingsSkeleton() {
   return (
-    <div aria-busy="true" className="grid max-w-[760px] gap-4">
+    <div aria-busy="true" className="grid w-full gap-4">
       <Skeleton className="h-[380px]" />
       <Skeleton className="h-32" />
     </div>
@@ -318,6 +321,8 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
   const [holder, setHolder] = useState(initial.cateringBankAccountName ?? "");
   const [account, setAccount] = useState(initial.cateringBankAccountNumber ?? "");
   const [qr, setQr] = useState(initial.cateringPaymentQrUrl ?? "");
+  const [start, setStart] = useState(initial.cateringDeliveryStart ?? "10:00");
+  const [end, setEnd] = useState(initial.cateringDeliveryEnd ?? "21:00");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; title: string } | null>(null);
 
@@ -332,6 +337,8 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
           cateringBankAccountName: holder,
           cateringBankAccountNumber: account,
           cateringPaymentQrUrl: qr,
+          cateringDeliveryStart: start,
+          cateringDeliveryEnd: end,
         }),
       );
       setNotice({ tone: "ok", title: "Saved. New bookings and booking pages use these now." });
@@ -343,7 +350,7 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
   };
 
   return (
-    <section aria-labelledby="pay-h" className="grid max-w-[720px] gap-5 rounded-card-md bg-ink-raised p-4 sm:p-6">
+    <section aria-labelledby="pay-h" className="grid w-full content-start gap-5 rounded-card-md bg-ink-raised p-4 sm:p-6">
       <h2 id="pay-h" className="m-0 text-lg font-bold">
         Orders and payment
       </h2>
@@ -377,7 +384,33 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
         <p className="type-small m-0 text-cream-muted">The usual for every day. Change a single day on the Calendar.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2">
+        <div className="grid max-w-[440px] grid-cols-2 items-start gap-3">
+          <SelectField size="sm" label="Deliveries start" value={start} onChange={(e) => setStart(e.target.value)}>
+            {HALF_HOURS.map((t) => (
+              <option key={t} value={t}>
+                {formatTime12(t)}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            size="sm"
+            label="Last delivery"
+            value={end}
+            error={end <= start ? "Must be after the start." : undefined}
+            onChange={(e) => setEnd(e.target.value)}
+          >
+            {HALF_HOURS.map((t) => (
+              <option key={t} value={t}>
+                {formatTime12(t)}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+        <p className="type-small m-0 text-cream-muted">Customers pick a time in this window. Change it for some days on the Calendar.</p>
+      </div>
+
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         <Field size="sm" label="Bank" placeholder="Maybank" maxLength={80} value={bank} onChange={(e) => setBank(e.target.value)} />
         <Field size="sm" label="Account name" maxLength={120} value={holder} onChange={(e) => setHolder(e.target.value)} />
         <Field
@@ -419,7 +452,7 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
       </div>
 
       <div>
-        <Button size="sm" onClick={() => void save()} loading={busy} loadingLabel="Saving">
+        <Button size="sm" onClick={() => void save()} loading={busy} loadingLabel="Saving" disabled={end <= start}>
           Save
         </Button>
       </div>

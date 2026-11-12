@@ -394,7 +394,7 @@ function PaymentBlock({ booking: b, save, onError }: { booking: CateringBookingA
         </b>
         <small className="text-[13px] text-cream-muted">{head.sub}</small>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 items-start gap-3">
         <Field
           size="sm"
           label="Quote, RM"

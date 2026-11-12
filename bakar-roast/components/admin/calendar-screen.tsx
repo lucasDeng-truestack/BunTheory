@@ -10,9 +10,10 @@ import {
   adminCloseDays,
   adminGetSettings,
   adminOpenDays,
-  adminSetDaySets,
+  adminSetDay,
+  adminSetRangeHours,
 } from "@/lib/catering-api";
-import { formatTime12 } from "@/lib/booking";
+import { formatTime12, HALF_HOURS } from "@/lib/booking";
 import {
   addDaysYmd,
   addMonthsYmd,
@@ -27,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Banner, EmptyState, Skeleton } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
+import { Field, SelectField } from "@/components/ui/field";
 import { StatusChip } from "@/components/ui/status-chip";
 import {
   ADMIN_DAY_LOOK,
@@ -56,19 +57,71 @@ const monthStart = (v: Ym) => `${ymText(v)}-01`;
 const monthEnd = (v: Ym) => toYmd(new Date(Date.UTC(v.year, v.month + 1, 0)));
 const MONTH_NAME = (v: Ym) => formatMonthYear(v.year, v.month).split(" ")[0];
 
-/** A date with no calendar row: open, default sets, no bookings. */
-const blankDay = (date: string, sets: number): Entry => ({
+type Hours = { start: string; end: string };
+
+/** A date with no calendar row: open, default sets and hours, no bookings. */
+const blankDay = (date: string, sets: number, hours: Hours): Entry => ({
   date,
   closed: false,
   reason: null,
   capacity: sets,
   customCapacity: false,
+  deliveryStart: hours.start,
+  deliveryEnd: hours.end,
+  customHours: false,
   bookings: [],
 });
 
+/** "10:00 am to 9:00 pm" */
+const hoursText = (start: string, end: string) => `${formatTime12(start)} to ${formatTime12(end)}`;
+
+/** Start and end selects over every half hour. */
+function HoursFields({
+  idBase,
+  start,
+  end,
+  onStart,
+  onEnd,
+  disabled,
+}: {
+  idBase: string;
+  start: string;
+  end: string;
+  onStart: (v: string) => void;
+  onEnd: (v: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 items-start gap-3">
+      <SelectField id={`${idBase}-start`} size="sm" label="Deliveries start" value={start} disabled={disabled} onChange={(e) => onStart(e.target.value)}>
+        {HALF_HOURS.map((t) => (
+          <option key={t} value={t}>
+            {formatTime12(t)}
+          </option>
+        ))}
+      </SelectField>
+      <SelectField
+        id={`${idBase}-end`}
+        size="sm"
+        label="Last delivery"
+        value={end}
+        disabled={disabled}
+        error={end <= start ? "Must be after the start." : undefined}
+        onChange={(e) => onEnd(e.target.value)}
+      >
+        {HALF_HOURS.map((t) => (
+          <option key={t} value={t}>
+            {formatTime12(t)}
+          </option>
+        ))}
+      </SelectField>
+    </div>
+  );
+}
+
 /** The look of a day, the words it is read out with, and its "2/5" count. */
-function dayState(ymd: string, e: Entry | undefined, today: string, sets: number) {
-  const day = e ?? blankDay(ymd, sets);
+function dayState(ymd: string, e: Entry | undefined, today: string, sets: number, hours: Hours) {
+  const day = e ?? blankDay(ymd, sets, hours);
   const n = day.bookings.length;
   const count = n > 0 || day.customCapacity ? `${n}/${day.capacity}` : null;
   let look: AdminDayLook;
@@ -130,13 +183,19 @@ export function CalendarScreen() {
   const q = useAdminQuery(
     async (t) => {
       const [days, settings] = await Promise.all([adminCalendar(t, range.from, range.to), adminGetSettings(t)]);
-      return { key, entries: days, sets: settings.cateringDailySets ?? 5 };
+      return {
+        key,
+        entries: days,
+        sets: settings.cateringDailySets ?? 5,
+        hours: { start: settings.cateringDeliveryStart ?? "10:00", end: settings.cateringDeliveryEnd ?? "21:00" },
+      };
     },
     [key],
   );
   // The previous month's data stays in q.data while the next one loads: never draw it on this month.
   const entries = q.data?.key === key ? q.data.entries : undefined;
   const sets = q.data?.sets ?? 5;
+  const hours = q.data?.hours ?? { start: "10:00", end: "21:00" };
   const byDate = new Map((entries ?? []).map((e) => [e.date, e]));
 
   const requestHref = (id: string) => `/admin/requests/${id}?from=calendar&${viewQuery(view, month)}`;
@@ -164,13 +223,13 @@ export function CalendarScreen() {
     </div>
   );
 
-  const selectedDay = selected ? (byDate.get(selected) ?? blankDay(selected, sets)) : null;
+  const selectedDay = selected ? (byDate.get(selected) ?? blankDay(selected, sets, hours)) : null;
 
   return (
     <AdminPage
       title="Calendar"
       actions={toggle}
-      lead={`Each day takes ${sets} ${sets === 1 ? "order" : "orders"} unless you change it. Tap a day to change its sets or close it. Close a whole stretch below.`}
+      lead={`Each day takes ${sets} ${sets === 1 ? "order" : "orders"}, delivered ${hoursText(hours.start, hours.end)}, unless you change it. Tap a day to change it, or change a whole stretch below.`}
     >
       {notice && (
         <Banner tone={notice.tone} title={notice.title}>
@@ -179,10 +238,10 @@ export function CalendarScreen() {
       )}
       {q.error ? <LoadError onRetry={q.reload} /> : null}
 
-      <RangeCard today={today} onDone={done} run={run} />
+      <RangeCard key={`${hours.start}-${hours.end}`} today={today} hours={hours} onDone={done} run={run} />
 
       {view === "month" ? (
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,760px)_minmax(0,1fr)]">
           {entries === undefined && q.data === undefined && !q.error ? (
             <CalendarSkeleton />
           ) : (
@@ -191,6 +250,7 @@ export function CalendarScreen() {
               today={today}
               entries={entries}
               sets={sets}
+              hours={hours}
               selected={selected}
               onMonth={setMonth}
               onDay={(ymd) => {
@@ -206,6 +266,7 @@ export function CalendarScreen() {
                 day={selectedDay}
                 today={today}
                 defaultSets={sets}
+                defaultHours={hours}
                 href={requestHref}
                 run={run}
                 onClose={() => setSelected(null)}
@@ -231,7 +292,7 @@ export function CalendarScreen() {
       ) : entries === undefined ? (
         q.error ? null : <RowsSkeleton />
       ) : entries.length ? (
-        <div className="grid max-w-[720px] gap-2">
+        <div className="grid items-start gap-x-6 gap-y-2 xl:grid-cols-2">
           {groupByMonth(entries).map(([label, rows]) => (
             <section key={label} aria-label={label} className="grid gap-2">
               <h2 className="m-0 mt-2 text-lg font-bold">{label}</h2>
@@ -261,15 +322,18 @@ export function CalendarScreen() {
 
 type Run = <T>(call: (token: string) => Promise<T>) => Promise<T>;
 
-/** Close or open every date in a range: holidays, a break, or the day you start again. */
-function RangeCard({ today, onDone, run }: { today: string; onDone: (n: Notice) => void; run: Run }) {
+/** Change a whole range at once: close it, open it, or set its delivery hours. */
+function RangeCard({ today, hours, onDone, run }: { today: string; hours: Hours; onDone: (n: Notice) => void; run: Run }) {
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(addDaysYmd(today, 6));
   const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState<"close" | "open" | null>(null);
+  const [start, setStart] = useState(hours.start);
+  const [end, setEnd] = useState(hours.end);
+  const [busy, setBusy] = useState<"close" | "open" | "hours" | "usual" | null>(null);
   const bad = !from || !to ? "Pick both dates." : to < from ? "The last day must be on or after the first." : null;
+  const span = from && to && !bad ? `${formatShort(from)} to ${formatShort(to)}` : "";
 
-  const act = async (kind: "close" | "open") => {
+  const act = async (kind: "close" | "open" | "hours" | "usual") => {
     if (bad) return;
     setBusy(kind);
     try {
@@ -277,20 +341,23 @@ function RangeCard({ today, onDone, run }: { today: string; onDone: (n: Notice) 
         const rows = await run((t) => adminCloseDays(t, from, to, reason.trim() || undefined));
         onDone({
           tone: "ok",
-          title: `Closed ${rows.length} ${rows.length === 1 ? "day" : "days"}: ${formatShort(from)} to ${formatShort(to)}.`,
+          title: `Closed ${rows.length} ${rows.length === 1 ? "day" : "days"}: ${span}.`,
           help: "Orders already on those days stay. Nobody can book new ones.",
         });
-      } else {
+        setReason("");
+      } else if (kind === "open") {
         const res = await run((t) => adminOpenDays(t, from, to));
         onDone({
           tone: "ok",
-          title:
-            res.opened > 0
-              ? `Opened ${res.opened} ${res.opened === 1 ? "day" : "days"} from ${formatShort(from)} to ${formatShort(to)}.`
-              : "Those days were already open.",
+          title: res.opened > 0 ? `Opened ${res.opened} ${res.opened === 1 ? "day" : "days"}: ${span}.` : "Those days were already open.",
         });
+      } else if (kind === "hours") {
+        await run((t) => adminSetRangeHours(t, from, to, start, end));
+        onDone({ tone: "ok", title: `Deliveries ${hoursText(start, end)} on ${span}.` });
+      } else {
+        await run((t) => adminSetRangeHours(t, from, to, null, null));
+        onDone({ tone: "ok", title: `${span} is back to the usual ${hoursText(hours.start, hours.end)}.` });
       }
-      setReason("");
     } catch (err) {
       onDone({ tone: "error", ...describeError(err) });
     } finally {
@@ -299,40 +366,74 @@ function RangeCard({ today, onDone, run }: { today: string; onDone: (n: Notice) 
   };
 
   return (
-    <section aria-labelledby="range-h" className="grid gap-4 rounded-card-md bg-ink-raised p-4 sm:p-5">
+    <section aria-labelledby="range-h" className="grid gap-5 rounded-card-md bg-ink-raised p-4 sm:p-5">
       <div>
         <h2 id="range-h" className="m-0 text-lg font-bold">
-          Close or open dates
+          Change a stretch of dates
         </h2>
-        <p className="m-0 text-sm text-cream-muted">Away for a while? Close the days you are off. Ready again? Open them.</p>
+        <p className="m-0 text-sm text-cream-muted">
+          Close the days you are off, open them again, or set different delivery hours for them.
+        </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))]">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         <Field size="sm" type="date" label="From" min={today} value={from} onChange={(e) => setFrom(e.target.value)} />
-        <Field size="sm" type="date" label="To" min={from || today} value={to} onChange={(e) => setTo(e.target.value)} error={bad ?? undefined} />
         <Field
           size="sm"
-          label="Reason"
-          optional
-          help="Only you see this."
-          placeholder="Raya break"
-          maxLength={200}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          type="date"
+          label="To"
+          min={from || today}
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          error={bad ?? undefined}
         />
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="cream" onClick={() => void act("close")} loading={busy === "close"} loadingLabel="Closing" disabled={!!bad || !!busy}>
-          <span className="inline-flex items-center gap-2">
-            <CalendarOff aria-hidden size={16} />
-            Close these dates
-          </span>
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => void act("open")} loading={busy === "open"} loadingLabel="Opening" disabled={!!bad || !!busy}>
-          <span className="inline-flex items-center gap-2">
-            <CalendarCheck aria-hidden size={16} />
-            Open these dates
-          </span>
-        </Button>
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="grid content-start gap-3 rounded-card-sm p-4 shadow-[inset_0_0_0_1px_theme(colors.ink.line)]">
+          <b className="text-sm">Open or closed</b>
+          <Field
+            size="sm"
+            label="Reason for closing"
+            optional
+            help="Only you see this."
+            placeholder="Raya break"
+            maxLength={200}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="cream" onClick={() => void act("close")} loading={busy === "close"} loadingLabel="Closing" disabled={!!bad || !!busy}>
+              <span className="inline-flex items-center gap-2">
+                <CalendarOff aria-hidden size={16} />
+                Close these dates
+              </span>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void act("open")} loading={busy === "open"} loadingLabel="Opening" disabled={!!bad || !!busy}>
+              <span className="inline-flex items-center gap-2">
+                <CalendarCheck aria-hidden size={16} />
+                Open these dates
+              </span>
+            </Button>
+          </div>
+        </div>
+        <div className="grid content-start gap-3 rounded-card-sm p-4 shadow-[inset_0_0_0_1px_theme(colors.ink.line)]">
+          <b className="text-sm">Delivery hours</b>
+          <HoursFields idBase="range-hours" start={start} end={end} onStart={setStart} onEnd={setEnd} disabled={!!busy} />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="cream"
+              onClick={() => void act("hours")}
+              loading={busy === "hours"}
+              loadingLabel="Saving"
+              disabled={!!bad || !!busy || end <= start}
+            >
+              Set these hours
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void act("usual")} loading={busy === "usual"} loadingLabel="Saving" disabled={!!bad || !!busy}>
+              Use usual hours
+            </Button>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -343,6 +444,7 @@ function DayPanel({
   day,
   today,
   defaultSets,
+  defaultHours,
   href,
   run,
   onClose,
@@ -351,12 +453,15 @@ function DayPanel({
   day: Entry;
   today: string;
   defaultSets: number;
+  defaultHours: Hours;
   href: (id: string) => string;
   run: Run;
   onClose: () => void;
   onDone: (n: Notice) => void;
 }) {
   const [cap, setCap] = useState(day.capacity);
+  const [start, setStart] = useState(day.deliveryStart);
+  const [end, setEnd] = useState(day.deliveryEnd);
   const [reason, setReason] = useState(day.reason ?? "");
   const [busy, setBusy] = useState(false);
   const past = day.date < today;
@@ -386,7 +491,7 @@ function DayPanel({
           <div>
             <b className="block text-base">{name}</b>
             <span className="text-sm text-cream-muted">
-              {day.closed ? "Closed" : `${n} of ${day.capacity} sets booked`}
+              {day.closed ? "Closed" : `${n} of ${day.capacity} sets booked · ${hoursText(day.deliveryStart, day.deliveryEnd)}`}
               {day.closed && day.reason ? `: ${day.reason}` : ""}
             </span>
           </div>
@@ -425,7 +530,7 @@ function DayPanel({
               size="sm"
               variant="cream"
               disabled={busy || cap === day.capacity}
-              onClick={() => void call((t) => adminSetDaySets(t, day.date, cap), `${formatShort(day.date)} now takes ${cap} ${cap === 1 ? "set" : "sets"}.`)}
+              onClick={() => void call((t) => adminSetDay(t, day.date, { capacity: cap }), `${formatShort(day.date)} now takes ${cap} ${cap === 1 ? "set" : "sets"}.`)}
             >
               Save
             </Button>
@@ -434,13 +539,50 @@ function DayPanel({
                 size="sm"
                 variant="ghost"
                 disabled={busy}
-                onClick={() => void call((t) => adminSetDaySets(t, day.date, null), `${formatShort(day.date)} is back to the usual ${defaultSets}.`)}
+                onClick={() => void call((t) => adminSetDay(t, day.date, { capacity: null }), `${formatShort(day.date)} is back to the usual ${defaultSets}.`)}
               >
                 Use usual ({defaultSets})
               </Button>
             )}
           </div>
           {cap < n && <p className="type-small m-0 text-cream-muted">This day already has {n} orders. They all stay.</p>}
+        </div>
+      )}
+
+      {!past && (
+        <div className="grid gap-2">
+          <span className="text-[13px] font-semibold">Delivery hours this day</span>
+          <HoursFields idBase={`day-${day.date}`} start={start} end={end} onStart={setStart} onEnd={setEnd} disabled={busy} />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="cream"
+              disabled={busy || end <= start || (start === day.deliveryStart && end === day.deliveryEnd)}
+              onClick={() =>
+                void call(
+                  (t) => adminSetDay(t, day.date, { deliveryStart: start, deliveryEnd: end }),
+                  `${formatShort(day.date)}: deliveries ${hoursText(start, end)}.`,
+                )
+              }
+            >
+              Save hours
+            </Button>
+            {day.customHours && (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() =>
+                  void call(
+                    (t) => adminSetDay(t, day.date, { deliveryStart: null, deliveryEnd: null }),
+                    `${formatShort(day.date)} is back to the usual ${hoursText(defaultHours.start, defaultHours.end)}.`,
+                  )
+                }
+              >
+                Use usual hours
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
@@ -515,6 +657,9 @@ function DayRow({ day: e, href, onPick }: { day: Entry; href: (id: string) => st
             {e.closed ? "Closed" : `${e.bookings.length} of ${e.capacity} sets`}
             {e.customCapacity && !e.closed ? " (custom)" : ""}
           </b>
+          {!e.closed && e.customHours && (
+            <span className="text-[13px] text-cream-muted">Deliveries {hoursText(e.deliveryStart, e.deliveryEnd)}</span>
+          )}
           {e.closed && <span className="text-[13px] text-cream-muted [overflow-wrap:anywhere]">{e.reason || "No reason given."}</span>}
         </span>
       </button>
@@ -545,6 +690,7 @@ function AdminMonth({
   today,
   entries,
   sets,
+  hours,
   selected,
   onMonth,
   onDay,
@@ -553,6 +699,7 @@ function AdminMonth({
   today: string;
   entries: Entry[] | undefined;
   sets: number;
+  hours: Hours;
   selected: string | null;
   onMonth: (m: Ym) => void;
   onDay: (ymd: string) => void;
@@ -620,8 +767,9 @@ function AdminMonth({
   );
 
   return (
-    <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="w-full max-w-[520px]">
+    <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="w-full max-w-[760px]">
       <CalendarShell
+        className="max-w-none"
         title={formatMonthYear(month.year, month.month)}
         onPrev={() => go(-1)}
         onNext={() => go(1)}
@@ -649,7 +797,7 @@ function AdminMonth({
             onKeyDown={onKeyDown}
             renderDay={({ ymd }) => {
               const entry = byDate.get(ymd);
-              const { look, words, count } = dayState(ymd, entry, today, sets);
+              const { look, words, count } = dayState(ymd, entry, today, sets, hours);
               const isToday = ymd === today;
               const inert = entries === undefined || look === "past";
               const isSelected = selected === ymd;

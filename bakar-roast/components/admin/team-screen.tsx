@@ -274,7 +274,7 @@ function PasswordForm({
 
   return (
     <form onSubmit={submit} noValidate className="grid gap-3 border-t border-ink-line pt-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         <Field
           size="sm"
           type="password"

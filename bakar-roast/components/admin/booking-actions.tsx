@@ -179,7 +179,7 @@ export function BookingActionDialog({
         </Banner>
       )}
       {kind === "approve" && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid items-start gap-3 sm:grid-cols-2">
           <Field
             size="sm"
             label="Quote, RM"

@@ -6,7 +6,7 @@ import type { CateringRules } from "@/lib/catering-api";
 import { bookingCopy, waLink } from "@/lib/content";
 import { formatLong } from "@/lib/dates";
 import {
-  DELIVERY_PERIODS,
+  deliveryPeriods,
   formatRm,
   formatTime12,
   joinAddress,
@@ -168,8 +168,11 @@ export function StepDetails({
   onChange,
   onBlur,
   contactNote,
+  hours,
 }: {
   answers: Answers;
+  /** Delivery hours on the chosen date. */
+  hours: { start: string; end: string };
   errors: Partial<Record<DetailsField, string>>;
   onChange: (field: keyof Answers, value: string) => void;
   onBlur: (field: DetailsField) => void;
@@ -202,6 +205,7 @@ export function StepDetails({
         <DeliveryTimePicker
           value={answers.serviceTime}
           error={errors.serviceTime}
+          hours={hours}
           onChange={(t) => {
             onChange("serviceTime", t);
             onBlur("serviceTime");
@@ -317,12 +321,15 @@ export function StepDetails({
 function DeliveryTimePicker({
   value,
   error,
+  hours,
   onChange,
 }: {
   value: string;
   error?: string;
+  hours: { start: string; end: string };
   onChange: (time: string) => void;
 }) {
+  const DELIVERY_PERIODS = deliveryPeriods(hours.start, hours.end);
   const fromValue = DELIVERY_PERIODS.find((p) => p.slots.includes(value))?.key ?? null;
   const [period, setPeriod] = useState<string | null>(fromValue);
   const current = DELIVERY_PERIODS.find((p) => p.key === (period ?? fromValue));

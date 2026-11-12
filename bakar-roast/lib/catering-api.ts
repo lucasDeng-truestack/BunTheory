@@ -50,6 +50,8 @@ export interface CateringAdminSettings extends CateringRules {
   cateringBankAccountName: string | null;
   cateringBankAccountNumber: string | null;
   cateringPaymentQrUrl: string | null;
+  cateringDeliveryStart: string;
+  cateringDeliveryEnd: string;
 }
 
 export interface CreateBookingInput {
@@ -207,9 +209,16 @@ export const adminCloseDays = (token: string, from: string, to: string, reason?:
 export const adminOpenDays = (token: string, from: string, to: string) =>
   api<{ opened: number }>("/catering/admin/days/open", json("POST", { from, to }, token));
 
-/** Sets for one day; null goes back to the default in Settings. */
-export const adminSetDaySets = (token: string, date: string, capacity: number | null) =>
-  api<{ date: string; capacity: number | null }>(`/catering/admin/days/${date}`, json("PATCH", { capacity }, token));
+/** Delivery hours for every date from..to; null start and end go back to the usual hours. */
+export const adminSetRangeHours = (token: string, from: string, to: string, start: string | null, end: string | null) =>
+  api<{ updated: number }>("/catering/admin/days/hours", json("POST", { from, to, start, end }, token));
+
+/** One day's sets and delivery hours. Leave a field out to keep it; null goes back to the default. */
+export const adminSetDay = (
+  token: string,
+  date: string,
+  body: { capacity?: number | null; deliveryStart?: string | null; deliveryEnd?: string | null },
+) => api<{ date: string }>(`/catering/admin/days/${date}`, json("PATCH", body, token));
 
 export const adminListPackages = (token: string) =>
   api<CateringPackageAdmin[]>("/catering/admin/packages", { token });
@@ -272,6 +281,8 @@ export const adminUpdateSettings = (
       cateringBankAccountName: string;
       cateringBankAccountNumber: string;
       cateringPaymentQrUrl: string;
+      cateringDeliveryStart: string;
+      cateringDeliveryEnd: string;
     }
   >,
 ) => api<CateringAdminSettings>("/settings/catering", json("PATCH", input, token));

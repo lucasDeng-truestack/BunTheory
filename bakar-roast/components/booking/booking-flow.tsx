@@ -19,6 +19,7 @@ import {
   clampGuests,
   DETAIL_FIELDS,
   formatTime12,
+  hoursFor,
   isPickable,
   joinAddress,
   validateDetails,
@@ -129,6 +130,7 @@ export function BookingFlow({
   const pendingFocus = useRef(false);
 
   const pkg = packages.find((p) => p.id === answers.packageId) ?? null;
+  const dayHours = hoursFor(availability, answers.date);
   const set = <K extends keyof Answers>(k: K, v: Answers[K]) => setAnswers((a) => ({ ...a, [k]: v }));
 
   // Restore the draft once, then apply the URL's package and occasion (read once, then dropped).
@@ -214,6 +216,12 @@ export function BookingFlow({
     // Only when availability arrives or changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availability, today, restored]);
+
+  // A time outside the chosen day's delivery hours (after a date change) is cleared.
+  useEffect(() => {
+    const t = answers.serviceTime;
+    if (t && (t < dayHours.start || t > dayHours.end)) setAnswers((a) => ({ ...a, serviceTime: "" }));
+  }, [answers.serviceTime, dayHours.start, dayHours.end]);
 
   const toTop = () => {
     if (lenis) lenis.scrollTo(0, { immediate: true });
@@ -453,6 +461,7 @@ export function BookingFlow({
                   {step === 3 && (
                     <StepDetails
                       answers={answers}
+                      hours={dayHours}
                       errors={errors}
                       contactNote={contactNote}
                       onChange={(f, v) => set(f, v)}
