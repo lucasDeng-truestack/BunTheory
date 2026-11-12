@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from 'lucide-react';
 import { PosShell } from '@/components/layout/pos-shell';
 import { posInventoryService } from '@/services/pos-inventory.service';
@@ -19,14 +20,6 @@ import { PosStockItem, PosStockOverview, PosStockProduct } from '@/types/pos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -47,6 +40,9 @@ import { cn } from '@/lib/utils';
  *   Count (type what is on the shelf). Every change goes to the server as a change, so it never
  *   overwrites what the kitchen used meanwhile.
  * Stock goes down when the kitchen taps Start Cooking.
+ *
+ * No dialogs or side sheets: every action (stock used, restock, count, edit, add, remove) opens
+ * inside the row it belongs to, one at a time, so the list stays in view.
  */
 
 const LOW_SERVINGS = 5;
@@ -145,16 +141,101 @@ function SaleSwitch({
   );
 }
 
+/** Which row has an inline panel open. Only one at a time. */
+type Open =
+  | { kind: 'recipe'; id: string }
+  | { kind: 'add' | 'set' | 'edit' | 'delete'; id: string }
+  | { kind: 'new' }
+  | null;
+
+const sameOpen = (a: Open, b: Open) =>
+  !!a && !!b && a.kind === b.kind && ('id' in a ? a.id : '') === ('id' in b ? b.id : '');
+
+/** The inline panel under a row: a title, its body, then Cancel and the main action. */
+function InlinePanel({
+  title,
+  description,
+  children,
+  onCancel,
+  onSubmit,
+  submitLabel,
+  submitDisabled,
+  tone = 'flame',
+}: {
+  title: string;
+  description?: ReactNode;
+  children?: ReactNode;
+  onCancel: () => void;
+  onSubmit: () => void;
+  submitLabel: string;
+  submitDisabled?: boolean;
+  tone?: 'flame' | 'danger';
+}) {
+  const ref = useRef<HTMLFormElement>(null);
+  // Bring the panel into view when it opens near the bottom of the screen.
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, []);
+  return (
+    <form
+      ref={ref}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!submitDisabled) onSubmit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onCancel();
+      }}
+      className="col-span-full mt-1 space-y-3 rounded-xl border border-dashed bg-muted/40 p-3"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-display text-sm font-bold">{title}</p>
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-9 shrink-0"
+          aria-label="Close"
+          onClick={onCancel}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      {children}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="outline" className="h-10 font-display" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={submitDisabled}
+          className={cn(
+            'h-10 font-display font-bold text-white',
+            tone === 'danger' ? 'bg-bbq-red' : 'bg-bbq-flame',
+          )}
+        >
+          {submitLabel}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function InventoryPage() {
   const [data, setData] = useState<PosStockOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [tab, setTab] = useState<string>('sale');
+  const [open, setOpen] = useState<Open>(null);
 
-  const [recipeFor, setRecipeFor] = useState<ProductRow | null>(null);
-  const [qtyFor, setQtyFor] = useState<{ item: PosStockItem; mode: 'add' | 'set' } | null>(null);
-  const [editing, setEditing] = useState<PosStockItem | 'new' | null>(null);
-  const [deleting, setDeleting] = useState<PosStockItem | null>(null);
+  /** Open a panel, or close it when its button is tapped again. */
+  const toggle = (next: Open) => setOpen((cur) => (sameOpen(cur, next) ? null : next));
+  const close = () => setOpen(null);
+  const isOpen = (kind: NonNullable<Open>['kind'], id?: string) =>
+    !!open && open.kind === kind && (!id || ('id' in open && open.id === id));
 
   const load = useCallback(async (quiet = false) => {
     try {
@@ -194,6 +275,11 @@ export default function InventoryPage() {
   const off = products.filter((p) => !p.available);
   const low = items.filter((i) => i.isLowStock);
 
+  const done = async () => {
+    close();
+    await load(true);
+  };
+
   async function setAvailable(p: ProductRow, next: boolean) {
     setBusy(p.id);
     try {
@@ -223,8 +309,7 @@ export default function InventoryPage() {
     try {
       await posInventoryService.deleteItem(item.id);
       toast.success(`${item.name} removed`);
-      setDeleting(null);
-      await load(true);
+      await done();
     } catch (e) {
       toast.error(errorText(e, 'Could not remove it'));
     }
@@ -280,7 +365,13 @@ export default function InventoryPage() {
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(String(v));
+            close();
+          }}
+        >
           <TabsList className="h-11 font-display">
             <TabsTrigger value="sale" className="px-4">
               On sale{off.length ? ` (${off.length} off)` : ''}
@@ -310,12 +401,14 @@ export default function InventoryPage() {
                       {section.products.map((p) => {
                         const st = productState(p);
                         const row = { ...p, sectionName: section.name };
+                        const editing = isOpen('recipe', p.id);
                         return (
                           <li
                             key={p.id}
                             className={cn(
                               'flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-3',
                               st.tone === 'out' && 'border-bbq-red/50',
+                              editing && 'border-bbq-flame',
                             )}
                           >
                             <div className="min-w-[180px] flex-1">
@@ -331,22 +424,22 @@ export default function InventoryPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground">{st.detail}</p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {p.recipe.length
-                                  ? `Uses ${p.recipe
-                                      .map(
-                                        (r) =>
-                                          `${fmtQty(r.quantityPerUnit)} ${r.name}`,
-                                      )
-                                      .join(', ')} per order`
-                                  : null}
-                              </p>
+                              {p.recipe.length > 0 && (
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  Uses{' '}
+                                  {p.recipe
+                                    .map((r) => `${fmtQty(r.quantityPerUnit)} ${r.name}`)
+                                    .join(', ')}{' '}
+                                  per order
+                                </p>
+                              )}
                             </div>
                             <Button
                               type="button"
-                              variant="outline"
+                              variant={editing ? 'secondary' : 'outline'}
                               className="h-10 font-display"
-                              onClick={() => setRecipeFor(row)}
+                              aria-expanded={editing}
+                              onClick={() => toggle({ kind: 'recipe', id: p.id })}
                             >
                               <ClipboardList className="mr-1.5 h-4 w-4" />
                               {p.recipe.length ? 'Stock used' : 'Link stock'}
@@ -357,6 +450,21 @@ export default function InventoryPage() {
                               label={`${p.name} on sale`}
                               onChange={(next) => void setAvailable(row, next)}
                             />
+                            {editing && (
+                              <div className="basis-full">
+                                <RecipePanel
+                                  key={p.id}
+                                  product={row}
+                                  items={items}
+                                  onCancel={close}
+                                  onDone={done}
+                                  onGoToStock={() => {
+                                    setTab('stock');
+                                    setOpen({ kind: 'new' });
+                                  }}
+                                />
+                              </div>
+                            )}
                           </li>
                         );
                       })}
@@ -368,16 +476,22 @@ export default function InventoryPage() {
 
           {/* ── Stock ───────────────────────────────────────────── */}
           <TabsContent value="stock" className="mt-4 space-y-3">
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                className="h-10 bg-bbq-flame font-display font-bold text-white"
-                onClick={() => setEditing('new')}
-              >
-                <Plus className="mr-1.5 h-4 w-4" />
-                Add stock item
-              </Button>
-            </div>
+            {isOpen('new') ? (
+              <div className="rounded-2xl border border-bbq-flame bg-card p-3">
+                <ItemPanel item={null} onCancel={close} onDone={done} />
+              </div>
+            ) : (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  className="h-10 bg-bbq-flame font-display font-bold text-white"
+                  onClick={() => setOpen({ kind: 'new' })}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Add stock item
+                </Button>
+              </div>
+            )}
 
             {loading ? (
               <div className="h-40 animate-pulse rounded-xl bg-muted" />
@@ -388,203 +502,174 @@ export default function InventoryPage() {
               </p>
             ) : (
               <ul className="space-y-2">
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className={cn(
-                      'grid gap-3 rounded-2xl border bg-card p-3 sm:grid-cols-[1fr_auto] sm:items-center',
-                      item.isLowStock && 'border-bbq-mango',
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-display font-bold [overflow-wrap:anywhere]">
-                          {item.name}
-                        </p>
-                        {item.isLowStock && (
-                          <Badge className="bg-bbq-mango font-display text-[10px] text-bbq-charcoal">
-                            Running low
-                          </Badge>
-                        )}
-                        {!item.isCountable && (
-                          <Badge variant="outline" className="font-display text-[10px]">
-                            Not counted
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {item.usedBy.length
-                          ? `Used in ${item.usedBy.map((u) => u.name).join(', ')}`
-                          : 'Not used by any menu item yet.'}
-                        {item.isCountable && item.lowStockThreshold != null
-                          ? ` · Warn at ${fmtQty(item.lowStockThreshold)}`
-                          : ''}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                      {item.isCountable && (
-                        <>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-10"
-                            aria-label={`Take one ${item.name} away`}
-                            disabled={busy === item.id || item.quantityOnHand < 1}
-                            onClick={() => void nudge(item, -1)}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <p
-                            className={cn(
-                              'min-w-[64px] text-center font-display text-2xl font-black tabular-nums',
-                              item.isLowStock && 'text-bbq-flame',
-                            )}
-                            aria-live="polite"
-                          >
-                            {fmtQty(item.quantityOnHand)}
-                            {item.unit ? (
-                              <span className="ml-1 text-xs font-bold text-muted-foreground">
-                                {item.unit}
-                              </span>
-                            ) : null}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-10"
-                            aria-label={`Add one ${item.name}`}
-                            disabled={busy === item.id}
-                            onClick={() => void nudge(item, 1)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            className="h-10 bg-bbq-flame font-display font-bold text-white"
-                            onClick={() => setQtyFor({ item, mode: 'add' })}
-                          >
-                            Restock
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-10 font-display"
-                            onClick={() => setQtyFor({ item, mode: 'set' })}
-                          >
-                            Count
-                          </Button>
-                        </>
+                {items.map((item) => {
+                  const panelOpen = !!open && 'id' in open && open.id === item.id;
+                  return (
+                    <li
+                      key={item.id}
+                      className={cn(
+                        'grid gap-3 rounded-2xl border bg-card p-3 sm:grid-cols-[1fr_auto] sm:items-center',
+                        item.isLowStock && 'border-bbq-mango',
+                        panelOpen && 'border-bbq-flame',
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-10"
-                        aria-label={`Edit ${item.name}`}
-                        onClick={() => setEditing(item)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-10 text-destructive"
-                        aria-label={`Remove ${item.name}`}
-                        onClick={() => setDeleting(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-display font-bold [overflow-wrap:anywhere]">
+                            {item.name}
+                          </p>
+                          {item.isLowStock && (
+                            <Badge className="bg-bbq-mango font-display text-[10px] text-bbq-charcoal">
+                              Running low
+                            </Badge>
+                          )}
+                          {!item.isCountable && (
+                            <Badge variant="outline" className="font-display text-[10px]">
+                              Not counted
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {item.usedBy.length
+                            ? `Used in ${item.usedBy.map((u) => u.name).join(', ')}`
+                            : 'Not used by any menu item yet.'}
+                          {item.isCountable && item.lowStockThreshold != null
+                            ? ` · Warn at ${fmtQty(item.lowStockThreshold)}`
+                            : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        {item.isCountable && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="size-10"
+                              aria-label={`Take one ${item.name} away`}
+                              disabled={busy === item.id || item.quantityOnHand < 1}
+                              onClick={() => void nudge(item, -1)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <p
+                              className={cn(
+                                'min-w-[64px] text-center font-display text-2xl font-black tabular-nums',
+                                item.isLowStock && 'text-bbq-flame',
+                              )}
+                              aria-live="polite"
+                            >
+                              {fmtQty(item.quantityOnHand)}
+                              {item.unit ? (
+                                <span className="ml-1 text-xs font-bold text-muted-foreground">
+                                  {item.unit}
+                                </span>
+                              ) : null}
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="size-10"
+                              aria-label={`Add one ${item.name}`}
+                              disabled={busy === item.id}
+                              onClick={() => void nudge(item, 1)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              className="h-10 bg-bbq-flame font-display font-bold text-white"
+                              aria-expanded={isOpen('add', item.id)}
+                              onClick={() => toggle({ kind: 'add', id: item.id })}
+                            >
+                              Restock
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={isOpen('set', item.id) ? 'secondary' : 'outline'}
+                              className="h-10 font-display"
+                              aria-expanded={isOpen('set', item.id)}
+                              onClick={() => toggle({ kind: 'set', id: item.id })}
+                            >
+                              Count
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          type="button"
+                          variant={isOpen('edit', item.id) ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="size-10"
+                          aria-label={`Edit ${item.name}`}
+                          aria-expanded={isOpen('edit', item.id)}
+                          onClick={() => toggle({ kind: 'edit', id: item.id })}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-10 text-destructive"
+                          aria-label={`Remove ${item.name}`}
+                          aria-expanded={isOpen('delete', item.id)}
+                          onClick={() => toggle({ kind: 'delete', id: item.id })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {(isOpen('add', item.id) || isOpen('set', item.id)) && (
+                        <QuantityPanel
+                          key={`${item.id}-${open && open.kind}`}
+                          item={item}
+                          mode={isOpen('add', item.id) ? 'add' : 'set'}
+                          onCancel={close}
+                          onDone={done}
+                        />
+                      )}
+                      {isOpen('edit', item.id) && (
+                        <ItemPanel key={item.id} item={item} onCancel={close} onDone={done} />
+                      )}
+                      {isOpen('delete', item.id) && (
+                        <InlinePanel
+                          title={`Remove ${item.name}?`}
+                          description={
+                            item.usedBy.length
+                              ? `It is also taken out of ${item.usedBy.map((u) => u.name).join(', ')}. Those items will no longer sell out by themselves.`
+                              : 'It is not used by any menu item.'
+                          }
+                          onCancel={close}
+                          onSubmit={() => void removeItem(item)}
+                          submitLabel="Yes, remove it"
+                          tone="danger"
+                        />
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </TabsContent>
         </Tabs>
       </div>
-
-      {qtyFor && (
-        <QuantityDialog
-          key={`${qtyFor.item.id}-${qtyFor.mode}`}
-          item={qtyFor.item}
-          mode={qtyFor.mode}
-          onClose={() => setQtyFor(null)}
-          onDone={async () => {
-            setQtyFor(null);
-            await load(true);
-          }}
-        />
-      )}
-
-      {editing && (
-        <ItemDialog
-          key={editing === 'new' ? 'new' : editing.id}
-          item={editing === 'new' ? null : editing}
-          onClose={() => setEditing(null)}
-          onDone={async () => {
-            setEditing(null);
-            await load(true);
-          }}
-        />
-      )}
-
-      {recipeFor && (
-        <RecipeDialog
-          key={recipeFor.id}
-          product={recipeFor}
-          items={items}
-          onClose={() => setRecipeFor(null)}
-          onDone={async () => {
-            setRecipeFor(null);
-            await load(true);
-          }}
-        />
-      )}
-
-      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <DialogContent className="content-start">
-          <DialogHeader>
-            <DialogTitle className="font-display">Remove {deleting?.name}?</DialogTitle>
-            <DialogDescription>
-              {deleting?.usedBy.length
-                ? `It is also taken out of ${deleting.usedBy.map((u) => u.name).join(', ')}. Those items will no longer sell out by themselves.`
-                : 'It is not used by any menu item.'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" className="h-10" onClick={() => setDeleting(null)}>
-              Keep it
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              className="h-10 font-display font-bold"
-              onClick={() => deleting && void removeItem(deleting)}
-            >
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PosShell>
   );
 }
 
 // ─── Restock / Count ─────────────────────────────────────────────────────────
 
-function QuantityDialog({
+function QuantityPanel({
   item,
   mode,
-  onClose,
+  onCancel,
   onDone,
 }: {
   item: PosStockItem;
   mode: 'add' | 'set';
-  onClose: () => void;
+  onCancel: () => void;
   onDone: () => Promise<void>;
 }) {
   const [value, setValue] = useState('');
@@ -611,81 +696,77 @@ function QuantityDialog({
     }
   }
 
-  const presets = mode === 'add' ? [5, 10, 20, 50] : [0];
+  const presets = mode === 'add' ? [5, 10, 20, 50] : [];
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="content-start">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            {mode === 'add' ? `Restock ${item.name}` : `Count ${item.name}`}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'add'
-              ? `You have ${fmtQty(item.quantityOnHand)}${unit} now. How many came in?`
-              : `The screen says ${fmtQty(item.quantityOnHand)}${unit}. Type what you actually have.`}
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
-          }}
-        >
-          <Input
-            autoFocus
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            className="h-12 text-center font-display text-2xl font-black"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            aria-label={mode === 'add' ? 'Amount added' : 'Amount counted'}
-          />
-          <div className="flex flex-wrap gap-2">
-            {presets.map((p) => (
-              <Button
-                key={p}
-                type="button"
-                variant="outline"
-                className="h-10 min-w-14 font-display"
-                onClick={() => setValue(String(p))}
-              >
-                {mode === 'add' ? `+${p}` : `None left`}
-              </Button>
-            ))}
-          </div>
-          {mode === 'add' && valid && (
-            <p className="text-sm text-muted-foreground">
-              New total: <b className="text-foreground">{fmtQty(item.quantityOnHand + n)}{unit}</b>
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="submit"
-              className="h-10 bg-bbq-flame font-display font-bold text-white"
-              disabled={!valid || saving}
-            >
-              {mode === 'add' ? 'Add to stock' : 'Save count'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <InlinePanel
+      title={mode === 'add' ? 'How many came in?' : 'How many do you actually have?'}
+      description={
+        mode === 'add'
+          ? `You have ${fmtQty(item.quantityOnHand)}${unit} now.`
+          : `The screen says ${fmtQty(item.quantityOnHand)}${unit}.`
+      }
+      onCancel={onCancel}
+      onSubmit={() => void save()}
+      submitLabel={mode === 'add' ? 'Add to stock' : 'Save count'}
+      submitDisabled={!valid || saving}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          autoFocus
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="any"
+          className="h-11 w-32 text-center font-display text-xl font-black"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-label={mode === 'add' ? 'Amount added' : 'Amount counted'}
+        />
+        {presets.map((p) => (
+          <Button
+            key={p}
+            type="button"
+            variant="outline"
+            className="h-10 min-w-14 font-display"
+            onClick={() => setValue(String(p))}
+          >
+            +{p}
+          </Button>
+        ))}
+        {mode === 'set' && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 font-display"
+            onClick={() => setValue('0')}
+          >
+            None left
+          </Button>
+        )}
+        {mode === 'add' && valid && (
+          <p className="text-sm text-muted-foreground">
+            New total:{' '}
+            <b className="text-foreground">
+              {fmtQty(item.quantityOnHand + n)}
+              {unit}
+            </b>
+          </p>
+        )}
+      </div>
+    </InlinePanel>
   );
 }
 
 // ─── Add / edit a stock item ─────────────────────────────────────────────────
 
-function ItemDialog({
+function ItemPanel({
   item,
-  onClose,
+  onCancel,
   onDone,
 }: {
   item: PosStockItem | null;
-  onClose: () => void;
+  onCancel: () => void;
   onDone: () => Promise<void>;
 }) {
   const [name, setName] = useState(item?.name ?? '');
@@ -696,6 +777,7 @@ function ItemDialog({
     item?.lowStockThreshold != null ? String(item.lowStockThreshold) : '',
   );
   const [saving, setSaving] = useState(false);
+  const idBase = item?.id ?? 'new';
 
   async function save() {
     if (!name.trim()) {
@@ -727,7 +809,7 @@ function ItemDialog({
           name: name.trim(),
           unit: unit.trim() || undefined,
           isCountable: counted,
-          quantityOnHand: counted ? start : 0,
+          quantityOnHand: counted ? Math.round(start * 100) / 100 : 0,
           lowStockThreshold: low ?? undefined,
         });
         toast.success(`${name.trim()} added`);
@@ -740,102 +822,83 @@ function ItemDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="content-start">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            {item ? `Edit ${item.name}` : 'New stock item'}
-          </DialogTitle>
-          {item && (
-            <DialogDescription>
-              To change how many you have, use Restock or Count on the list.
-            </DialogDescription>
-          )}
-        </DialogHeader>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
-          }}
-        >
+    <InlinePanel
+      title={item ? `Edit ${item.name}` : 'New stock item'}
+      description={item ? 'To change how many you have, use Restock or Count.' : undefined}
+      onCancel={onCancel}
+      onSubmit={() => void save()}
+      submitLabel={item ? 'Save' : 'Add item'}
+      submitDisabled={saving}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor={`${idBase}-name`}>Name</Label>
+          <Input
+            id={`${idBase}-name`}
+            autoFocus
+            className="mt-1 h-10"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Chicken leg"
+          />
+        </div>
+        <div>
+          <Label htmlFor={`${idBase}-unit`}>Counted in</Label>
+          <Input
+            id={`${idBase}-unit`}
+            className="mt-1 h-10"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            placeholder="pc, kg, pack"
+          />
+        </div>
+        {counted && !item && (
           <div>
-            <Label htmlFor="stock-name">Name</Label>
+            <Label htmlFor={`${idBase}-qty`}>How many do you have now?</Label>
             <Input
-              id="stock-name"
+              id={`${idBase}-qty`}
               className="mt-1 h-10"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Chicken leg"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
             />
           </div>
+        )}
+        {counted && (
           <div>
-            <Label htmlFor="stock-unit">Counted in</Label>
+            <Label htmlFor={`${idBase}-low`}>Warn me when it drops to (optional)</Label>
             <Input
-              id="stock-unit"
+              id={`${idBase}-low`}
               className="mt-1 h-10"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="pc, kg, pack"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              value={lowAt}
+              onChange={(e) => setLowAt(e.target.value)}
+              placeholder="10"
             />
           </div>
-          {counted && !item && (
-            <div>
-              <Label htmlFor="stock-qty">How many do you have now?</Label>
-              <Input
-                id="stock-qty"
-                className="mt-1 h-10"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-              />
-            </div>
-          )}
-          {counted && (
-            <div>
-              <Label htmlFor="stock-low">Warn me when it drops to (optional)</Label>
-              <Input
-                id="stock-low"
-                className="mt-1 h-10"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={lowAt}
-                onChange={(e) => setLowAt(e.target.value)}
-                placeholder="10"
-              />
-            </div>
-          )}
-          <label className="flex items-start gap-2 rounded-xl border p-3">
-            <Checkbox
-              checked={counted}
-              onCheckedChange={(v) => setCounted(v === true)}
-              className="mt-0.5"
-            />
-            <span className="text-sm">
-              <b className="font-display">Count this item</b>
-              <span className="block text-muted-foreground">
-                Stock goes down when cooking starts, and menu items sell out when it runs
-                out. Untick for things you do not count, like sauces.
-              </span>
-            </span>
-          </label>
-          <DialogFooter>
-            <Button
-              type="submit"
-              className="h-10 bg-bbq-flame font-display font-bold text-white"
-              disabled={saving}
-            >
-              {item ? 'Save' : 'Add item'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        )}
+      </div>
+      <label className="flex items-start gap-2 rounded-xl border bg-card p-3">
+        <Checkbox
+          checked={counted}
+          onCheckedChange={(v) => setCounted(v === true)}
+          className="mt-0.5"
+        />
+        <span className="text-sm">
+          <b className="font-display">Count this item</b>
+          <span className="block text-muted-foreground">
+            Stock goes down when cooking starts, and menu items sell out when it runs out.
+            Untick for things you do not count, like sauces.
+          </span>
+        </span>
+      </label>
+    </InlinePanel>
   );
 }
 
@@ -843,16 +906,18 @@ function ItemDialog({
 
 type RecipeRow = { inventoryItemId: string; quantityPerUnit: string };
 
-function RecipeDialog({
+function RecipePanel({
   product,
   items,
-  onClose,
+  onCancel,
   onDone,
+  onGoToStock,
 }: {
   product: ProductRow;
   items: PosStockItem[];
-  onClose: () => void;
+  onCancel: () => void;
   onDone: () => Promise<void>;
+  onGoToStock: () => void;
 }) {
   const [rows, setRows] = useState<RecipeRow[]>(() =>
     product.recipe.map((r) => ({
@@ -866,7 +931,10 @@ function RecipeDialog({
 
   async function save() {
     const ingredients = rows
-      .map((r) => ({ inventoryItemId: r.inventoryItemId, quantityPerUnit: Number(r.quantityPerUnit) }))
+      .map((r) => ({
+        inventoryItemId: r.inventoryItemId,
+        quantityPerUnit: Math.round(Number(r.quantityPerUnit) * 100) / 100,
+      }))
       .filter((r) => r.inventoryItemId && Number.isFinite(r.quantityPerUnit) && r.quantityPerUnit > 0);
     setSaving(true);
     try {
@@ -879,115 +947,107 @@ function RecipeDialog({
     }
   }
 
+  if (items.length === 0) {
+    return (
+      <InlinePanel
+        title={`Stock used by ${product.name}`}
+        description="There are no stock items yet. Add the things you count first, like chicken legs or corn."
+        onCancel={onCancel}
+        onSubmit={onGoToStock}
+        submitLabel="Add a stock item"
+      />
+    );
+  }
+
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="content-start">
-        <DialogHeader>
-          <DialogTitle className="font-display">Stock used by {product.name}</DialogTitle>
-          <DialogDescription>
-            What one order of {product.name} uses. When any of these runs out, it shows as
-            sold out on the till.
-          </DialogDescription>
-        </DialogHeader>
-
-        {items.length === 0 ? (
+    <InlinePanel
+      title={`Stock used by one ${product.name}`}
+      description="When any of these runs out, it shows as sold out on the till."
+      onCancel={onCancel}
+      onSubmit={() => void save()}
+      submitLabel="Save"
+      submitDisabled={saving}
+    >
+      <div className="space-y-2">
+        {rows.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Add stock items on the Stock tab first.
+            Nothing linked. {product.name} stays on sale until you switch it off.
           </p>
-        ) : (
-          <div className="space-y-2">
-            {rows.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nothing linked. {product.name} stays on sale until you switch it off.
-              </p>
-            )}
-            {rows.map((row, index) => {
-              const picked = byId.get(row.inventoryItemId);
-              const choices = items.filter(
-                (i) => i.id === row.inventoryItemId || !rows.some((r) => r.inventoryItemId === i.id),
-              );
-              return (
-                <div key={index} className="flex items-end gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Label className="text-xs">Stock item</Label>
-                    <Select
-                      value={row.inventoryItemId}
-                      onValueChange={(v) => {
-                        if (!v) return;
-                        setRows((prev) =>
-                          prev.map((r, i) => (i === index ? { ...r, inventoryItemId: String(v) } : r)),
-                        );
-                      }}
-                    >
-                      <SelectTrigger className="mt-1 h-10 w-full">
-                        <SelectValue>{picked?.name ?? 'Pick one'}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {choices.map((it) => (
-                          <SelectItem key={it.id} value={it.id}>
-                            {it.name}
-                            {!it.isCountable ? ' (not counted)' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-24">
-                    <Label className="text-xs">Per order</Label>
-                    <Input
-                      className="mt-1 h-10"
-                      type="number"
-                      inputMode="decimal"
-                      min={0.01}
-                      step="any"
-                      value={row.quantityPerUnit}
-                      onChange={(e) =>
-                        setRows((prev) =>
-                          prev.map((r, i) => (i === index ? { ...r, quantityPerUnit: e.target.value } : r)),
-                        )
-                      }
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-10 text-destructive"
-                    aria-label={`Take ${picked?.name ?? 'this'} out`}
-                    onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              );
-            })}
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 font-display"
-              disabled={unused.length === 0}
-              onClick={() =>
-                unused[0] &&
-                setRows((prev) => [...prev, { inventoryItemId: unused[0].id, quantityPerUnit: '1' }])
-              }
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Add a stock item
-            </Button>
-          </div>
         )}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            className="h-10 bg-bbq-flame font-display font-bold text-white"
-            onClick={() => void save()}
-            disabled={saving || items.length === 0}
-          >
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {rows.map((row, index) => {
+          const picked = byId.get(row.inventoryItemId);
+          const choices = items.filter(
+            (i) => i.id === row.inventoryItemId || !rows.some((r) => r.inventoryItemId === i.id),
+          );
+          return (
+            <div key={index} className="flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <Label className="text-xs">Stock item</Label>
+                <Select
+                  value={row.inventoryItemId}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setRows((prev) =>
+                      prev.map((r, i) => (i === index ? { ...r, inventoryItemId: String(v) } : r)),
+                    );
+                  }}
+                >
+                  <SelectTrigger className="mt-1 h-10 w-full bg-card">
+                    <SelectValue>{picked?.name ?? 'Pick one'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {choices.map((it) => (
+                      <SelectItem key={it.id} value={it.id}>
+                        {it.name}
+                        {!it.isCountable ? ' (not counted)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-24">
+                <Label className="text-xs">Per order</Label>
+                <Input
+                  className="mt-1 h-10 bg-card"
+                  type="number"
+                  inputMode="decimal"
+                  min={0.01}
+                  step="any"
+                  value={row.quantityPerUnit}
+                  onChange={(e) =>
+                    setRows((prev) =>
+                      prev.map((r, i) => (i === index ? { ...r, quantityPerUnit: e.target.value } : r)),
+                    )
+                  }
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-10 text-destructive"
+                aria-label={`Take ${picked?.name ?? 'this'} out`}
+                onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        })}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 font-display"
+          disabled={unused.length === 0}
+          onClick={() =>
+            unused[0] &&
+            setRows((prev) => [...prev, { inventoryItemId: unused[0].id, quantityPerUnit: '1' }])
+          }
+        >
+          <Plus className="mr-1 h-4 w-4" />
+          Add a stock item
+        </Button>
+      </div>
+    </InlinePanel>
   );
 }
