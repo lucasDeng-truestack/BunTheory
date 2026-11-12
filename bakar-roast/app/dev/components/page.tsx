@@ -13,6 +13,7 @@ import { Stamp } from "@/components/ui/stamp";
 import { Marquee } from "@/components/ui/marquee";
 import { Stat } from "@/components/ui/stat";
 import { Toggle } from "@/components/ui/toggle";
+import { ThemeToggle } from "@/components/theme";
 import { BookingProgress } from "@/components/ui/booking-progress";
 import { CtaBand } from "@/components/ui/cta-band";
 import { Magnetic } from "@/components/magnetic";
@@ -194,6 +195,12 @@ export default function ComponentsPage() {
               <Toggle label="Balance paid" />
               <Toggle label="Show on site" onText="Shown" offText="Hidden" defaultChecked />
               <Toggle label="Disabled" disabled />
+            </div>
+          </Block>
+          <Block title="ThemeToggle (header, admin menu row)">
+            <div className="flex flex-wrap items-center gap-6">
+              <ThemeToggle />
+              <ThemeToggle variant="row" className="w-auto" />
             </div>
           </Block>
           <Block title="Banner, EmptyState, Skeleton">

@@ -39,6 +39,7 @@ export function CtaBand({
   return (
     <motion.section
       ref={ref}
+      data-theme="dark"
       style={{ ...tone, scale }}
       className="relative isolate grid motion-reduce:!transform-none justify-items-center gap-7 overflow-hidden rounded-card-lg px-6 py-[72px] text-center text-cream shadow-glow-ember sm:py-28"
     >

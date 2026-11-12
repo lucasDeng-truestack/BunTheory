@@ -148,7 +148,7 @@ export function PackageCard(props: PackageCardProps) {
         card,
         "rm-static cursor-pointer text-left",
         // Selected reads by the cream ring and the "Chosen" label, not colour alone.
-        selected && "shadow-[0_0_0_4px_#0B0908,0_0_0_7px_#F4ECE1]",
+        selected && "shadow-[0_0_0_4px_theme(colors.ink.DEFAULT),0_0_0_7px_theme(colors.cream.DEFAULT)]",
         className,
       )}
     >

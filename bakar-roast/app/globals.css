@@ -2,25 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Theme palette as RGB channels (tailwind.config.ts wraps them in rgb()). Dark is the brand
+   default; html[data-theme="light"] is set by the inline script in components/theme.tsx.
+   "ink" is always the surface family and "cream" the text family, so in light mode ink is warm
+   paper and cream is near-black. Ember goes deeper in light mode so orange text and the light
+   text on ember fills both pass 4.5:1. */
+:root,
+html[data-theme="light"] [data-theme="dark"] {
   color-scheme: dark;
+  --ink: 11 9 8;
+  --ink-soft: 20 16 16;
+  --ink-raised: 28 22 20;
+  --ink-line: 42 33 29;
+  --cream: 244 236 225;
+  --cream-muted: 199 185 168;
+  --cream-faint: 138 124 110;
+  --ember: 232 106 28;
+  --ember-bright: 245 158 11;
+  --ember-heat: 192 52 30;
+  --ember-glow: 255 138 61;
   /* Band-aware tokens (Tailwind: text-tone-accent, text-tone-muted, tone-ring). */
-  --tone-accent: theme("colors.ember.DEFAULT");
-  --tone-muted: theme("colors.cream.muted");
-  --tone-ring: theme("colors.ember.DEFAULT");
+  --tone-accent: rgb(var(--ember));
+  --tone-muted: rgb(var(--cream-muted));
+  --tone-ring: rgb(var(--ember));
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --ink: 247 241 232;
+  --ink-soft: 239 231 219;
+  --ink-raised: 255 252 247;
+  --ink-line: 221 209 193;
+  --cream: 26 20 17;
+  --cream-muted: 79 67 58;
+  --cream-faint: 117 102 89;
+  --ember: 181 71 15;
+  --ember-bright: 154 91 5;
+  --ember-heat: 168 45 24;
+  --ember-glow: 156 60 11;
+  --tone-accent: rgb(var(--ember));
+  --tone-muted: rgb(var(--cream-muted));
+  --tone-ring: rgb(var(--ember));
 }
 
 /* Cream bands: accent word is heat red (ember on cream is 2.8:1), focus ring is ink. */
 [data-tone="cream"] {
-  --tone-accent: theme("colors.ember.heat");
-  --tone-muted: theme("colors.ink.DEFAULT");
-  --tone-ring: theme("colors.ink.DEFAULT");
+  --tone-accent: rgb(var(--ember-heat));
+  --tone-muted: rgb(var(--ink));
+  --tone-ring: rgb(var(--ink));
+}
+/* In light mode a "cream" band is the dark inverse band, so its accent is a bright ember. */
+html[data-theme="light"] [data-tone="cream"] {
+  --tone-accent: rgb(240 138 75);
 }
 /* Ink surfaces nested inside a cream band (cards, dialogs) reset to the ink look. */
 [data-tone="ink"] {
-  --tone-accent: theme("colors.ember.DEFAULT");
-  --tone-muted: theme("colors.cream.muted");
-  --tone-ring: theme("colors.ember.DEFAULT");
+  --tone-accent: rgb(var(--ember));
+  --tone-muted: rgb(var(--cream-muted));
+  --tone-ring: rgb(var(--ember));
 }
 
 :focus-visible {
@@ -151,13 +190,14 @@ html.lenis body {
     text-transform: uppercase;
   }
 
-  /* PhotoSlot / CtaBand grounds. Plain classes, not bg-* utilities, so cn() never drops them. */
+  /* PhotoSlot / CtaBand grounds. Plain classes, not bg-* utilities, so cn() never drops them.
+     They stand in for photos, so they stay dark (fixed ink-raised) in both themes. */
   .photo-gradient {
     background-image: radial-gradient(
       120% 95% at 18% 100%,
       theme("colors.ember.DEFAULT") 0%,
       theme("colors.ember.heat") 36%,
-      theme("colors.ink.raised") 78%
+      rgb(28 22 20) 78%
     );
   }
   .cta-gradient {
@@ -165,7 +205,7 @@ html.lenis body {
       90% 120% at 50% 110%,
       theme("colors.ember.DEFAULT") 0%,
       theme("colors.ember.heat") 40%,
-      theme("colors.ink.raised") 85%
+      rgb(28 22 20) 85%
     );
   }
   .skeleton-shimmer {

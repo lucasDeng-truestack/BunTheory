@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/banner";
 import { StatusChip } from "@/components/ui/status-chip";
 import { AdminContext, type AdminContextValue, type TopBar } from "@/components/admin/admin-context";
 import { PendingBadge } from "@/components/admin/admin-page";
+import { ThemeToggle } from "@/components/theme";
 import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS, type AdminNavItem } from "@/components/admin/nav";
 
 type Counts = { pending: number | null; ordersPending: number | null };
@@ -294,7 +295,8 @@ function SideNav({
           })}
         </div>
       ))}
-      <div className="mt-auto flex items-center gap-3 border-t border-ink-line px-3 pt-3.5">
+      <ThemeToggle variant="row" className="mt-auto" />
+      <div className="mt-1 flex items-center gap-3 border-t border-ink-line px-3 pt-3.5">
         <span
           aria-hidden
           className="grid h-10 w-10 flex-none place-items-center rounded-full border-[1.5px] border-ember text-[13px] font-bold tracking-[0.04em]"

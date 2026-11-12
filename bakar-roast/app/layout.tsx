@@ -7,6 +7,7 @@ import { Footer } from "@/components/ui/footer";
 import { GrainOverlay } from "@/components/grain-overlay";
 import { Preloader } from "@/components/preloader";
 import { Cursor } from "@/components/cursor";
+import { ThemeScript } from "@/components/theme";
 
 // Display face. The wdth axis is required for the condensed width 80 cut; opsz keeps big
 // headlines on the display optical size.
@@ -41,9 +42,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // suppressHydrationWarning: the preloader's inline script may set data-preload before hydration.
+    // suppressHydrationWarning: the theme and preloader inline scripts set data-theme and
+    // data-preload on <html> before hydration.
     <html lang="en" className={`${bricolage.variable} ${figtree.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-ink font-sans text-cream antialiased">
+        <ThemeScript />
         <Preloader />
         <SmoothScroll>
           <GrainOverlay />

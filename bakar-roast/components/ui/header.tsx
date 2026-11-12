@@ -9,6 +9,7 @@ import { usePrefersReducedMotion } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Magnetic } from "@/components/magnetic";
+import { ThemeToggle } from "@/components/theme";
 
 /** "BAKAR & ROAST" set in the display face with an ember ampersand (no logo file yet). */
 export function Wordmark({ className }: { className?: string }) {
@@ -125,6 +126,8 @@ export function Header() {
             </ul>
           </nav>
 
+          <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Magnetic className="hidden lg:inline-block">
             <Button href={bookCta.href} size="md">
               {bookCta.label}
@@ -155,6 +158,7 @@ export function Header() {
               )}
             />
           </button>
+          </div>
         </div>
       </header>
 

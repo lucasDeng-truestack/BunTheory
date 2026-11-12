@@ -9,22 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Theme-aware. Each value is an RGB channel variable set per theme in globals.css
+        // (dark is the default, html[data-theme="light"] flips it). "ink" is the surface family
+        // and "cream" the text family in both themes, so class names never change.
         ink: {
-          DEFAULT: "#0B0908",
-          soft: "#141010",
-          raised: "#1C1614",
-          line: "#2A211D",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          soft: "rgb(var(--ink-soft) / <alpha-value>)",
+          raised: "rgb(var(--ink-raised) / <alpha-value>)",
+          line: "rgb(var(--ink-line) / <alpha-value>)",
         },
         cream: {
-          DEFAULT: "#F4ECE1",
-          muted: "#C7B9A8",
-          faint: "#8A7C6E",
+          DEFAULT: "rgb(var(--cream) / <alpha-value>)",
+          muted: "rgb(var(--cream-muted) / <alpha-value>)",
+          faint: "rgb(var(--cream-faint) / <alpha-value>)",
         },
         ember: {
-          DEFAULT: "#E86A1C",
-          bright: "#F59E0B",
-          heat: "#C0341E",
-          glow: "#FF8A3D",
+          DEFAULT: "rgb(var(--ember) / <alpha-value>)",
+          bright: "rgb(var(--ember-bright) / <alpha-value>)",
+          heat: "rgb(var(--ember-heat) / <alpha-value>)",
+          glow: "rgb(var(--ember-glow) / <alpha-value>)",
         },
         // Band-aware colours. <Band tone="cream"> (or any [data-tone="cream"])
         // flips these, so accents, eyebrows and focus rings follow the band.
