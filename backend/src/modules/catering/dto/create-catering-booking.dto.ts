@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -34,11 +35,17 @@ export class CreateCateringBookingDto {
   @Max(5000)
   guests: number;
 
+  /** No longer asked for. Accepted from older clients and ignored when empty. */
+  @IsOptional()
   @Transform(trim)
   @IsString()
-  @IsNotEmpty()
   @MaxLength(60)
-  occasion: string;
+  occasion?: string;
+
+  /** Pay half now (DEPOSIT) or everything (FULL). */
+  @IsOptional()
+  @IsIn(['DEPOSIT', 'FULL'])
+  paymentChoice?: 'DEPOSIT' | 'FULL';
 
   @Transform(trim)
   @IsString()

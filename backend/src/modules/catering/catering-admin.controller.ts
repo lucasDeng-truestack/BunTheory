@@ -21,6 +21,8 @@ import {
 import {
   ApproveCateringBookingDto,
   BlockCateringDateDto,
+  CateringDateRangeDto,
+  SetCateringDayDto,
   DeclineCateringBookingDto,
   UpdateCateringBookingDto,
 } from './dto/catering-admin.dto';
@@ -123,6 +125,30 @@ export class CateringAdminController {
   @Roles('OWNER', 'MANAGER')
   unblock(@Param('date') date: string) {
     return this.catering.unblock(date);
+  }
+
+  /** Close every date from..to (holiday, break). Bookings already made stay. */
+  @Post('days/close')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  closeRange(@Body() dto: CateringDateRangeDto) {
+    return this.catering.closeRange(dto);
+  }
+
+  /** Open every date from..to again. */
+  @Post('days/open')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  openRange(@Body() dto: CateringDateRangeDto) {
+    return this.catering.openRange(dto);
+  }
+
+  /** How many sets one day takes. */
+  @Patch('days/:date')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  setDay(@Param('date') date: string, @Body() dto: SetCateringDayDto) {
+    return this.catering.setDayCapacity(date, dto.capacity ?? null);
   }
 
   // ─── Packages ───────────────────────────────────────────────────────────────

@@ -547,6 +547,14 @@ model SystemSettings {
   cateringCancelCutoffDays    Int     @default(3)
   /// Owner inbox for new-request and customer-cancelled emails (Resend).
   cateringNotifyEmail         String?
+  /// Default bookings (sets) taken per day. A CateringDay row can override one date.
+  cateringDailySets           Int     @default(5)
+  /// Shown on the customer's booking page so they can pay.
+  cateringBankName            String?
+  cateringBankAccountName     String?
+  cateringBankAccountNumber   String?
+  /// DuitNow / bank QR image URL.
+  cateringPaymentQrUrl        String?
   updatedAt               DateTime @updatedAt
 }
 
@@ -561,9 +569,23 @@ enum CateringBookingStatus {
   COMPLETED
 }
 
+enum CateringPriceUnit {
+  PER_SET
+  PER_PAX
+}
+
+/// What the customer chose to pay first.
+enum CateringPaymentChoice {
+  DEPOSIT
+  FULL
+}
+
 model CateringPackage {
   id          String   @id @default(cuid())
   name        String
+  /// Price per set or per pax (priceUnit). Null = quoted by the owner after the request.
+  price       Decimal?          @db.Decimal(10, 2)
+  priceUnit   CateringPriceUnit @default(PER_SET)
   tagline     String?
   description String
   includes    String[]
@@ -586,22 +608,26 @@ model CateringBooking {
   status        CateringBookingStatus @default(PENDING)
   /// Malaysia-local calendar date of the event. Never a timestamp.
   eventDate     DateTime              @db.Date
-  /// Serving time as "HH:mm", Malaysia local.
+  /// Delivery time as "HH:mm", Malaysia local.
   serviceTime   String
   packageId     String
   package       CateringPackage       @relation(fields: [packageId], references: [id])
   /// Snapshot so later package edits do not rewrite history.
   packageName   String
   guests        Int
-  occasion      String
+  /// No longer asked for (delivery bookings). Kept for older bookings.
+  occasion      String?
   customerName  String
   customerPhone String
   customerEmail String
+  /// Delivery address.
   eventAddress  String
   dietaryNotes  String?
   notes         String?
   quoteAmount   Decimal?  @db.Decimal(10, 2)
+  /// Amount asked first: half (DEPOSIT) or the whole total (FULL).
   depositAmount Decimal?  @db.Decimal(10, 2)
+  paymentChoice CateringPaymentChoice @default(DEPOSIT)
   depositPaidAt DateTime?
   balancePaidAt DateTime?
   adminNotes    String?
@@ -614,7 +640,7 @@ model CateringBooking {
   /// Set when the customer was signed in while booking. Guest bookings stay null.
   userId        String?
   user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  dateHold      CateringDate?
+  receipts      CateringReceipt[]
 
   @@index([status, eventDate])
   @@index([createdAt])
@@ -624,14 +650,28 @@ model CateringBooking {
   @@index([userId])
 }
 
-/// One row per unavailable date. The primary key is the no-double-booking guarantee.
-/// bookingId set = held by a PENDING or APPROVED booking. bookingId null = blocked by owner.
-model CateringDate {
-  date        DateTime         @id @db.Date
-  bookingId   String?          @unique
-  booking     CateringBooking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  blockReason String?
-  createdAt   DateTime         @default(now())
+/// One row per date the owner changed: closed, or a different number of sets than the
+/// default. Also the row lock that stops two customers taking the last set at once.
+model CateringDay {
+  date      DateTime @id @db.Date
+  closed    Boolean  @default(false)
+  /// Sets (bookings) taken this day. Null = SystemSettings.cateringDailySets.
+  capacity  Int?
+  /// Why it is closed, shown to the owner only.
+  note      String?
+  updatedAt DateTime @updatedAt
+}
+
+/// A payment receipt the customer uploaded from their booking page.
+model CateringReceipt {
+  id        String          @id @default(cuid())
+  bookingId String
+  booking   CateringBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fileUrl   String
+  fileName  String?
+  createdAt DateTime        @default(now())
+
+  @@index([bookingId])
 }
 
 model CateringGalleryImage {

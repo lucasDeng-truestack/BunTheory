@@ -25,7 +25,7 @@ function isAllowedImageUpload(file: MulterLikeFile): boolean {
   return okExt && okMime;
 }
 
-function isAllowedPaymentReceiptUpload(file: MulterLikeFile): boolean {
+export function isAllowedPaymentReceiptUpload(file: MulterLikeFile): boolean {
   const okExt = /\.(jpg|jpeg|png|webp|pdf)$/i.test(file.originalname);
   const m = (file.mimetype ?? '').toLowerCase();
   const okMime =

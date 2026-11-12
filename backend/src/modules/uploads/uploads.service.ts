@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UploadsService {
@@ -47,7 +48,8 @@ export class UploadsService {
 
   private getFilename(file: Express.Multer.File): string {
     const ext = path.extname(file.originalname) || '.jpg';
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}${ext.toLowerCase()}`;
+    // Unguessable: payment receipts are served from the same public folder.
+    return `${Date.now()}-${randomBytes(16).toString('hex')}${ext.toLowerCase()}`;
   }
 
   private async saveToObjectStorage(

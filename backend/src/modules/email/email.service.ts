@@ -11,6 +11,7 @@ import {
   bookingReceivedEmail,
   ownerCustomerCancelledEmail,
   ownerNewRequestEmail,
+  ownerReceiptUploadedEmail,
   signInCodeEmail,
 } from './email.templates';
 
@@ -43,6 +44,10 @@ export class EmailService {
 
   ownerNewRequest(booking: CateringBooking): Promise<void> {
     return this.toOwner('ownerNewRequest', booking, ownerNewRequestEmail);
+  }
+
+  ownerReceiptUploaded(booking: CateringBooking): Promise<void> {
+    return this.toOwner('ownerReceiptUploaded', booking, ownerReceiptUploadedEmail);
   }
 
   bookingApproved(booking: CateringBooking): Promise<void> {

@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -28,6 +29,11 @@ export class ApproveCateringBookingDto {
   @IsString()
   @MaxLength(2000)
   adminNotes?: string;
+
+  /** true: the receipt was checked, so stamp the first payment (and the balance if paid in full). */
+  @IsOptional()
+  @IsBoolean()
+  markPaid?: boolean;
 }
 
 export class DeclineCateringBookingDto {
@@ -65,6 +71,29 @@ export class UpdateCateringBookingDto {
   @IsString()
   @MaxLength(2000)
   adminNotes?: string;
+}
+
+/** A run of dates, both ends included, YYYY-MM-DD. */
+export class CateringDateRangeDto {
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from: string;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  reason?: string;
+}
+
+/** Sets for one day. null = back to the default. */
+export class SetCateringDayDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(200)
+  capacity: number | null;
 }
 
 export class BlockCateringDateDto {

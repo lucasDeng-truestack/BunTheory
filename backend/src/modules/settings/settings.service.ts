@@ -44,6 +44,12 @@ export class SettingsService {
       cateringBookingWindowMonths: s.cateringBookingWindowMonths,
       cateringHoldExpiryDays: s.cateringHoldExpiryDays,
       cateringCancelCutoffDays: s.cateringCancelCutoffDays,
+      cateringDailySets: s.cateringDailySets,
+      // Payment details shown to customers on their booking page.
+      cateringBankName: s.cateringBankName,
+      cateringBankAccountName: s.cateringBankAccountName,
+      cateringBankAccountNumber: s.cateringBankAccountNumber,
+      cateringPaymentQrUrl: s.cateringPaymentQrUrl,
       updatedAt: s.updatedAt,
     };
   }
@@ -156,6 +162,11 @@ export class SettingsService {
     cateringHoldExpiryDays?: number;
     cateringCancelCutoffDays?: number;
     cateringNotifyEmail?: string | null;
+    cateringDailySets?: number;
+    cateringBankName?: string | null;
+    cateringBankAccountName?: string | null;
+    cateringBankAccountNumber?: string | null;
+    cateringPaymentQrUrl?: string | null;
   }) {
     // Valid as both create and update input, so the no-row path stays simple.
     const data: Prisma.SystemSettingsUpdateInput &
@@ -172,6 +183,21 @@ export class SettingsService {
       const v = (dto.cateringNotifyEmail ?? '').trim().toLowerCase();
       data.cateringNotifyEmail = v === '' ? null : v;
     }
+    if (dto.cateringDailySets != null)
+      data.cateringDailySets = dto.cateringDailySets;
+    // Payment details: empty string clears to null.
+    const text = (v: string | null | undefined) => {
+      const t = (v ?? '').trim();
+      return t === '' ? null : t;
+    };
+    if (dto.cateringBankName !== undefined)
+      data.cateringBankName = text(dto.cateringBankName);
+    if (dto.cateringBankAccountName !== undefined)
+      data.cateringBankAccountName = text(dto.cateringBankAccountName);
+    if (dto.cateringBankAccountNumber !== undefined)
+      data.cateringBankAccountNumber = text(dto.cateringBankAccountNumber);
+    if (dto.cateringPaymentQrUrl !== undefined)
+      data.cateringPaymentQrUrl = text(dto.cateringPaymentQrUrl);
     if (Object.keys(data).length === 0) return this.getSettings();
 
     const settings = await this.prisma.systemSettings.findFirst({

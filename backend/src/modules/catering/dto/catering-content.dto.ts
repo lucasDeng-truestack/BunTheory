@@ -3,8 +3,10 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -49,6 +51,17 @@ export class CreateCateringPackageDto {
   @Min(1)
   @Max(5000)
   maxGuests?: number | null;
+
+  /** Price per set or per pax (priceUnit). Null or missing = quoted after the request. */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000000)
+  price?: number | null;
+
+  @IsOptional()
+  @IsIn(['PER_SET', 'PER_PAX'])
+  priceUnit?: 'PER_SET' | 'PER_PAX';
 
   @IsOptional()
   @IsBoolean()

@@ -87,6 +87,8 @@ export class CateringContentService {
         imageUrl: trimOrNull(dto.imageUrl) ?? null,
         minGuests: dto.minGuests,
         maxGuests: dto.maxGuests ?? null,
+        price: dto.price != null ? new Prisma.Decimal(dto.price) : null,
+        priceUnit: dto.priceUnit ?? 'PER_SET',
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
       },
@@ -115,6 +117,14 @@ export class CateringContentService {
           imageUrl: trimOrNull(dto.imageUrl),
           minGuests: dto.minGuests ?? undefined,
           maxGuests: dto.maxGuests,
+          // null clears the price (quote on request), undefined leaves it.
+          price:
+            dto.price === undefined
+              ? undefined
+              : dto.price === null
+                ? null
+                : new Prisma.Decimal(dto.price),
+          priceUnit: dto.priceUnit ?? undefined,
           isActive: dto.isActive ?? undefined,
           sortOrder: dto.sortOrder ?? undefined,
         },

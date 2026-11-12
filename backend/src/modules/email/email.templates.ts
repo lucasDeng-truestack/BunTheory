@@ -78,11 +78,16 @@ function summaryRows(b: CateringBooking): Row[] {
   return [
     ['Reference', b.reference],
     ['Date', formatEventDate(b.eventDate)],
-    ['Serving time', b.serviceTime],
+    ['Delivery time', b.serviceTime],
     ['Package', b.packageName],
-    ['Guests', String(b.guests)],
+    ['Pax', String(b.guests)],
     ['Occasion', b.occasion],
-    ['Address', b.eventAddress],
+    ['Total', b.quoteAmount != null ? `RM ${b.quoteAmount.toFixed(2)}` : null],
+    [
+      b.paymentChoice === 'FULL' ? 'To pay (in full)' : 'To pay now (half)',
+      b.depositAmount != null ? `RM ${b.depositAmount.toFixed(2)}` : null,
+    ],
+    ['Delivery address', b.eventAddress],
   ];
 }
 
@@ -203,6 +208,22 @@ export function ownerNewRequestEmail(
   }
   parts.push(summary(rows), cta(adminLink(site, b), 'Open booking'));
   return build(`New request for ${shortEventDate(b.eventDate)}`, parts);
+}
+
+/** Owner: the customer uploaded a payment receipt. */
+export function ownerReceiptUploadedEmail(
+  b: CateringBooking,
+  site: string,
+): EmailContent {
+  const date = formatEventDate(b.eventDate);
+  return build(`Receipt for ${b.reference}`, [
+    para(
+      `${escapeHtml(b.customerName)} uploaded a payment receipt for <strong>${escapeHtml(date)}</strong>. Check it, then approve the booking.`,
+      `${b.customerName} uploaded a payment receipt for ${date}. Check it, then approve the booking.`,
+    ),
+    summary(summaryRows(b)),
+    cta(adminLink(site, b), 'Open booking'),
+  ]);
 }
 
 export function bookingApprovedEmail(
