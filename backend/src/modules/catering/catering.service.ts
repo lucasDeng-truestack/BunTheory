@@ -843,7 +843,7 @@ export class CateringService {
     file: { url: string; originalName: string },
   ): Promise<CateringBookingPublic> {
     const booking = await this.findByToken(accessToken);
-    await this.prisma.$transaction(async (tx) => {
+    const confirmedNow = await this.prisma.$transaction(async (tx) => {
       // Lock the booking so two uploads cannot both pass the count.
       await tx.$queryRaw`SELECT id FROM "CateringBooking" WHERE id = ${booking.id} FOR UPDATE`;
       const fresh = await tx.cateringBooking.findUniqueOrThrow({
@@ -858,9 +858,18 @@ export class CateringService {
           fileName: file.originalName.slice(0, 160) || null,
         },
       });
+      // The receipt confirms the booking: no approve step. The owner checks the money
+      // afterwards and can still cancel; the customer can cancel until the cutoff.
+      if (fresh.status !== 'PENDING') return false;
+      await tx.cateringBooking.update({
+        where: { id: booking.id },
+        data: { status: 'APPROVED', holdExpiresAt: null, decidedAt: new Date() },
+      });
+      return true;
     });
     const updated = await this.findByToken(accessToken);
     void this.email.ownerReceiptUploaded(updated);
+    if (confirmedNow) void this.email.bookingApproved(updated);
     const [rules, payment] = await Promise.all([this.rules(), this.paymentDetails()]);
     return toBookingPublic(updated, rules.cateringCancelCutoffDays, payment);
   }

@@ -100,15 +100,23 @@ export function PaymentPanel({ booking: initial, token }: { booking: CateringBoo
   }
 
   const p = b.payment;
-  const hasBank = p.bankName || p.accountNumber || p.qrUrl;
   const sent = b.receipts.length > 0;
+  // First payment's receipt is in: the booking is confirmed, no need to show how to pay again.
+  const showHowToPay = !(stage === "first" && sent);
+  const hasBank = showHowToPay && (p.bankName || p.accountNumber || p.qrUrl);
   const waText = `Hi Bakar & Roast, here is my payment for booking ${b.reference} (${formatRm(amountNow)}).`;
 
   return (
     <section aria-labelledby="pay-heading" className="grid gap-5 rounded-card-md bg-ink-raised p-5 sm:p-7">
       <div className="grid gap-1">
         <h2 id="pay-heading" className="display-sm m-0">
-          {stage === "first" ? (b.paymentChoice === "FULL" ? "Pay in full" : "Pay half to hold it") : "Pay the rest"}
+          {!showHowToPay
+            ? "Receipt received"
+            : stage === "first"
+              ? b.paymentChoice === "FULL"
+                ? "Pay in full"
+                : "Pay half to confirm"
+              : "Pay the rest"}
         </h2>
         <p className="m-0 text-cream-muted">
           <b className="text-2xl text-cream">{formatRm(amountNow)}</b>
@@ -120,7 +128,7 @@ export function PaymentPanel({ booking: initial, token }: { booking: CateringBoo
         <p className="type-small m-0 text-cream-muted">Put {b.reference} as the reference so we can match it.</p>
       </div>
 
-      {hasBank ? (
+      {!showHowToPay ? null : hasBank ? (
         <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
           <dl className="m-0 grid gap-2">
             {p.bankName && <Row label="Bank" value={p.bankName} />}
@@ -158,7 +166,7 @@ export function PaymentPanel({ booking: initial, token }: { booking: CateringBoo
             ))}
           </ul>
         )}
-        {sent && <p className="m-0 text-sm text-cream-muted">We will check it and confirm your booking.</p>}
+        {sent && <p className="m-0 text-sm text-cream-muted">Your booking is confirmed. We check the payment on our side.</p>}
 
         <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
           <div className="grid justify-items-start gap-2">

@@ -27,14 +27,14 @@ function track(b: CateringBookingPublic, heldUntil: string | null): TrackStep[] 
         sentReceipt
           ? { dot: "done", title: "Receipt sent", line: "We are checking it" }
           : { dot: "current", title: "Pay and upload the receipt", line: heldUntil ? `Spot held until ${heldUntil}` : undefined },
-        { dot: sentReceipt ? "current" : "ahead", title: "Confirmed", line: "Once we see your payment" },
+        { dot: "ahead", title: "Confirmed", line: "As soon as your receipt is in" },
         { dot: "ahead", title: "We deliver", line: delivery },
       ];
     }
     case "APPROVED":
       return [
         sent,
-        { dot: "done", title: "Paid" },
+        { dot: "done", title: b.depositPaidAt ? "Payment checked" : "Receipt sent" },
         { dot: "done", title: "Confirmed" },
         { dot: "current", title: "We deliver", line: delivery },
       ];

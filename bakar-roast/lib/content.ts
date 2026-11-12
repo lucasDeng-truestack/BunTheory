@@ -413,7 +413,7 @@ export const bookingCopy = {
   dateIntro: (r: CateringRules) =>
     `We deliver. Dates open ${days(r.cateringMinNoticeDays)} ahead, up to ${months(r.cateringBookingWindowMonths)} out. Greyed-out days are full or closed.`,
   hold: (r: CateringRules) =>
-    `Your spot is held for ${days(r.cateringHoldExpiryDays)}. Pay and upload the receipt on your booking page, and we confirm.`,
+    `Your spot is held for ${days(r.cateringHoldExpiryDays)}. Pay and upload the receipt on your booking page to confirm it.`,
   quote: "No price list. We agree the quote with you by call.",
   noDate: "No date picked yet",
   noOpenDates: "No open dates this month. Try the next one.",
@@ -472,8 +472,8 @@ export const statusCopy = {
   body: {
     PENDING: (heldUntil: string | null) =>
       heldUntil
-        ? `Your spot is held until ${heldUntil}. Pay below and upload the receipt, and we confirm.`
-        : "Your spot is held. Pay below and upload the receipt, and we confirm.",
+        ? `Your spot is held until ${heldUntil}. Pay below and upload the receipt to confirm it.`
+        : "Your spot is held. Pay below and upload the receipt to confirm it.",
     APPROVED: "You are on our list. We will be in touch before delivery.",
     DECLINED: "Thank you for asking us.",
     CANCELLED: "The date is open again. We hope to cook for you another time.",

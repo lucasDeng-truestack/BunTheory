@@ -218,8 +218,8 @@ export function ownerReceiptUploadedEmail(
   const date = formatEventDate(b.eventDate);
   return build(`Receipt for ${b.reference}`, [
     para(
-      `${escapeHtml(b.customerName)} uploaded a payment receipt for <strong>${escapeHtml(date)}</strong>. Check it, then approve the booking.`,
-      `${b.customerName} uploaded a payment receipt for ${date}. Check it, then approve the booking.`,
+      `${escapeHtml(b.customerName)} uploaded a payment receipt for <strong>${escapeHtml(date)}</strong>, so the booking is confirmed. Check the money is in your bank and tick Payment received. If it is not there, or you cannot make it, cancel the booking.`,
+      `${b.customerName} uploaded a payment receipt for ${date}, so the booking is confirmed. Check the money is in your bank and tick Payment received. If it is not there, or you cannot make it, cancel the booking.`,
     ),
     summary(summaryRows(b)),
     cta(adminLink(site, b), 'Open booking'),
