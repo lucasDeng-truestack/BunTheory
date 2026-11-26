@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { brand, footerColumns } from "@/lib/content";
 import { expo, duration } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/hooks";
@@ -33,19 +33,40 @@ function fitName(el: HTMLElement) {
 
 /**
  * Slide-out (motion.md "Footer"): while the footer scrolls in, its content is held still against
- * the screen, so the page seems to scroll up off a footer sitting behind it. A transform only:
- * no extra scroll height, no fixed layer, clipped by the footer. Pinned flat by `.rm-static`
- * under reduced motion. The brand letters, clipped too, rise when they are actually uncovered.
+ * the screen, so the page seems to scroll up off a footer sitting behind it. Done in CSS
+ * (`.footer-reveal` in globals.css): the content is fixed to the bottom of the screen and the
+ * footer box clips it, so the browser pins it and it cannot lag the scroll. A scroll-linked
+ * transform here trembled, because it always ran a frame behind the smooth scroll. The footer
+ * keeps the content's height; it only pins when the content fits the screen, and never under
+ * reduced motion.
  */
-function SlideOut({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end end"] });
-  const y = useTransform(scrollYProgress, (p) => `${(p - 1) * 100}%`);
+function SlideOut({ rootRef, children }: { rootRef: RefObject<HTMLElement>; children: ReactNode }) {
+  const inner = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    const box = inner.current;
+    if (!el || !box) return;
+    const sync = () => {
+      const h = box.offsetHeight;
+      el.style.height = `${h}px`;
+      el.dataset.pinned = String(h <= window.innerHeight);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(box);
+    window.addEventListener("resize", sync);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+    };
+  }, [rootRef]);
+
   return (
-    <footer ref={ref} className="overflow-hidden bg-ink-soft text-cream">
-      <motion.div style={{ y }} className="rm-static pt-10 sm:pt-16">
+    <footer ref={rootRef} className="footer-reveal bg-ink-soft text-cream">
+      <div ref={inner} className="footer-reveal-inner pt-10 sm:pt-16">
         {children}
-      </motion.div>
+      </div>
     </footer>
   );
 }
@@ -59,6 +80,10 @@ export function Footer() {
   const pathname = usePathname() ?? "/";
   const reduce = usePrefersReducedMotion();
   const nameRef = useRef<HTMLParagraphElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  // The name is pinned to the bottom of the screen, so "in view" is judged on the footer box:
+  // once it has come up far enough to uncover the letters.
+  const uncovered = useInView(footerRef, { once: true, margin: "0px 0px -80px 0px" });
   const hide = pathname.startsWith("/admin") || pathname.startsWith("/catering/book");
 
   useEffect(() => {
@@ -85,7 +110,7 @@ export function Footer() {
 
   let index = 0;
   return (
-    <SlideOut>
+    <SlideOut rootRef={footerRef}>
       <Container>
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 pb-10 md:grid-cols-4">
           {footerColumns.map((col) => (
@@ -137,8 +162,7 @@ export function Footer() {
                     key={i}
                     className="rm-static inline-block"
                     initial={{ y: "105%" }}
-                    whileInView={{ y: 0 }}
-                    viewport={{ once: true }}
+                    animate={{ y: uncovered ? 0 : "105%" }}
                     transition={reduce ? { duration: 0 } : { duration: duration.default, ease: expo.out, delay: i * 0.05 }}
                   >
                     {ch}

@@ -289,7 +289,10 @@ summary::-webkit-details-marker {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Scrubbed lead paragraph: words light up (14% to 100%), pill photos grow from zero width. */
+/* Scrubbed lead paragraph: words light up (14% to 100%), pill photos wipe in left to right.
+   The pill reserves its full width at all times and reveals with clip-path, never width, so the
+   paragraph never reflows as pills open — a width animation here changes the paragraph height,
+   which the scroll-reveal reads back as progress and oscillates (the line count flickers). */
 .lead-word {
   opacity: 0.14;
   transition: opacity 0.25s;
@@ -299,14 +302,31 @@ summary::-webkit-details-marker {
 }
 .lead-pill {
   display: inline-block;
-  width: 0;
+  width: 2.3em;
   height: 0.86em;
   border-radius: 999px;
   vertical-align: -0.06em;
-  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .lead-pill[data-on="true"] {
-  width: 2.3em;
+  clip-path: inset(0 0 0 0);
+}
+
+/* Footer slide-out (components/ui/footer.tsx): the content is fixed to the bottom of the screen
+   and clipped by the footer box (clip-path clips fixed children; overflow does not), so the page
+   scrolls up off it. Only when the content fits the screen (data-pinned), never under reduced
+   motion, where the footer is an ordinary block. */
+@media (prefers-reduced-motion: no-preference) {
+  .footer-reveal[data-pinned="true"] {
+    clip-path: inset(0);
+  }
+  .footer-reveal[data-pinned="true"] > .footer-reveal-inner {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
 }
 
 /* Preloader (components/preloader.tsx). An inline script sets <html data-preload="cover"> before
@@ -339,7 +359,7 @@ html[data-preload="cover"] main * {
     opacity: 1 !important;
   }
   .lead-pill {
-    width: 2.3em !important;
+    clip-path: inset(0 0 0 0) !important;
   }
   /* The hero photo stays inset and rounded, as at the top of the page. */
   .hero-bleed {
