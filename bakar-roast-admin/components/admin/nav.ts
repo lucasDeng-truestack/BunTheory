@@ -32,6 +32,13 @@ export type AdminNavItem = {
 /** The admin sections, in groups. Every staff login sees the same menu (roles come later). */
 export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
   {
+    group: "Bakar & Roast",
+    items: [
+      { label: "Orders", href: "/admin/shop-orders", icon: ShoppingBag, title: "Shop orders" },
+      { label: "Schedule", href: "/admin/shop-schedule", icon: CalendarClock, title: "Shop schedule" },
+    ],
+  },
+  {
     group: "Catering",
     items: [
       { label: "Today", href: "/admin", icon: House },
