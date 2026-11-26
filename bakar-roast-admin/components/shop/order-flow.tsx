@@ -403,6 +403,7 @@ export function OrderFlow({
             value={slot}
             onChange={(e) => setSlot(e.target.value)}
             error={errors.slot}
+            help="Malaysia time (GMT+8)."
             disabled={!date || slotsFor(date).length === 0}
           >
             <option value="">{date ? "Choose a time" : "Pick a date first"}</option>

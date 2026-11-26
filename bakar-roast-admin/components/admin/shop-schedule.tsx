@@ -82,7 +82,8 @@ function RulesForm({ schedule, onSaved }: { schedule: ShopSchedule; onSaved: () 
     <Card title="Ordering rules">
       <p className="m-0 text-[13px] text-cream-muted">
         These apply to every day unless a day below overrides them. The picker currently offers{" "}
-        {formatDateLabel(schedule.minDate)} to {formatDateLabel(schedule.maxDate)}.
+        {formatDateLabel(schedule.minDate)} to {formatDateLabel(schedule.maxDate)}. All dates and
+        times are Malaysia time (GMT+8).
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
@@ -228,7 +229,8 @@ function RangeTools({ onChanged }: { onChanged: () => void }) {
         </SelectField>
       </div>
       <p className="m-0 text-[13px] text-cream-muted">
-        Set the hours for the range above. Leave either as Default to use the usual time.
+        Set the hours for the range above, in Malaysia time (GMT+8). Leave either as Default to use
+        the usual time.
       </p>
       <div className="flex flex-wrap gap-2">
         <Button
