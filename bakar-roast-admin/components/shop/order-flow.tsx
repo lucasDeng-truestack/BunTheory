@@ -10,6 +10,7 @@ import { Banner } from "@/components/ui/banner";
 import { Container } from "@/components/ui/band";
 import { PhotoSlot } from "@/components/ui/photo-slot";
 import { Modal } from "@/components/shop/modal";
+import { WhenPicker } from "@/components/shop/when-picker";
 import { cn } from "@/lib/utils";
 import { MY_STATES } from "@/lib/booking";
 import { ApiError } from "@/lib/api";
@@ -34,49 +35,19 @@ import {
   orderPath,
   packageMap,
   saveDraft,
-  slotLabel,
   type CartItem,
 } from "@/lib/shop";
 
 const PHONE_RE = /^\+?(?:[\s-]*\d){7,15}[\s-]*$/;
 
 /**
- * One step on screen at a time, so the page stays short. Delivery asks for the address first;
- * pickup skips straight to the packages.
+ * The page is a menu first, like a takeaway site: delivery or pickup is asked up front in a modal
+ * (with the address, for delivery), then the customer browses the packages freely with their
+ * order beside them, and goes to checkout when ready. Two views, no numbered steps.
  */
-type StepKey = "address" | "packages" | "details" | "review";
+type View = "menu" | "checkout";
 
-const STEP_LABEL: Record<StepKey, string> = {
-  address: "Address",
-  packages: "Packages",
-  details: "Date and details",
-  review: "Review",
-};
-
-const STEP_TITLE: Record<StepKey, string> = {
-  address: "Where should we deliver?",
-  packages: "Choose your packages",
-  details: "When, and who is it for?",
-  review: "Check your order",
-};
-
-const stepsFor = (type: ShopFulfilmentType): StepKey[] =>
-  type === "DELIVERY" ? ["address", "packages", "details", "review"] : ["packages", "details", "review"];
-
-/** Which step owns each validation error, so a failed check can take the customer there. */
-const STEP_OF_ERROR: Record<string, StepKey> = {
-  line1: "address",
-  city: "address",
-  state: "address",
-  postcode: "address",
-  cart: "packages",
-  date: "details",
-  slot: "details",
-  name: "details",
-  phone: "details",
-};
-
-/** The two ways to get the food, as large tap targets. Used in the opening modal and on the page. */
+/** The two ways to get the food, as large tap targets. */
 function MethodChoice({
   value,
   pickupArea,
@@ -114,15 +85,17 @@ function MethodChoice({
   );
 }
 
-/** Add button until there is one in the cart, then a minus / count / plus stepper. */
+/** Add button until there is one in the order, then a minus / count / plus stepper. */
 function Quantity({
   name,
   qty,
   onChange,
+  small = false,
 }: {
   name: string;
   qty: number;
   onChange: (next: number) => void;
+  small?: boolean;
 }) {
   if (qty === 0) {
     return (
@@ -131,49 +104,26 @@ function Quantity({
       </Button>
     );
   }
-  const round =
-    "grid h-11 w-11 place-items-center rounded-full border border-cream-faint text-cream hover:border-ember";
+  const round = cn(
+    "grid place-items-center rounded-full border border-cream-faint text-cream hover:border-ember",
+    small ? "h-9 w-9" : "h-11 w-11",
+  );
   return (
-    <div className="flex items-center gap-3">
+    <div className={cn("flex items-center", small ? "gap-2" : "gap-3")}>
       <button type="button" aria-label={`Remove one ${name}`} onClick={() => onChange(qty - 1)} className={round}>
-        <Minus aria-hidden size={16} />
+        <Minus aria-hidden size={small ? 14 : 16} />
       </button>
       <span aria-live="polite" className="min-w-6 text-center font-semibold text-cream">
         {qty}
       </span>
       <button type="button" aria-label={`Add one ${name}`} onClick={() => onChange(qty + 1)} className={round}>
-        <Plus aria-hidden size={16} />
+        <Plus aria-hidden size={small ? 14 : 16} />
       </button>
     </div>
   );
 }
 
-/** One block of the review step: a label, what was chosen, and a way back to change it. */
-function ReviewRow({
-  label,
-  onEdit,
-  children,
-}: {
-  label: string;
-  onEdit: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5 border-b border-ink-line py-4 first:pt-0 last:border-b-0 last:pb-0">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="type-eyebrow m-0 text-cream-faint">{label}</h3>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="-my-2 min-h-11 text-[13px] font-semibold text-cream-muted underline underline-offset-4 hover:text-cream"
-        >
-          Change
-        </button>
-      </div>
-      <div className="grid gap-0.5 text-cream">{children}</div>
-    </div>
-  );
-}
+const linkButton = "min-h-11 font-semibold text-cream underline underline-offset-4 hover:text-ember";
 
 export function OrderFlow({
   config,
@@ -197,11 +147,14 @@ export function OrderFlow({
   const slotsFor = (d: string): string[] => slotsByDate.get(d) ?? [];
   const noOpenDays = avail.days.length === 0;
 
+  const [view, setView] = useState<View>("menu");
   const [type, setType] = useState<ShopFulfilmentType>("DELIVERY");
-  // Delivery or pickup is asked first, in a modal. Until it is answered there are no steps.
+  // Delivery or pickup is asked first, in a modal. The menu can still be browsed without it.
   const [methodChosen, setMethodChosen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
-  const [step, setStep] = useState<StepKey>("packages");
+  const [methodStage, setMethodStage] = useState<"method" | "address">("method");
+  // Checkout was pressed before the method was settled: carry on once it is.
+  const checkoutAfterMethod = useRef(false);
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [addr, setAddr] = useState({ line1: "", line2: "", city: "", state: "Selangor", postcode: "" });
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -214,9 +167,6 @@ export function OrderFlow({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
-
-  const steps = stepsFor(type);
-  const stepIndex = Math.max(0, steps.indexOf(step));
 
   // The whole draft survives a refresh before the order is saved. After the order exists, the
   // token page is the source of truth. Hydrate once, then persist on every change. A saved date
@@ -237,9 +187,8 @@ export function OrderFlow({
       if (d.paymentChoice) setPaymentChoice(d.paymentChoice);
     }
     if (d?.methodChosen) {
-      const list = stepsFor(d.type ?? "DELIVERY");
       setMethodChosen(true);
-      setStep(list.find((s) => s === d.step) ?? list[0]);
+      if (d.step === "checkout" && Array.isArray(d.cart) && d.cart.length > 0) setView("checkout");
     } else {
       setMethodOpen(true);
     }
@@ -250,10 +199,10 @@ export function OrderFlow({
 
   useEffect(() => {
     if (!hydrated) return;
-    saveDraft({ type, addr, deliveryNotes, cart, date, slot, contact, paymentChoice, methodChosen, step });
-  }, [hydrated, type, addr, deliveryNotes, cart, date, slot, contact, paymentChoice, methodChosen, step]);
+    saveDraft({ type, addr, deliveryNotes, cart, date, slot, contact, paymentChoice, methodChosen, step: view });
+  }, [hydrated, type, addr, deliveryNotes, cart, date, slot, contact, paymentChoice, methodChosen, view]);
 
-  // A new step starts at its own top, not wherever the last one was scrolled to.
+  // Moving between the menu and checkout starts the new view at its top.
   const settled = useRef(false);
   useEffect(() => {
     if (!hydrated) return;
@@ -263,22 +212,54 @@ export function OrderFlow({
     }
     const el = top.current;
     if (!el) return;
-    // force: a step can change while a modal still has page scroll paused.
+    // force: the view can change while a modal still has page scroll paused.
     if (lenis) lenis.scrollTo(el, { offset: -110, force: true });
     else el.scrollIntoView({ block: "start" });
-    // Only a step change scrolls; lenis is read, not watched.
+    // Only a view change scrolls; lenis is read, not watched.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, hydrated]);
+  }, [view, hydrated]);
 
-  function chooseMethod(t: ShopFulfilmentType) {
-    const list = stepsFor(t);
-    if (!methodChosen) setStep(list[0]);
-    // Switching to delivery needs an address before anything else.
-    else if (t === "DELIVERY" && type !== "DELIVERY") setStep("address");
-    else if (!list.includes(step)) setStep(list[0]);
+  function addressErrors(): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!addr.line1.trim()) e.line1 = "Enter your address.";
+    if (!addr.city.trim()) e.city = "Enter your city or town.";
+    if (!addr.state.trim()) e.state = "Choose your state.";
+    if (!/^\d{5}$/.test(addr.postcode.trim())) e.postcode = "Enter a 5-digit postcode.";
+    return e;
+  }
+
+  function openMethod(stage: "method" | "address" = "method") {
+    setMethodStage(stage);
+    setMethodOpen(true);
+  }
+
+  function closeMethod() {
+    checkoutAfterMethod.current = false;
+    setMethodOpen(false);
+  }
+
+  /** Delivery or pickup is settled (and the address, for delivery). */
+  function commitMethod(t: ShopFulfilmentType) {
     setType(t);
     setMethodChosen(true);
     setMethodOpen(false);
+    setErrors(({ line1: _1, city: _2, state: _3, postcode: _4, ...rest }) => rest);
+    if (checkoutAfterMethod.current && cart.length > 0) setView("checkout");
+    checkoutAfterMethod.current = false;
+  }
+
+  function pickMethod(t: ShopFulfilmentType) {
+    if (t === "PICKUP") commitMethod("PICKUP");
+    else setMethodStage("address");
+  }
+
+  function saveAddress() {
+    const e = addressErrors();
+    setErrors((prev) => {
+      const { line1: _1, city: _2, state: _3, postcode: _4, ...rest } = prev;
+      return { ...rest, ...e };
+    });
+    if (Object.keys(e).length === 0) commitMethod("DELIVERY");
   }
 
   // Picking a date resets a time that day does not offer and flags a day we are not serving,
@@ -313,12 +294,7 @@ export function OrderFlow({
   function validate(): Record<string, string> {
     const e: Record<string, string> = {};
     if (cart.length === 0) e.cart = "Add at least one package.";
-    if (type === "DELIVERY") {
-      if (!addr.line1.trim()) e.line1 = "Enter your address.";
-      if (!addr.city.trim()) e.city = "Enter your city or town.";
-      if (!addr.state.trim()) e.state = "Choose your state.";
-      if (!/^\d{5}$/.test(addr.postcode.trim())) e.postcode = "Enter a 5-digit postcode.";
-    }
+    if (type === "DELIVERY") Object.assign(e, addressErrors());
     // iOS Safari ignores the date input min/max, so range-check here too.
     const daySlots = date ? slotsFor(date) : [];
     if (!date) e.date = "Pick a date.";
@@ -334,24 +310,29 @@ export function OrderFlow({
     return e;
   }
 
-  /** Continue: check only what this step asks for, then move on. */
-  function next() {
-    const all = validate();
-    const mine = Object.fromEntries(Object.entries(all).filter(([k]) => STEP_OF_ERROR[k] === step));
-    setErrors(mine);
+  /** From the menu to checkout. Needs something in the order and a settled delivery or pickup. */
+  function goCheckout() {
     setSubmitError(null);
-    if (Object.keys(mine).length > 0) return;
-    const after = steps[stepIndex + 1];
-    if (after) setStep(after);
-  }
-
-  function back() {
-    const before = steps[stepIndex - 1];
-    if (before) {
-      setErrors({});
-      setSubmitError(null);
-      setStep(before);
+    if (cart.length === 0) {
+      setErrors({ cart: "Add at least one package first." });
+      return;
     }
+    if (!methodChosen) {
+      checkoutAfterMethod.current = true;
+      openMethod("method");
+      return;
+    }
+    if (type === "DELIVERY") {
+      const e = addressErrors();
+      if (Object.keys(e).length > 0) {
+        setErrors(e);
+        checkoutAfterMethod.current = true;
+        openMethod("address");
+        return;
+      }
+    }
+    setErrors({});
+    setView("checkout");
   }
 
   async function placeOrder() {
@@ -359,10 +340,10 @@ export function OrderFlow({
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      // Something earlier is missing: go to the first step that needs fixing.
-      const broken = steps.find((s) => Object.keys(e).some((k) => STEP_OF_ERROR[k] === s));
-      if (broken) setStep(broken);
       setSubmitError(null);
+      // An empty order belongs on the menu; a missing address in the delivery modal.
+      if (e.cart) setView("menu");
+      else if (e.line1 || e.city || e.state || e.postcode) openMethod("address");
       return;
     }
     setSubmitting(true);
@@ -393,7 +374,7 @@ export function OrderFlow({
       router.push(orderPath(created.accessToken));
     } catch (err) {
       // A date/slot the owner changed between page load and submit: refresh the picker so the
-      // customer sees the new options, and take them back to the field that is now wrong.
+      // customer sees the new options, and point the error at the field that is now wrong.
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === "DATE_CLOSED" || code === "SLOT_UNAVAILABLE" || code === "DATE_OUT_OF_RANGE") {
         const fresh = await getShopAvailability().catch(() => null);
@@ -406,7 +387,6 @@ export function OrderFlow({
             err instanceof Error ? err.message : "That is no longer available. Please pick again.",
         }));
         setSubmitError(null);
-        setStep("details");
       } else {
         setSubmitError(err instanceof Error ? err.message : "Could not place the order. Please try again.");
       }
@@ -415,15 +395,85 @@ export function OrderFlow({
   }
 
   const detail: ShopPackagePublic | undefined = detailKey ? pm.get(detailKey) : undefined;
-  const methodLine =
-    type === "DELIVERY"
-      ? addr.line1.trim()
-        ? `Delivery to ${[addr.line1, addr.city].filter((s) => s.trim()).join(", ")}`
-        : "Delivery"
+  const methodLine = !methodChosen
+    ? "Delivery or pickup?"
+    : type === "DELIVERY"
+      ? `Delivery to ${[addr.line1, addr.city].filter((s) => s.trim()).join(", ")}`
       : `Pickup at ${config.pickupArea}`;
+  const canPlace = avail.ordersOpen && !noOpenDays;
+
+  const placeButton = (block: boolean) => (
+    <Button
+      onClick={placeOrder}
+      loading={submitting}
+      loadingLabel="Placing order"
+      disabled={submitting || !canPlace}
+      block={block}
+    >
+      {avail.ordersOpen ? "Place order" : "Opens soon"}
+    </Button>
+  );
+
+  /* Your order: beside the menu on a wide screen, and the summary at checkout. */
+  const orderPanel = (
+    <aside
+      aria-label="Your order"
+      className={cn(
+        "grid content-start gap-4 rounded-card-md border border-cream-faint p-5 lg:sticky lg:top-28",
+        view === "menu" && "max-lg:hidden",
+      )}
+    >
+      <h2 className="m-0 text-lg font-semibold text-cream">Your order</h2>
+      <p className="m-0 flex flex-wrap items-center gap-x-3 border-b border-ink-line pb-3 text-[15px] text-cream-muted">
+        <span>{methodLine}</span>
+        <button type="button" onClick={() => openMethod("method")} className={cn(linkButton, "text-[15px]")}>
+          {methodChosen ? "Change" : "Choose"}
+        </button>
+      </p>
+      {cart.length === 0 ? (
+        <p className="m-0 text-cream-muted">Nothing here yet. Add a package to start your order.</p>
+      ) : (
+        <ul className="m-0 grid list-none gap-4 p-0">
+          {cart.map((it) => {
+            const p = pm.get(it.packageKey);
+            const name = p?.name ?? it.packageKey;
+            return (
+              <li key={it.packageKey} className="grid gap-2">
+                <div className="flex items-baseline justify-between gap-3 text-cream">
+                  <span className="font-semibold">{name}</span>
+                  <span>{p ? formatRm(lineTotal(p.price, it.quantity)) : ""}</span>
+                </div>
+                <Quantity small name={name} qty={it.quantity} onChange={(n) => setQty(it.packageKey, n)} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {errors.cart && <Banner tone="error" title={errors.cart} />}
+      <div className="flex items-center justify-between border-t border-ink-line pt-3 font-semibold text-cream">
+        <span>Total</span>
+        <span>{formatRm(total)}</span>
+      </div>
+      {view === "checkout" && (
+        <div className="flex items-center justify-between text-cream">
+          <span>Pay now</span>
+          <span className="text-lg font-semibold text-ember">{formatRm(dueNow)}</span>
+        </div>
+      )}
+      <div className="max-lg:hidden">
+        {view === "menu" ? (
+          <Button onClick={goCheckout} block>
+            Checkout
+          </Button>
+        ) : (
+          placeButton(true)
+        )}
+      </div>
+    </aside>
+  );
 
   return (
-    <Container className="pb-36">
+    <Container className="pb-36 lg:pb-0">
       {/* Ordering state, up top so it is seen before filling anything in. */}
       {!avail.ordersOpen && avail.ordersOpenDate ? (
         <Banner tone="ok" title={`Ordering opens ${formatDateLabel(avail.ordersOpenDate)}`} className="mb-8">
@@ -435,145 +485,28 @@ export function OrderFlow({
         </Banner>
       ) : null}
 
-      <div ref={top} className="grid gap-8">
+      <div ref={top}>
         {!hydrated ? (
           /* The saved draft decides what shows, so hold the space until it has been read. */
-          <div aria-hidden className="min-h-[320px]" />
-        ) : !methodChosen ? (
-          /* The opening question, also here on the page in case the modal was closed. */
-          <section className="grid max-w-[640px] gap-5">
-            <h2 className="display-sm m-0 text-cream">Delivery or pickup?</h2>
-            <MethodChoice value={null} pickupArea={config.pickupArea} onChoose={chooseMethod} />
-          </section>
+          <div aria-hidden className="min-h-[420px]" />
         ) : (
-          <>
-            {/* Where we are: back, the chosen method, and the steps. */}
-            <div className="grid gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
-                {stepIndex > 0 ? (
-                  <button
-                    type="button"
-                    onClick={back}
-                    className="inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-cream-muted hover:text-cream"
-                  >
-                    <ArrowLeft aria-hidden size={16} strokeWidth={1.75} />
-                    Back to {STEP_LABEL[steps[stepIndex - 1]].toLowerCase()}
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <p className="m-0 flex min-h-11 items-center gap-3 text-[15px] text-cream-muted">
-                  <span>{methodLine}</span>
-                  <button
-                    type="button"
-                    onClick={() => setMethodOpen(true)}
-                    className="min-h-11 font-semibold text-cream underline underline-offset-4 hover:text-ember"
-                  >
-                    Change
-                  </button>
-                </p>
-              </div>
-              <ol aria-label="Order progress" className="m-0 flex list-none gap-2 p-0">
-                {steps.map((s, i) => {
-                  const state = i < stepIndex ? "done" : i === stepIndex ? "current" : "ahead";
-                  return (
-                    <li
-                      key={s}
-                      aria-current={state === "current" ? "step" : undefined}
-                      className={cn(
-                        "grid flex-1 gap-2 text-[13px] font-semibold transition-colors duration-300",
-                        state === "done" && "text-cream-muted",
-                        state === "current" && "text-cream",
-                        state === "ahead" && "text-cream-faint",
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "h-1 rounded-sm",
-                          state === "done" && "bg-cream-muted",
-                          state === "current" && "bg-ember",
-                          state === "ahead" && "bg-ink-line",
-                        )}
-                      />
-                      <span className={cn(state !== "current" && "max-sm:sr-only")}>
-                        {i + 1}. {STEP_LABEL[s]}
-                        {state === "done" && <span className="sr-only"> (done)</span>}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-
-            <h2 className="display-sm m-0 text-cream">{STEP_TITLE[step]}</h2>
-
-            {step === "address" && (
-              <div className="grid max-w-[640px] gap-4">
-                <Field
-                  label="Address line 1"
-                  value={addr.line1}
-                  onChange={(e) => setAddr({ ...addr, line1: e.target.value })}
-                  error={errors.line1}
-                  autoComplete="address-line1"
-                />
-                <Field
-                  label="Address line 2"
-                  optional
-                  value={addr.line2}
-                  onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
-                  autoComplete="address-line2"
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label="City"
-                    value={addr.city}
-                    onChange={(e) => setAddr({ ...addr, city: e.target.value })}
-                    error={errors.city}
-                    autoComplete="address-level2"
-                  />
-                  <Field
-                    label="Postcode"
-                    inputMode="numeric"
-                    maxLength={5}
-                    value={addr.postcode}
-                    onChange={(e) => setAddr({ ...addr, postcode: e.target.value.replace(/\D/g, "") })}
-                    error={errors.postcode}
-                    autoComplete="postal-code"
-                  />
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
+            {view === "menu" ? (
+              <div className="grid gap-6">
+                <div className="grid gap-2">
+                  <h2 className="display-sm m-0 text-cream">The menu</h2>
+                  {/* On a phone the order panel is hidden, so the method shows here. */}
+                  <p className="m-0 flex flex-wrap items-center gap-x-3 text-[15px] text-cream-muted lg:hidden">
+                    <span>{methodLine}</span>
+                    <button type="button" onClick={() => openMethod("method")} className={cn(linkButton, "text-[15px]")}>
+                      {methodChosen ? "Change" : "Choose"}
+                    </button>
+                  </p>
+                  <p className="m-0 text-[13px] text-cream-muted">
+                    The menu is still being finalised. Packages are placeholders for now.
+                  </p>
                 </div>
-                <SelectField
-                  label="State"
-                  value={addr.state}
-                  onChange={(e) => setAddr({ ...addr, state: e.target.value })}
-                  error={errors.state}
-                >
-                  {MY_STATES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </SelectField>
-                <TextareaField
-                  label="Delivery notes"
-                  optional
-                  placeholder="Gate, unit, landmarks"
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                />
-                <p className="m-0 text-[13px] text-cream-muted">
-                  We deliver within Malaysia. The delivery fee is arranged with you over WhatsApp
-                  and is not added to the total here yet.
-                </p>
-              </div>
-            )}
-
-            {step === "packages" && (
-              <div className="grid gap-5">
-                <p className="m-0 text-[13px] text-cream-muted">
-                  The menu is still being finalised. Packages are placeholders for now.
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {config.packages.map((p) => {
                     const qty = qtyOf(p.key);
                     return (
@@ -607,11 +540,7 @@ export function OrderFlow({
                           <span className="text-[13px] text-cream-muted">{p.tagline}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 px-2">
-                          <button
-                            type="button"
-                            onClick={() => setDetailKey(p.key)}
-                            className="min-h-11 text-[15px] font-semibold text-cream underline underline-offset-4 hover:text-ember"
-                          >
+                          <button type="button" onClick={() => setDetailKey(p.key)} className={cn(linkButton, "text-[15px]")}>
                             View details
                           </button>
                           <Quantity name={p.name} qty={qty} onChange={(n) => setQty(p.key, n)} />
@@ -620,125 +549,77 @@ export function OrderFlow({
                     );
                   })}
                 </div>
-                {errors.cart && <Banner tone="error" title={errors.cart} />}
+                {/* The order panel shows this on a wide screen. */}
+                {errors.cart && <Banner tone="error" title={errors.cart} className="lg:hidden" />}
               </div>
-            )}
-
-            {step === "details" && (
-              <div className="grid max-w-[640px] gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label={type === "DELIVERY" ? "Delivery date" : "Pickup date"}
-                    type="date"
-                    min={avail.minDate}
-                    max={avail.maxDate}
-                    value={date}
-                    onChange={(e) => onDateChange(e.target.value)}
-                    error={errors.date}
-                    help={`We cook from ${formatDateLabel(avail.minDate)} onward.`}
-                  />
-                  <SelectField
-                    label="Time"
-                    value={slot}
-                    onChange={(e) => setSlot(e.target.value)}
-                    error={errors.slot}
-                    help="Malaysia time (GMT+8)."
-                    disabled={!date || slotsFor(date).length === 0}
+            ) : (
+              <div className="grid gap-8">
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrors({});
+                      setSubmitError(null);
+                      setView("menu");
+                    }}
+                    className="inline-flex min-h-11 w-fit items-center gap-2 text-[15px] font-semibold text-cream-muted hover:text-cream"
                   >
-                    <option value="">{date ? "Choose a time" : "Pick a date first"}</option>
-                    {slotsFor(date).map((s) => (
-                      <option key={s} value={s}>
-                        {slotLabel(s)}
-                      </option>
-                    ))}
-                  </SelectField>
-                </div>
-                <Field
-                  label="Name"
-                  value={contact.name}
-                  onChange={(e) => setContact({ ...contact, name: e.target.value })}
-                  error={errors.name}
-                  autoComplete="name"
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label="Phone"
-                    type="tel"
-                    inputMode="tel"
-                    value={contact.phone}
-                    onChange={(e) => setContact({ ...contact, phone: e.target.value })}
-                    error={errors.phone}
-                    help="We reach you on WhatsApp."
-                    autoComplete="tel"
-                  />
-                  <Field
-                    label="Email"
-                    optional
-                    type="email"
-                    value={contact.email}
-                    onChange={(e) => setContact({ ...contact, email: e.target.value })}
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === "review" && (
-              <div className="grid max-w-[640px] gap-6">
-                <div className="rounded-card-sm border border-cream-faint p-5">
-                  <ReviewRow label="How" onEdit={() => (type === "DELIVERY" ? setStep("address") : setMethodOpen(true))}>
-                    {type === "DELIVERY" ? (
-                      <>
-                        <span>Delivery</span>
-                        <span className="text-cream-muted">
-                          {[addr.line1, addr.line2, `${addr.postcode} ${addr.city}`, addr.state]
-                            .filter((s) => s.trim())
-                            .join(", ")}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Pickup at {config.pickupArea}</span>
-                        <span className="text-cream-muted">We share the exact address over WhatsApp.</span>
-                      </>
-                    )}
-                  </ReviewRow>
-                  <ReviewRow label="When" onEdit={() => setStep("details")}>
-                    <span>
-                      {date ? formatDateLabel(date) : "No date yet"}
-                      {slot ? `, ${slotLabel(slot)}` : ""}
-                    </span>
-                  </ReviewRow>
-                  <ReviewRow label="Contact" onEdit={() => setStep("details")}>
-                    <span>{contact.name}</span>
-                    <span className="text-cream-muted">
-                      {[contact.phone, contact.email].filter((s) => s.trim()).join(" · ")}
-                    </span>
-                  </ReviewRow>
-                  <ReviewRow label="Packages" onEdit={() => setStep("packages")}>
-                    <ul className="m-0 grid list-none gap-1.5 p-0">
-                      {cart.map((it) => {
-                        const p = pm.get(it.packageKey);
-                        return (
-                          <li key={it.packageKey} className="flex items-center justify-between gap-3">
-                            <span>
-                              {it.quantity} × {p?.name ?? it.packageKey}
-                            </span>
-                            <span className="text-cream-muted">
-                              {p ? formatRm(lineTotal(p.price, it.quantity)) : ""}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    <div className="mt-2 flex items-center justify-between border-t border-ink-line pt-2 font-semibold">
-                      <span>Total</span>
-                      <span>{formatRm(total)}</span>
-                    </div>
-                  </ReviewRow>
+                    <ArrowLeft aria-hidden size={16} strokeWidth={1.75} />
+                    Back to the menu
+                  </button>
+                  <h2 className="display-sm m-0 text-cream">Checkout</h2>
                 </div>
 
-                <div className="grid gap-3">
+                <section className="grid gap-4">
+                  <h3 className="m-0 text-lg font-semibold text-cream">
+                    {type === "DELIVERY" ? "When should we deliver?" : "When will you pick up?"}
+                  </h3>
+                  <WhenPicker
+                    avail={avail}
+                    date={date}
+                    slot={slot}
+                    onDate={onDateChange}
+                    onSlot={(s) => {
+                      setSlot(s);
+                      setErrors(({ slot: _slot, ...rest }) => rest);
+                    }}
+                    dateError={errors.date}
+                    slotError={errors.slot}
+                  />
+                </section>
+
+                <section className="grid gap-4 border-t border-ink-line pt-8">
+                  <h3 className="m-0 text-lg font-semibold text-cream">Your details</h3>
+                  <Field
+                    label="Name"
+                    value={contact.name}
+                    onChange={(e) => setContact({ ...contact, name: e.target.value })}
+                    error={errors.name}
+                    autoComplete="name"
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field
+                      label="Phone"
+                      type="tel"
+                      inputMode="tel"
+                      value={contact.phone}
+                      onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                      error={errors.phone}
+                      help="We reach you on WhatsApp."
+                      autoComplete="tel"
+                    />
+                    <Field
+                      label="Email"
+                      optional
+                      type="email"
+                      value={contact.email}
+                      onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                      autoComplete="email"
+                    />
+                  </div>
+                </section>
+
+                <section className="grid gap-4 border-t border-ink-line pt-8">
                   <h3 className="m-0 text-lg font-semibold text-cream">How much to pay now</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {(
@@ -766,7 +647,7 @@ export function OrderFlow({
                     Pay by bank transfer or QR after you place the order, then upload the receipt.
                     We confirm once we receive it.
                   </p>
-                </div>
+                </section>
 
                 {submitError && (
                   <Banner tone="error" title="We could not place the order">
@@ -775,45 +656,111 @@ export function OrderFlow({
                 )}
               </div>
             )}
-          </>
+
+            {orderPanel}
+          </div>
         )}
       </div>
 
-      {/* Sticky bar: the running total and the one action for this step. */}
-      {methodChosen && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-line bg-ink/95 backdrop-blur">
+      {/* Phone and tablet: the order total and the one action, always in reach. */}
+      {hydrated && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-line bg-ink/95 backdrop-blur lg:hidden">
           <Container className="flex items-center justify-between gap-4 py-3.5">
             <div className="grid">
               <span className="text-[12px] uppercase tracking-wide text-cream-faint">
-                {step === "review"
+                {view === "checkout"
                   ? `Pay now · total ${formatRm(total)}`
-                  : cartCount > 0
-                    ? `${cartCount} ${cartCount === 1 ? "package" : "packages"}`
-                    : `Step ${stepIndex + 1} of ${steps.length}`}
+                  : `${cartCount} ${cartCount === 1 ? "package" : "packages"}`}
               </span>
-              <b className="text-lg font-semibold text-cream">
-                {step === "review" ? formatRm(dueNow) : cartCount > 0 ? formatRm(total) : STEP_LABEL[step]}
-              </b>
+              <b className="text-lg font-semibold text-cream">{formatRm(view === "checkout" ? dueNow : total)}</b>
             </div>
-            {step === "review" ? (
-              <Button
-                onClick={placeOrder}
-                loading={submitting}
-                loadingLabel="Placing order"
-                disabled={submitting || !avail.ordersOpen || noOpenDays}
-              >
-                {avail.ordersOpen ? "Place order" : "Opens soon"}
-              </Button>
-            ) : (
-              <Button onClick={next}>Continue</Button>
-            )}
+            {view === "checkout" ? placeButton(false) : <Button onClick={goCheckout}>Checkout</Button>}
           </Container>
         </div>
       )}
 
-      <Modal open={methodOpen} onClose={() => setMethodOpen(false)} eyebrow="Order now" title="Delivery or pickup?">
-        <MethodChoice value={methodChosen ? type : null} pickupArea={config.pickupArea} onChoose={chooseMethod} />
-        <p className="m-0 text-[13px] text-cream-muted">You can change this any time before you place the order.</p>
+      <Modal
+        open={methodOpen}
+        onClose={closeMethod}
+        eyebrow="Order now"
+        title={methodStage === "address" ? "Where should we deliver?" : "Delivery or pickup?"}
+      >
+        {methodStage === "method" ? (
+          <>
+            <MethodChoice value={methodChosen ? type : null} pickupArea={config.pickupArea} onChoose={pickMethod} />
+            <p className="m-0 text-[13px] text-cream-muted">
+              You can change this any time before you place the order.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="grid gap-4">
+              <Field
+                label="Address line 1"
+                value={addr.line1}
+                onChange={(e) => setAddr({ ...addr, line1: e.target.value })}
+                error={errors.line1}
+                autoComplete="address-line1"
+              />
+              <Field
+                label="Address line 2"
+                optional
+                value={addr.line2}
+                onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
+                autoComplete="address-line2"
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="City"
+                  value={addr.city}
+                  onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                  error={errors.city}
+                  autoComplete="address-level2"
+                />
+                <Field
+                  label="Postcode"
+                  inputMode="numeric"
+                  maxLength={5}
+                  value={addr.postcode}
+                  onChange={(e) => setAddr({ ...addr, postcode: e.target.value.replace(/\D/g, "") })}
+                  error={errors.postcode}
+                  autoComplete="postal-code"
+                />
+              </div>
+              <SelectField
+                label="State"
+                value={addr.state}
+                onChange={(e) => setAddr({ ...addr, state: e.target.value })}
+                error={errors.state}
+              >
+                {MY_STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </SelectField>
+              <TextareaField
+                label="Delivery notes"
+                optional
+                placeholder="Gate, unit, landmarks"
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+              />
+              <p className="m-0 text-[13px] text-cream-muted">
+                The delivery fee is arranged with you over WhatsApp and is not added to the total
+                here yet.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="cream" chip={false} onClick={saveAddress}>
+                Deliver here
+              </Button>
+              <Button variant="ghost" onClick={() => setMethodStage("method")}>
+                Back
+              </Button>
+            </div>
+          </>
+        )}
       </Modal>
 
       <Modal
