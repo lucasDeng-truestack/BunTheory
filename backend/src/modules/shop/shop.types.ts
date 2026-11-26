@@ -58,6 +58,8 @@ export type ShopSchedule = {
   minNoticeDays: number;
   windowDays: number;
   defaultHours: { start: string; end: string };
+  /** Length of one time slot, in minutes. */
+  slotMinutes: number;
   minDate: string;
   maxDate: string;
   days: ShopScheduleDay[];

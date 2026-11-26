@@ -548,6 +548,9 @@ model SystemSettings {
   cateringNotifyEmail         String?
   /// Default bookings (sets) taken per day. A CateringDay row can override one date.
   cateringDailySets           Int      @default(5)
+  /// Whether the daily limit applies. Off = a day takes any number of bookings, unless that day
+  /// has its own number (CateringDay.capacity) or is closed.
+  cateringDailyLimitOn        Boolean  @default(true)
   /// Shown on the customer's booking page so they can pay.
   cateringBankName            String?
   cateringBankAccountName     String?
@@ -569,6 +572,9 @@ model SystemSettings {
   /// Default serving window, on the hour "HH:00" Malaysia time. A ShopDay can override.
   shopServeStart              String   @default("12:00")
   shopServeEnd                String   @default("20:00")
+  /// Length of one time slot in minutes (30, 60, 90 or 120). Slots run back to back from the
+  /// serving start; a last piece shorter than a slot is not offered.
+  shopSlotMinutes             Int      @default(60)
   updatedAt                   DateTime @updatedAt
 }
 

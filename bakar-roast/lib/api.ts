@@ -186,7 +186,8 @@ export interface CateringCalendarDay {
   date: string;
   closed: boolean;
   reason: string | null;
-  capacity: number;
+  /** Null = no limit (the daily limit is switched off). */
+  capacity: number | null;
   customCapacity: boolean;
   deliveryStart: string;
   deliveryEnd: string;

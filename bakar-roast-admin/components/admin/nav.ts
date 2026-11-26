@@ -39,17 +39,6 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
     ],
   },
   {
-    group: "Catering",
-    items: [
-      { label: "Today", href: "/admin", icon: House },
-      { label: "Requests", href: "/admin/requests", icon: Inbox, badge: "catering" },
-      { label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
-      { label: "Packages", href: "/admin/packages", icon: Package },
-      { label: "Gallery and testimonials", href: "/admin/content", icon: Images },
-      { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal, title: "Catering settings" },
-    ],
-  },
-  {
     group: "The Bun Theory",
     items: [
       { label: "Overview", href: "/admin/bun-theory", icon: LayoutDashboard, title: "The Bun Theory" },
@@ -68,14 +57,32 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
   },
 ];
 
+/**
+ * Catering booking screens. Out of the menu since the site moved to online ordering, but the
+ * pages still work by URL and keep their titles. Put this group back into ADMIN_NAV to show them.
+ */
+export const HIDDEN_NAV: { group: string; items: AdminNavItem[] }[] = [
+  {
+    group: "Catering",
+    items: [
+      { label: "Today", href: "/admin/today", icon: House },
+      { label: "Requests", href: "/admin/requests", icon: Inbox, badge: "catering" },
+      { label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
+      { label: "Packages", href: "/admin/packages", icon: Package },
+      { label: "Gallery and testimonials", href: "/admin/content", icon: Images },
+      { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal, title: "Catering settings" },
+    ],
+  },
+];
+
 /** The phone tab bar: these three, then More (the full menu as a drawer). */
-export const TAB_HREFS = ["/admin", "/admin/requests", "/admin/calendar"];
+export const TAB_HREFS = ["/admin/shop-orders", "/admin/shop-schedule", "/admin/bun-theory/orders"];
 
 /** Section roots that must match exactly, so a parent does not light up on its children's pages. */
-const EXACT = new Set(["/admin", "/admin/bun-theory"]);
+const EXACT = new Set(["/admin/bun-theory"]);
 
 export const isCurrent = (pathname: string, href: string) =>
   EXACT.has(href) ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
 export const currentItem = (pathname: string) =>
-  ADMIN_NAV.flatMap((g) => g.items).find((i) => isCurrent(pathname, i.href));
+  [...ADMIN_NAV, ...HIDDEN_NAV].flatMap((g) => g.items).find((i) => isCurrent(pathname, i.href));

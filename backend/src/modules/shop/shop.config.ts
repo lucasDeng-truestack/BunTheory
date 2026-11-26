@@ -73,7 +73,11 @@ export const SHOP_RULES_DEFAULT = {
   windowDays: 60,
   serveStart: '12:00',
   serveEnd: '20:00',
+  slotMinutes: 60,
 };
+
+/** Slot lengths the owner can choose, in minutes. */
+export const SHOP_SLOT_MINUTES = [30, 60, 90, 120] as const;
 
 /** Hardest ceiling on the fulfilment window, to keep the availability payload bounded. */
 export const SHOP_WINDOW_DAYS_MAX = 120;

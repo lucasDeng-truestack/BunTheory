@@ -7,8 +7,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
-/** On-the-hour time, "HH:00". Serving windows are whole hours. */
-const HOUR = /^([01]\d|2[0-3]):00$/;
+/** A serving time on the hour or half hour, "HH:00" or "HH:30". */
+const HOUR = /^([01]\d|2[0-3]):(00|30)$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Owner marks a payment as received: the deposit (half) or the full total. */

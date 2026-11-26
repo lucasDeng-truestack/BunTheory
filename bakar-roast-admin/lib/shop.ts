@@ -26,17 +26,19 @@ export function depositOf(total: string): string {
   return (Math.ceil(parseFloat(total) * 50) / 100).toFixed(2);
 }
 
-const H12 = (h: number) => {
+/** "15:00" -> "3pm", "12:30" -> "12:30pm". */
+export function timeLabel(hhmm: string): string {
+  const h = parseInt(hhmm.slice(0, 2), 10);
+  const m = hhmm.slice(3, 5);
   const period = h < 12 ? "am" : "pm";
   const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}${period}`;
-};
+  return `${hour}${m && m !== "00" ? `:${m}` : ""}${period}`;
+}
 
-/** "12:00-13:00" -> "12pm – 1pm". */
+/** "12:00-13:00" -> "12pm – 1pm", "12:30-13:30" -> "12:30pm – 1:30pm". */
 export function slotLabel(slot: string): string {
   const [start, end] = slot.split("-");
-  const h = (hhmm: string) => H12(parseInt(hhmm.slice(0, 2), 10));
-  return start && end ? `${h(start)} – ${h(end)}` : slot;
+  return start && end ? `${timeLabel(start)} – ${timeLabel(end)}` : slot;
 }
 
 /** "2026-12-14" -> "Sun, 14 Dec" (Malaysia-local, no timezone math needed on a date-only string). */

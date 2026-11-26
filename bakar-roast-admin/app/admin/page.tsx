@@ -1,5 +1,6 @@
-import { TodayScreen } from "@/components/admin/today";
+import { redirect } from "next/navigation";
 
-export default function AdminTodayPage() {
-  return <TodayScreen />;
+// The admin home is the Bakar & Roast shop orders list.
+export default function AdminHome() {
+  redirect("/admin/shop-orders");
 }

@@ -165,6 +165,7 @@ export class SettingsService {
     cateringCancelCutoffDays?: number;
     cateringNotifyEmail?: string | null;
     cateringDailySets?: number;
+    cateringDailyLimitOn?: boolean;
     cateringBankName?: string | null;
     cateringBankAccountName?: string | null;
     cateringBankAccountNumber?: string | null;
@@ -189,6 +190,8 @@ export class SettingsService {
     }
     if (dto.cateringDailySets != null)
       data.cateringDailySets = dto.cateringDailySets;
+    if (dto.cateringDailyLimitOn != null)
+      data.cateringDailyLimitOn = dto.cateringDailyLimitOn;
     // Payment details: empty string clears to null.
     const text = (v: string | null | undefined) => {
       const t = (v ?? '').trim();
@@ -256,6 +259,7 @@ export class SettingsService {
     shopWindowDays?: number;
     shopServeStart?: string;
     shopServeEnd?: string;
+    shopSlotMinutes?: number;
   }) {
     const data: Prisma.SystemSettingsUpdateInput &
       Prisma.SystemSettingsCreateInput = {};
@@ -268,6 +272,7 @@ export class SettingsService {
     if (dto.shopWindowDays != null) data.shopWindowDays = dto.shopWindowDays;
     if (dto.shopServeStart != null) data.shopServeStart = dto.shopServeStart;
     if (dto.shopServeEnd != null) data.shopServeEnd = dto.shopServeEnd;
+    if (dto.shopSlotMinutes != null) data.shopSlotMinutes = dto.shopSlotMinutes;
     if (Object.keys(data).length === 0) return this.getSettings();
 
     const settings = await this.prisma.systemSettings.findFirst({
@@ -288,6 +293,14 @@ export class SettingsService {
       throw new BadRequestException({
         code: 'INVALID_RULES',
         message: 'Serving must end after it starts.',
+      });
+    }
+    const mins = (t: string) => parseInt(t.slice(0, 2), 10) * 60 + parseInt(t.slice(3, 5), 10);
+    const slot = dto.shopSlotMinutes ?? settings?.shopSlotMinutes ?? 60;
+    if (mins(end) - mins(start) < slot) {
+      throw new BadRequestException({
+        code: 'INVALID_RULES',
+        message: 'The serving hours are shorter than one time slot.',
       });
     }
     if (!settings) {

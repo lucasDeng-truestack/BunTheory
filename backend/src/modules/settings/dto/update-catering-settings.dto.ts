@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 /** Partial update of the catering booking rules. Empty string clears the notify email. */
 export class UpdateCateringSettingsDto {
@@ -38,6 +38,11 @@ export class UpdateCateringSettingsDto {
   @Min(1)
   @Max(200)
   cateringDailySets?: number;
+
+  /** Whether the daily limit applies. Off = no limit on days without their own number. */
+  @IsOptional()
+  @IsBoolean()
+  cateringDailyLimitOn?: boolean;
 
   /** Payment details shown to customers. Empty string clears. */
   @IsOptional()

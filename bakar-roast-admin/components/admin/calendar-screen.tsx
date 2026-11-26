@@ -59,8 +59,12 @@ const MONTH_NAME = (v: Ym) => formatMonthYear(v.year, v.month).split(" ")[0];
 
 type Hours = { start: string; end: string };
 
-/** A date with no calendar row: open, default sets and hours, no bookings. */
-const blankDay = (date: string, sets: number, hours: Hours): Entry => ({
+/** "2 of 5 sets", or "2 booked, no limit" when the day has no limit (capacity null). */
+const setsText = (n: number, cap: number | null) =>
+  cap == null ? `${n} booked, no limit` : `${n} of ${cap} sets`;
+
+/** A date with no calendar row: open, default sets (null = no limit) and hours, no bookings. */
+const blankDay = (date: string, sets: number | null, hours: Hours): Entry => ({
   date,
   closed: false,
   reason: null,
@@ -120,10 +124,11 @@ function HoursFields({
 }
 
 /** The look of a day, the words it is read out with, and its "2/5" count. */
-function dayState(ymd: string, e: Entry | undefined, today: string, sets: number, hours: Hours) {
+function dayState(ymd: string, e: Entry | undefined, today: string, sets: number | null, hours: Hours) {
   const day = e ?? blankDay(ymd, sets, hours);
   const n = day.bookings.length;
-  const count = n > 0 || day.customCapacity ? `${n}/${day.capacity}` : null;
+  const cap = day.capacity;
+  const count = n > 0 || day.customCapacity ? (cap == null ? `${n}` : `${n}/${cap}`) : null;
   let look: AdminDayLook;
   let words: string;
   if (day.closed) {
@@ -132,18 +137,18 @@ function dayState(ymd: string, e: Entry | undefined, today: string, sets: number
   } else if (ymd < today) {
     look = n > 0 ? "completed" : "past";
     words = n > 0 ? `${n} booked` : "past";
-  } else if (day.capacity > 0 && n >= day.capacity) {
+  } else if (cap != null && cap > 0 && n >= cap) {
     look = "booked";
-    words = `full, ${n} of ${day.capacity} sets`;
+    words = `full, ${n} of ${cap} sets`;
   } else if (n > 0) {
     look = "held";
-    words = `${n} of ${day.capacity} sets booked`;
-  } else if (day.capacity === 0) {
+    words = cap == null ? `${n} booked, no limit` : `${n} of ${cap} sets booked`;
+  } else if (cap === 0) {
     look = "blocked";
     words = "no sets";
   } else {
     look = "free";
-    words = `open, ${day.capacity} sets`;
+    words = cap == null ? "open, no limit" : `open, ${cap} sets`;
   }
   return { look, words, count };
 }
@@ -186,7 +191,9 @@ export function CalendarScreen() {
       return {
         key,
         entries: days,
-        sets: settings.cateringDailySets ?? 5,
+        // Null = the daily limit is switched off in Settings: days take any number of orders.
+        sets: settings.cateringDailyLimitOn === false ? null : (settings.cateringDailySets ?? 5),
+        usual: settings.cateringDailySets ?? 5,
         hours: { start: settings.cateringDeliveryStart ?? "10:00", end: settings.cateringDeliveryEnd ?? "21:00" },
       };
     },
@@ -194,7 +201,8 @@ export function CalendarScreen() {
   );
   // The previous month's data stays in q.data while the next one loads: never draw it on this month.
   const entries = q.data?.key === key ? q.data.entries : undefined;
-  const sets = q.data?.sets ?? 5;
+  const sets = q.data ? q.data.sets : 5;
+  const usual = q.data?.usual ?? 5;
   const hours = q.data?.hours ?? { start: "10:00", end: "21:00" };
   const byDate = new Map((entries ?? []).map((e) => [e.date, e]));
 
@@ -229,7 +237,7 @@ export function CalendarScreen() {
     <AdminPage
       title="Calendar"
       actions={toggle}
-      lead={`Each day takes ${sets} ${sets === 1 ? "order" : "orders"}, delivered ${hoursText(hours.start, hours.end)}, unless you change it. Tap a day to change it, or change a whole stretch below.`}
+      lead={`${sets == null ? "Days have no order limit" : `Each day takes ${sets} ${sets === 1 ? "order" : "orders"}`}, delivered ${hoursText(hours.start, hours.end)}, unless you change it. Tap a day to change it, or change a whole stretch below.`}
     >
       {notice && (
         <Banner tone={notice.tone} title={notice.title}>
@@ -266,6 +274,7 @@ export function CalendarScreen() {
                 day={selectedDay}
                 today={today}
                 defaultSets={sets}
+                usualSets={usual}
                 defaultHours={hours}
                 href={requestHref}
                 run={run}
@@ -444,6 +453,7 @@ function DayPanel({
   day,
   today,
   defaultSets,
+  usualSets,
   defaultHours,
   href,
   run,
@@ -452,14 +462,17 @@ function DayPanel({
 }: {
   day: Entry;
   today: string;
-  defaultSets: number;
+  /** What a day without its own number takes. Null = no limit. */
+  defaultSets: number | null;
+  /** The usual number from Settings, where the stepper starts on a day with no limit. */
+  usualSets: number;
   defaultHours: Hours;
   href: (id: string) => string;
   run: Run;
   onClose: () => void;
   onDone: (n: Notice) => void;
 }) {
-  const [cap, setCap] = useState(day.capacity);
+  const [cap, setCap] = useState(day.capacity ?? usualSets);
   const [start, setStart] = useState(day.deliveryStart);
   const [end, setEnd] = useState(day.deliveryEnd);
   const [reason, setReason] = useState(day.reason ?? "");
@@ -491,7 +504,7 @@ function DayPanel({
           <div>
             <b className="block text-base">{name}</b>
             <span className="text-sm text-cream-muted">
-              {day.closed ? "Closed" : `${n} of ${day.capacity} sets booked · ${hoursText(day.deliveryStart, day.deliveryEnd)}`}
+              {day.closed ? "Closed" : `${setsText(n, day.capacity)} · ${hoursText(day.deliveryStart, day.deliveryEnd)}`}
               {day.closed && day.reason ? `: ${day.reason}` : ""}
             </span>
           </div>
@@ -539,12 +552,17 @@ function DayPanel({
                 size="sm"
                 variant="ghost"
                 disabled={busy}
-                onClick={() => void call((t) => adminSetDay(t, day.date, { capacity: null }), `${formatShort(day.date)} is back to the usual ${defaultSets}.`)}
+                onClick={() => void call((t) => adminSetDay(t, day.date, { capacity: null }), `${formatShort(day.date)} is back to ${defaultSets == null ? "no limit" : `the usual ${defaultSets}`}.`)}
               >
-                Use usual ({defaultSets})
+                {defaultSets == null ? "Remove this day's limit" : `Use usual (${defaultSets})`}
               </Button>
             )}
           </div>
+          {day.capacity == null && (
+            <p className="type-small m-0 text-cream-muted">
+              The daily limit is off, so this day takes any number of orders. Save a number to limit this day only.
+            </p>
+          )}
           {cap < n && <p className="type-small m-0 text-cream-muted">This day already has {n} orders. They all stay.</p>}
         </div>
       )}
@@ -654,7 +672,7 @@ function DayRow({ day: e, href, onPick }: { day: Entry; href: (id: string) => st
         <DateBlock ymd={e.date} />
         <span className="grid min-w-0 gap-0.5">
           <b className="text-base">
-            {e.closed ? "Closed" : `${e.bookings.length} of ${e.capacity} sets`}
+            {e.closed ? "Closed" : setsText(e.bookings.length, e.capacity)}
             {e.customCapacity && !e.closed ? " (custom)" : ""}
           </b>
           {!e.closed && e.customHours && (
@@ -698,7 +716,7 @@ function AdminMonth({
   month: Ym;
   today: string;
   entries: Entry[] | undefined;
-  sets: number;
+  sets: number | null;
   hours: Hours;
   selected: string | null;
   onMonth: (m: Ym) => void;

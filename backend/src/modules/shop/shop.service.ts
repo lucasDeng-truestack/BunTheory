@@ -53,6 +53,7 @@ type ShopRules = {
   windowDays: number;
   serveStart: string;
   serveEnd: string;
+  slotMinutes: number;
 };
 
 function newReference(): string {
@@ -61,14 +62,23 @@ function newReference(): string {
   return s;
 }
 
-/** Hour (0–23) from an "HH:00" / "HH:mm" string. */
-const hourOf = (hhmm: string): number => parseInt(hhmm.slice(0, 2), 10);
+/** Minutes since midnight from "HH:mm". */
+const minutesOf = (hhmm: string): number =>
+  parseInt(hhmm.slice(0, 2), 10) * 60 + parseInt(hhmm.slice(3, 5), 10);
 
-/** On-the-hour windows "HH:00-HH:00" from start to end. Empty when start >= end. */
-function hourlySlots(start: string, end: string): string[] {
-  const hh = (h: number) => `${String(h).padStart(2, '0')}:00`;
+const clockOf = (minutes: number): string =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+/**
+ * Back-to-back windows "HH:mm-HH:mm" of `slotMinutes` each, from start. A last piece shorter than
+ * a slot is dropped. Empty when no whole slot fits.
+ */
+function slotsBetween(start: string, end: string, slotMinutes: number): string[] {
   const out: string[] = [];
-  for (let h = hourOf(start); h < hourOf(end); h++) out.push(`${hh(h)}-${hh(h + 1)}`);
+  const last = minutesOf(end);
+  for (let t = minutesOf(start); t + slotMinutes <= last; t += slotMinutes) {
+    out.push(`${clockOf(t)}-${clockOf(t + slotMinutes)}`);
+  }
   return out;
 }
 
@@ -103,6 +113,7 @@ export class ShopService {
         shopWindowDays: true,
         shopServeStart: true,
         shopServeEnd: true,
+        shopSlotMinutes: true,
       },
     });
     if (!row) return { ...SHOP_RULES_DEFAULT };
@@ -114,6 +125,7 @@ export class ShopService {
       windowDays: Math.min(row.shopWindowDays, SHOP_WINDOW_DAYS_MAX),
       serveStart: row.shopServeStart,
       serveEnd: row.shopServeEnd,
+      slotMinutes: row.shopSlotMinutes,
     };
   }
 
@@ -143,8 +155,8 @@ export class ShopService {
     if (row?.closed) return null;
     const slots =
       row && (row.serveStart || row.serveEnd)
-        ? hourlySlots(row.serveStart ?? rules.serveStart, row.serveEnd ?? rules.serveEnd)
-        : hourlySlots(rules.serveStart, rules.serveEnd);
+        ? slotsBetween(row.serveStart ?? rules.serveStart, row.serveEnd ?? rules.serveEnd, rules.slotMinutes)
+        : slotsBetween(rules.serveStart, rules.serveEnd, rules.slotMinutes);
     return slots.length > 0 ? slots : null;
   }
 
@@ -187,7 +199,7 @@ export class ShopService {
       take: SHOP_WINDOW_DAYS_MAX + 1,
     });
     const dayMap = new Map(overrides.map((d) => [fromDateOnly(d.date), d]));
-    const defaultSlots = hourlySlots(rules.serveStart, rules.serveEnd);
+    const defaultSlots = slotsBetween(rules.serveStart, rules.serveEnd, rules.slotMinutes);
 
     const days: ShopAvailabilityDay[] = [];
     for (let d = minDate; d <= maxDate; d = addDays(d, 1)) {
@@ -195,7 +207,7 @@ export class ShopService {
       if (o?.closed) continue;
       const slots =
         o && (o.serveStart || o.serveEnd)
-          ? hourlySlots(o.serveStart ?? rules.serveStart, o.serveEnd ?? rules.serveEnd)
+          ? slotsBetween(o.serveStart ?? rules.serveStart, o.serveEnd ?? rules.serveEnd, rules.slotMinutes)
           : defaultSlots;
       if (slots.length === 0) continue; // serves nothing that day = closed
       days.push({ date: d, slots });
@@ -434,6 +446,7 @@ export class ShopService {
       minNoticeDays: rules.minNoticeDays,
       windowDays: rules.windowDays,
       defaultHours: { start: rules.serveStart, end: rules.serveEnd },
+      slotMinutes: rules.slotMinutes,
       minDate,
       maxDate,
       // Skip rows that carry no override (an open day at default hours), e.g. left by reopening
@@ -528,7 +541,7 @@ export class ShopService {
   }
 
   /**
-   * A serving window must leave at least one hourly slot. Start-only is allowed (end falls back
+   * A serving window must leave at least one slot. Start-only is allowed (end falls back
    * to the default); the resolved window is what has to hold.
    */
   private assertServesSomething(
@@ -537,11 +550,11 @@ export class ShopService {
     rules: ShopRules,
   ): void {
     if (start == null && end == null) return;
-    const resolved = hourlySlots(start ?? rules.serveStart, end ?? rules.serveEnd);
+    const resolved = slotsBetween(start ?? rules.serveStart, end ?? rules.serveEnd, rules.slotMinutes);
     if (resolved.length === 0) {
       throw new BadRequestException({
         code: 'INVALID_HOURS',
-        message: 'Serving must end at least an hour after it starts.',
+        message: 'Serving must end late enough to fit at least one time slot.',
       });
     }
   }

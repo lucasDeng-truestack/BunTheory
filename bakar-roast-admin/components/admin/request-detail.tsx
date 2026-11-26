@@ -47,7 +47,7 @@ type Notice = { tone: "ok" | "error"; title: string; help?: string } | null;
 function useBack() {
   const params = useSearchParams();
   const from = params.get("from");
-  if (from === "today") return { href: "/admin", label: "Today" };
+  if (from === "today") return { href: "/admin/today", label: "Today" };
   const rest = new URLSearchParams(params);
   rest.delete("from");
   const qs = rest.toString();

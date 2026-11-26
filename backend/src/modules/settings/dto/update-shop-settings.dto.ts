@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsInt,
   IsOptional,
   Matches,
@@ -7,8 +8,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 
-/** On-the-hour time, "HH:00". Serving windows are whole hours. */
-const HOUR = /^([01]\d|2[0-3]):00$/;
+/** A serving time on the hour or half hour, "HH:00" or "HH:30". */
+const HOUR = /^([01]\d|2[0-3]):(00|30)$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -46,4 +47,9 @@ export class UpdateShopSettingsDto {
   @IsOptional()
   @Matches(HOUR)
   shopServeEnd?: string;
+
+  /** Length of one time slot, in minutes. */
+  @IsOptional()
+  @IsIn([30, 60, 90, 120])
+  shopSlotMinutes?: number;
 }

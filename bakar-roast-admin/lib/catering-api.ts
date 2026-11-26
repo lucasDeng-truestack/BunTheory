@@ -46,6 +46,8 @@ export interface CateringRules {
 export interface CateringAdminSettings extends CateringRules {
   cateringNotifyEmail: string | null;
   cateringDailySets: number;
+  /** Whether the daily limit applies. Off = days take any number of orders. */
+  cateringDailyLimitOn: boolean;
   cateringBankName: string | null;
   cateringBankAccountName: string | null;
   cateringBankAccountNumber: string | null;
@@ -277,6 +279,7 @@ export const adminUpdateSettings = (
     CateringRules & {
       cateringNotifyEmail: string;
       cateringDailySets: number;
+      cateringDailyLimitOn: boolean;
       cateringBankName: string;
       cateringBankAccountName: string;
       cateringBankAccountNumber: string;

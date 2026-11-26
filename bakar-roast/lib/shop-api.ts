@@ -182,6 +182,8 @@ export interface ShopSchedule {
   minNoticeDays: number;
   windowDays: number;
   defaultHours: { start: string; end: string };
+  /** Length of one time slot, in minutes. */
+  slotMinutes: number;
   minDate: string;
   maxDate: string;
   days: ShopScheduleDay[];
@@ -196,6 +198,8 @@ export interface ShopSettingsInput {
   shopWindowDays?: number;
   shopServeStart?: string;
   shopServeEnd?: string;
+  /** 30, 60, 90 or 120. */
+  shopSlotMinutes?: number;
 }
 
 export const shopAdminGetSchedule = (token: string) =>

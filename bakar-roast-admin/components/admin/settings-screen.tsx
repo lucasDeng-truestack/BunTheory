@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { adminGetSettings, adminUpdateSettings, type CateringAdminSettings, type CateringRules } from "@/lib/catering-api";
@@ -8,6 +8,7 @@ import { cutoffWarning, isEmailShape, RULES, ruleLines, ruleValue, type RuleKey 
 import { klToday } from "@/lib/dates";
 import { Banner, Skeleton } from "@/components/ui/banner";
 import { Field, SelectField } from "@/components/ui/field";
+import { Toggle } from "@/components/ui/toggle";
 import { formatTime12, HALF_HOURS } from "@/lib/booking";
 import { useAdmin } from "@/components/admin/admin-context";
 import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
@@ -23,7 +24,6 @@ const QUESTIONS: [RuleKey, string][] = [
   ["cateringCancelCutoffDays", "Until when can customers cancel online?"],
 ];
 
-const DEBOUNCE_MS = 500;
 const SAVED = "Saved. The booking pages use these now.";
 const EMAIL_HELP = "When this is empty, new requests go to the owner accounts' emails.";
 
@@ -52,9 +52,9 @@ export function SettingsScreen() {
 }
 
 /**
- * The four rules save as they change: taps on one rule are debounced, only the latest value is
- * sent, and saves run one at a time. A failed save puts the rule back to the last value the
- * server confirmed. The email saves when the owner leaves the field.
+ * The booking rules and the alert email. Nothing is sent while the owner is changing them: the
+ * Save button sends everything together, so they can try values and read the plain-language
+ * lines before anything reaches the booking pages. A failed save keeps what they entered.
  */
 function SettingsForm({ initial }: { initial: CateringAdminSettings }) {
   const { run } = useAdmin();
@@ -64,77 +64,65 @@ function SettingsForm({ initial }: { initial: CateringAdminSettings }) {
     cateringHoldExpiryDays: s.cateringHoldExpiryDays,
     cateringCancelCutoffDays: s.cateringCancelCutoffDays,
   });
-  const [values, setValues] = useState<CateringRules>(() => pick(initial));
+  // What the server last confirmed, to tell whether anything is unsaved and to discard back to.
+  const [confirmed, setConfirmed] = useState(() => ({
+    rules: pick(initial),
+    email: initial.cateringNotifyEmail ?? "",
+  }));
+  const [values, setValues] = useState<CateringRules>(confirmed.rules);
+  const [email, setEmail] = useState(confirmed.email);
+  const [emailError, setEmailError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
-  const confirmed = useRef<CateringAdminSettings>(initial);
-  const latest = useRef<CateringRules>(pick(initial));
-  const timers = useRef<Partial<Record<RuleKey, ReturnType<typeof setTimeout>>>>({});
-  const queue = useRef<Promise<unknown>>(Promise.resolve());
-  // Saves still queued or in flight: while any exist, "same as confirmed" is not proof the server agrees.
-  const pending = useRef(0);
   const today = klToday();
 
-  // Leaving the page inside the debounce window still sends the last tap.
-  const flush = useRef<() => void>(() => {});
-  useEffect(() => () => flush.current(), []);
-
-  /** One save at a time, so an older response never lands after a newer one. */
-  const save = (body: Parameters<typeof adminUpdateSettings>[1]) => {
-    pending.current++;
-    const next = queue.current.then(async () => {
-      try {
-        confirmed.current = await run((t) => adminUpdateSettings(t, body));
-        return true;
-      } catch (err) {
-        return err;
-      } finally {
-        pending.current--;
-      }
-    });
-    queue.current = next;
-    return next;
-  };
-
-  const sendRule = async (key: RuleKey) => {
-    delete timers.current[key];
-    const value = latest.current[key];
-    if (value === confirmed.current[key] && pending.current === 0) return;
-    const res = await save({ [key]: value });
-    if (res === true) {
-      // Saved, and no newer tap waiting: done.
-      if (!timers.current[key]) setSaved(true);
-      return;
-    }
-    // Failed: back to what the server has, and drop any tap still waiting on this rule.
-    clearTimeout(timers.current[key]);
-    delete timers.current[key];
-    latest.current = { ...latest.current, [key]: confirmed.current[key] };
-    setValues((v) => ({ ...v, [key]: confirmed.current[key] }));
-    setSaved(false);
-    setNotice(
-      res instanceof ApiError && res.code === "INVALID_RULES"
-        ? { title: res.message, help: "We put it back. Make the notice shorter than the booking window." }
-        : describeError(res),
-    );
-  };
+  const dirty =
+    email.trim().toLowerCase() !== confirmed.email.toLowerCase() ||
+    QUESTIONS.some(([key]) => values[key] !== confirmed.rules[key]);
 
   const change = (key: RuleKey, value: number) => {
     const { min, max } = RULES[key];
-    const v = Math.min(max, Math.max(min, value));
-    latest.current = { ...latest.current, [key]: v };
-    setValues((cur) => ({ ...cur, [key]: v }));
+    setValues((cur) => ({ ...cur, [key]: Math.min(max, Math.max(min, value)) }));
     setSaved(false);
     setNotice(null);
-    clearTimeout(timers.current[key]);
-    timers.current[key] = setTimeout(() => void sendRule(key), DEBOUNCE_MS);
   };
 
-  flush.current = () =>
-    (Object.keys(timers.current) as RuleKey[]).forEach((key) => {
-      clearTimeout(timers.current[key]);
-      void sendRule(key);
-    });
+  const discard = () => {
+    setValues(confirmed.rules);
+    setEmail(confirmed.email);
+    setEmailError("");
+    setNotice(null);
+    setSaved(false);
+  };
+
+  const save = async () => {
+    const mail = email.trim();
+    if (mail && !isEmailShape(mail)) {
+      setEmailError("Enter an email like you@example.com.");
+      return;
+    }
+    setEmailError("");
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await run((t) => adminUpdateSettings(t, { ...values, cateringNotifyEmail: mail }));
+      const next = { rules: pick(res), email: res.cateringNotifyEmail ?? "" };
+      setConfirmed(next);
+      setValues(next.rules);
+      setEmail(next.email);
+      setSaved(true);
+    } catch (err) {
+      setSaved(false);
+      setNotice(
+        err instanceof ApiError && err.code === "INVALID_RULES"
+          ? { title: err.message, help: "Nothing was saved. Make the notice shorter than the booking window, then save again." }
+          : describeError(err),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const lines = ruleLines(values, today);
   const warn = cutoffWarning(values);
@@ -161,90 +149,46 @@ function SettingsForm({ initial }: { initial: CateringAdminSettings }) {
             <RuleStepper label={question} value={values[key]} rule={key} onChange={(v) => change(key, v)} />
           </div>
         ))}
-        <p role="status" className="m-0 min-h-5 text-cream-muted">
-          {saved ? SAVED : ""}
-        </p>
+      </Block>
+      <Block title="Alerts">
+        <Field
+          size="sm"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          label="Where should new requests be emailed?"
+          optional
+          maxLength={160}
+          value={email}
+          error={emailError}
+          help={EMAIL_HELP}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailError("");
+            setSaved(false);
+            setNotice(null);
+          }}
+        />
       </Block>
       {notice && (
         <Banner tone="error" title={notice.title} className="w-full">
           {notice.help}
         </Banner>
       )}
-      <Block title="Alerts">
-        <EmailField initial={initial.cateringNotifyEmail ?? ""} save={save} />
-      </Block>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button size="sm" onClick={() => void save()} loading={busy} loadingLabel="Saving" disabled={!dirty || busy}>
+          Save
+        </Button>
+        {dirty && !busy && (
+          <Button size="sm" variant="ghost" onClick={discard}>
+            Discard changes
+          </Button>
+        )}
+        <p role="status" className="m-0 text-cream-muted">
+          {dirty ? "You have changes that are not saved yet." : saved ? SAVED : ""}
+        </p>
+      </div>
     </>
-  );
-}
-
-function EmailField({
-  initial,
-  save,
-}: {
-  initial: string;
-  save: (body: { cateringNotifyEmail: string }) => Promise<unknown>;
-}) {
-  const [value, setValue] = useState(initial);
-  const [error, setError] = useState("");
-  const [help, setHelp] = useState(EMAIL_HELP);
-  const [failed, setFailed] = useState<Notice>(null);
-  const savedValue = useRef(initial);
-
-  const onBlur = async () => {
-    const v = value.trim();
-    setFailed(null);
-    if (v === savedValue.current) {
-      setError("");
-      return;
-    }
-    if (v && !isEmailShape(v)) {
-      setError("Enter an email like you@example.com. Nothing was changed.");
-      return;
-    }
-    setError("");
-    // Compare later blurs with what was sent, not only what was confirmed, so a quick revert is still saved.
-    const before = savedValue.current;
-    savedValue.current = v.toLowerCase();
-    const res = await save({ cateringNotifyEmail: v });
-    if (res === true) {
-      setValue((cur) => (cur.trim() === v ? v.toLowerCase() : cur));
-      setHelp(v ? `Saved. Alerts now go to ${v.toLowerCase()}.` : `Saved. ${EMAIL_HELP}`);
-    } else {
-      savedValue.current = before;
-      setValue(before);
-      setHelp(EMAIL_HELP);
-      setFailed(describeError(res));
-    }
-  };
-
-  return (
-    <div className="grid gap-3">
-      <Field
-        size="sm"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        label="Where should new requests be emailed?"
-        optional
-        maxLength={160}
-        value={value}
-        error={error}
-        help={help}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setHelp(EMAIL_HELP);
-        }}
-        onBlur={onBlur}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-      {failed && (
-        <Banner tone="error" title={failed.title}>
-          {failed.help}
-        </Banner>
-      )}
-    </div>
   );
 }
 
@@ -317,6 +261,7 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
   const { run } = useAdmin();
   const { upload, uploading } = useUpload();
   const [sets, setSets] = useState(initial.cateringDailySets ?? 5);
+  const [limitOn, setLimitOn] = useState(initial.cateringDailyLimitOn ?? true);
   const [bank, setBank] = useState(initial.cateringBankName ?? "");
   const [holder, setHolder] = useState(initial.cateringBankAccountName ?? "");
   const [account, setAccount] = useState(initial.cateringBankAccountNumber ?? "");
@@ -333,6 +278,7 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
       await run((t) =>
         adminUpdateSettings(t, {
           cateringDailySets: sets,
+          cateringDailyLimitOn: limitOn,
           cateringBankName: bank,
           cateringBankAccountName: holder,
           cateringBankAccountNumber: account,
@@ -357,31 +303,48 @@ function OrdersAndPayment({ initial }: { initial: CateringAdminSettings }) {
       {notice && <Banner tone={notice.tone} title={notice.title} />}
 
       <div className="grid gap-2">
-        <span className="text-[13px] font-semibold">How many orders (sets) can you do a day?</span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="One fewer"
-            disabled={sets <= 1}
-            onClick={() => setSets((n) => Math.max(1, n - 1))}
-            className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
-          >
-            <Minus aria-hidden size={16} />
-          </button>
-          <span className="min-w-12 text-center text-2xl font-extrabold tabular-nums" aria-live="polite">
-            {sets}
-          </span>
-          <button
-            type="button"
-            aria-label="One more"
-            disabled={sets >= 200}
-            onClick={() => setSets((n) => Math.min(200, n + 1))}
-            className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
-          >
-            <Plus aria-hidden size={16} />
-          </button>
-        </div>
-        <p className="type-small m-0 text-cream-muted">The usual for every day. Change a single day on the Calendar.</p>
+        <Toggle
+          label="Limit how many orders (sets) you take a day"
+          onText="On"
+          offText="Off"
+          checked={limitOn}
+          onChange={(e) => setLimitOn(e.target.checked)}
+        />
+        {limitOn ? (
+          <>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="One fewer"
+                disabled={sets <= 1}
+                onClick={() => setSets((n) => Math.max(1, n - 1))}
+                className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
+              >
+                <Minus aria-hidden size={16} />
+              </button>
+              <span className="min-w-12 text-center text-2xl font-extrabold tabular-nums" aria-live="polite">
+                {sets}
+              </span>
+              <button
+                type="button"
+                aria-label="One more"
+                disabled={sets >= 200}
+                onClick={() => setSets((n) => Math.min(200, n + 1))}
+                className="grid h-11 w-11 place-items-center rounded-full shadow-[inset_0_0_0_1px_theme(colors.cream.faint)] disabled:opacity-40"
+              >
+                <Plus aria-hidden size={16} />
+              </button>
+            </div>
+            <p className="type-small m-0 text-cream-muted">
+              The usual for every day. A day is full once it reaches this. Change a single day on the Calendar.
+            </p>
+          </>
+        ) : (
+          <p className="type-small m-0 text-cream-muted">
+            No daily limit: every open day keeps taking orders. A day you gave its own number on the
+            Calendar still stops at that number, and closed days stay closed.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-2">

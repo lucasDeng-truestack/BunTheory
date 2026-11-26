@@ -70,9 +70,22 @@ type Rules = {
   cateringHoldExpiryDays: number;
   cateringCancelCutoffDays: number;
   cateringDailySets: number;
+  cateringDailyLimitOn: boolean;
   cateringDeliveryStart: string;
   cateringDeliveryEnd: string;
 };
+
+/**
+ * How many bookings a day takes, or null for no limit. A day's own number always wins; without
+ * one, the usual number applies only while the owner has the daily limit switched on.
+ */
+function capacityOf(
+  day: { capacity: number | null } | null | undefined,
+  rules: Pick<Rules, 'cateringDailySets' | 'cateringDailyLimitOn'>,
+): number | null {
+  if (day?.capacity != null) return day.capacity;
+  return rules.cateringDailyLimitOn ? rules.cateringDailySets : null;
+}
 
 const DEFAULT_RULES: Rules = {
   cateringMinNoticeDays: 7,
@@ -80,6 +93,7 @@ const DEFAULT_RULES: Rules = {
   cateringHoldExpiryDays: 3,
   cateringCancelCutoffDays: 3,
   cateringDailySets: 5,
+  cateringDailyLimitOn: true,
   cateringDeliveryStart: '10:00',
   cateringDeliveryEnd: '21:00',
 };
@@ -129,6 +143,7 @@ export class CateringService {
         cateringHoldExpiryDays: true,
         cateringCancelCutoffDays: true,
         cateringDailySets: true,
+        cateringDailyLimitOn: true,
         cateringDeliveryStart: true,
         cateringDeliveryEnd: true,
       },
@@ -243,10 +258,11 @@ export class CateringService {
     }
     for (const date of [...dates].sort()) {
       const day = dayMap.get(date);
-      const cap = day?.capacity ?? rules.cateringDailySets;
-      const left = cap - (counts.get(date) ?? 0);
-      if (day?.closed || left <= 0) unavailable.push(date);
-      else if (left <= 3) fewLeft[date] = left;
+      const cap = capacityOf(day, rules);
+      // No limit: only a closed day is unavailable, and "few left" never applies.
+      const left = cap == null ? null : cap - (counts.get(date) ?? 0);
+      if (day?.closed || (left != null && left <= 0)) unavailable.push(date);
+      else if (left != null && left <= 3) fewLeft[date] = left;
     }
     return { minDate, maxDate, unavailable, fewLeft, hours, dayHours };
   }
@@ -352,11 +368,11 @@ export class CateringService {
               message: `We deliver between ${clock12(start)} and ${clock12(end)} that day. Please pick another time.`,
             });
           }
-          const capacity = day?.capacity ?? rules.cateringDailySets;
+          const capacity = capacityOf(day, rules);
           const booked = await tx.cateringBooking.count({
             where: { eventDate, status: { in: ACTIVE } },
           });
-          if (day?.closed || booked >= capacity) {
+          if (day?.closed || (capacity != null && booked >= capacity)) {
             throw new ConflictException(DATE_TAKEN);
           }
           const created = await tx.cateringBooking.create({
@@ -718,7 +734,7 @@ export class CateringService {
           date,
           closed: false,
           reason: null,
-          capacity: rules.cateringDailySets,
+          capacity: capacityOf(null, rules),
           customCapacity: false,
           deliveryStart: rules.cateringDeliveryStart,
           deliveryEnd: rules.cateringDeliveryEnd,
