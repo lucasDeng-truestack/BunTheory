@@ -10,10 +10,7 @@ export type TopBar = { title: string; back?: string; status?: CateringBookingSta
 export type AdminContextValue = {
   token: string;
   admin: AdminUser;
-  /** Pending requests, null until the first count arrives. Polled every 60s. */
-  pending: number | null;
-  refreshPending: () => void;
-  /** Bun Theory orders not yet delivered, null until the first count arrives. Polled with pending. */
+  /** Bun Theory orders not yet delivered, null until the first count arrives. Polled every 60s. */
   ordersPending: number | null;
   refreshOrdersPending: () => void;
   /**
@@ -30,7 +27,7 @@ export type AdminContextValue = {
 
 export const AdminContext = createContext<AdminContextValue | null>(null);
 
-/** Session, pending count and shell hooks for every screen inside the admin shell. */
+/** Session, the orders count and shell hooks for every screen inside the admin shell. */
 export function useAdmin(): AdminContextValue {
   const ctx = useContext(AdminContext);
   if (!ctx) throw new Error("useAdmin must be used inside <AdminShell>");

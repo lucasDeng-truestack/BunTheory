@@ -252,7 +252,7 @@ html.lenis body {
   background: var(--cal-dot, theme("colors.ember.DEFAULT"));
 }
 
-/* Admin calendar (components/admin/calendar-screen.tsx): blocked = cream hatch over ink-raised;
+/* Admin calendar looks (shop schedule): blocked = cream hatch over ink-raised;
    completed = a small check in the top right corner (the tile itself is solid cream). */
 .cal-block {
   background-image: repeating-linear-gradient(

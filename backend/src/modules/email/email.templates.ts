@@ -149,10 +149,17 @@ function hi(b: CateringBooking): Part {
   return para(`Hi ${escapeHtml(b.customerName)},`, `Hi ${b.customerName},`);
 }
 
-const statusLink = (site: string, b: CateringBooking) =>
-  `${site}/booking/${b.accessToken}`;
-const adminLink = (site: string, b: CateringBooking) =>
-  `${site}/admin/bookings/${b.id}`;
+/**
+ * Catering has no customer booking page and no admin screen any more (the site sells through
+ * /order). Customer emails point to WhatsApp, quoting the reference, and to /order; owner emails
+ * point to the admin home.
+ */
+const WHATSAPP = 'https://wa.me/60146856433';
+const whatsappLink = (b: CateringBooking) =>
+  `${WHATSAPP}?text=${encodeURIComponent(`Hi Bakar & Roast, about my catering booking ${b.reference}.`)}`;
+const orderLink = (site: string) => `${site}/order`;
+const adminLink = (_site: string, _b: CateringBooking) =>
+  `${(process.env.ADMIN_URL?.trim() || 'http://localhost:3300').replace(/\/+$/, '')}/admin`;
 
 export function bookingReceivedEmail(
   b: CateringBooking,
@@ -175,7 +182,7 @@ export function bookingReceivedEmail(
     ),
     hold,
     summary(summaryRows(b)),
-    cta(statusLink(site, b), 'View your request'),
+    cta(whatsappLink(b), 'Message us on WhatsApp'),
   ]);
 }
 
@@ -237,7 +244,7 @@ export function bookingApprovedEmail(
       'Good news. Your date is confirmed. We will bring the fire.',
     ),
     summary(summaryRows(b)),
-    cta(statusLink(site, b), 'View your booking'),
+    cta(whatsappLink(b), 'Message us on WhatsApp'),
   ]);
 }
 
@@ -267,7 +274,7 @@ export function bookingDeclinedEmail(
       'We would love to cook for you another time.',
     ),
     summary(summaryRows(b)),
-    cta(`${site}/catering/book`, 'Pick another date'),
+    cta(orderLink(site), 'Order online'),
   );
   return build('About your request', parts);
 }
@@ -283,7 +290,7 @@ export function bookingCancelledEmail(
       'Your booking is cancelled and the date has been released.',
     ),
     summary(summaryRows(b)),
-    cta(`${site}/catering/book`, 'Book a new date'),
+    cta(orderLink(site), 'Order online'),
   ]);
 }
 
@@ -298,11 +305,11 @@ export function bookingExpiredEmail(
       'We could not confirm your request in time, so the date has been released. We are sorry about that.',
     ),
     para(
-      'If you still want us there, please book again.',
-      'If you still want us there, please book again.',
+      'If you still want us there, message us on WhatsApp, or order online.',
+      'If you still want us there, message us on WhatsApp, or order online.',
     ),
     summary(summaryRows(b)),
-    cta(`${site}/catering/book`, 'Book again'),
+    cta(orderLink(site), 'Order online'),
   ]);
 }
 

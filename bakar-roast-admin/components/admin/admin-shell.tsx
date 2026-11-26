@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useLenis } from "lenis/react";
 import { motion } from "motion/react";
 import { ArrowLeft, Ellipsis, X } from "lucide-react";
-import { adminPendingCount } from "@/lib/catering-api";
 import { ordersPendingCount } from "@/lib/bun-theory-api";
 import {
   clearSession,
@@ -26,11 +25,10 @@ import { PendingBadge } from "@/components/admin/admin-page";
 import { ThemeToggle } from "@/components/theme";
 import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS, type AdminNavItem } from "@/components/admin/nav";
 
-type Counts = { pending: number | null; ordersPending: number | null };
+type Counts = { ordersPending: number | null };
 
 /** The badge on one menu item, or nothing. */
 function NavBadge({ item, counts, className }: { item: AdminNavItem; counts: Counts; className?: string }) {
-  if (item.badge === "catering") return <PendingBadge count={counts.pending} className={className} />;
   if (item.badge === "orders")
     return <PendingBadge count={counts.ordersPending} label="not delivered" className={className} />;
   return null;
@@ -68,7 +66,6 @@ function Gate({ children }: { children: ReactNode }) {
 function Frame({ session, children }: { session: AdminSession; children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() ?? "/admin";
-  const [pending, setPending] = useState<number | null>(null);
   const [ordersPending, setOrdersPending] = useState<number | null>(null);
   const [topBar, setTopBar] = useState<TopBar | null>(null);
   const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
@@ -95,31 +92,19 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
     [session.token, expire],
   );
 
-  const refreshPending = useCallback(() => {
-    if (gone.current) return;
-    run(adminPendingCount).then(
-      (r) => setPending(r.count),
-      () => {}, // The badge keeps its last value; screens report their own failures.
-    );
-  }, [run]);
-
   const refreshOrdersPending = useCallback(() => {
     if (gone.current) return;
     run(ordersPendingCount).then(
       (r) => setOrdersPending(r.count),
-      () => {},
+      () => {}, // The badge keeps its last value; screens report their own failures.
     );
   }, [run]);
 
   useEffect(() => {
-    const tick = () => {
-      refreshPending();
-      refreshOrdersPending();
-    };
-    tick();
-    const t = setInterval(tick, POLL_MS);
+    refreshOrdersPending();
+    const t = setInterval(refreshOrdersPending, POLL_MS);
     return () => clearInterval(t);
-  }, [refreshPending, refreshOrdersPending]);
+  }, [refreshOrdersPending]);
 
   useEffect(() => setDrawer(false), [pathname]);
 
@@ -133,8 +118,6 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
     () => ({
       token: session.token,
       admin: session.admin,
-      pending,
-      refreshPending,
       ordersPending,
       refreshOrdersPending,
       run,
@@ -143,9 +126,9 @@ function Frame({ session, children }: { session: AdminSession; children: ReactNo
       actionSlot,
       setHasActionBar,
     }),
-    [session, pending, refreshPending, ordersPending, refreshOrdersPending, run, signOut, actionSlot],
+    [session, ordersPending, refreshOrdersPending, run, signOut, actionSlot],
   );
-  const counts: Counts = { pending, ordersPending };
+  const counts: Counts = { ordersPending };
 
   const section = currentItem(pathname);
   // The phone header shows the count for the group you are in: requests in Catering, orders in The Bun Theory.

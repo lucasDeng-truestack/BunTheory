@@ -1,24 +1,18 @@
 import {
   CalendarClock,
   ChefHat,
-  CalendarDays,
-  House,
-  Images,
-  Inbox,
   LayoutDashboard,
   MessageSquareQuote,
-  Package,
   Receipt,
   Settings,
   ShoppingBag,
-  SlidersHorizontal,
   Users,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
-/** Which count a menu item shows: catering requests waiting, or Bun Theory orders not yet delivered. */
-export type AdminNavBadge = "catering" | "orders";
+/** Which count a menu item shows: Bun Theory orders not yet delivered. */
+export type AdminNavBadge = "orders";
 
 export type AdminNavItem = {
   label: string;
@@ -57,24 +51,6 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
   },
 ];
 
-/**
- * Catering booking screens. Out of the menu since the site moved to online ordering, but the
- * pages still work by URL and keep their titles. Put this group back into ADMIN_NAV to show them.
- */
-export const HIDDEN_NAV: { group: string; items: AdminNavItem[] }[] = [
-  {
-    group: "Catering",
-    items: [
-      { label: "Today", href: "/admin/today", icon: House },
-      { label: "Requests", href: "/admin/requests", icon: Inbox, badge: "catering" },
-      { label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
-      { label: "Packages", href: "/admin/packages", icon: Package },
-      { label: "Gallery and testimonials", href: "/admin/content", icon: Images },
-      { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal, title: "Catering settings" },
-    ],
-  },
-];
-
 /** The phone tab bar: these three, then More (the full menu as a drawer). */
 export const TAB_HREFS = ["/admin/shop-orders", "/admin/shop-schedule", "/admin/bun-theory/orders"];
 
@@ -85,4 +61,4 @@ export const isCurrent = (pathname: string, href: string) =>
   EXACT.has(href) ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
 export const currentItem = (pathname: string) =>
-  [...ADMIN_NAV, ...HIDDEN_NAV].flatMap((g) => g.items).find((i) => isCurrent(pathname, i.href));
+  ADMIN_NAV.flatMap((g) => g.items).find((i) => isCurrent(pathname, i.href));

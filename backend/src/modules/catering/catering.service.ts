@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  GoneException,
 } from '@nestjs/common';
 import {
   CateringBooking,
@@ -272,6 +273,15 @@ export class CateringService {
     dto: CreateCateringBookingDto,
     userId: string | null = null,
   ): Promise<CateringBookingCreated> {
+    // Catering is no longer booked online: the site sells through /order now. Existing bookings
+    // stay in the database. Set CATERING_REQUESTS_OPEN=true to take requests again.
+    if (process.env.CATERING_REQUESTS_OPEN?.trim().toLowerCase() !== 'true') {
+      throw new GoneException({
+        code: 'CATERING_CLOSED',
+        message:
+          'We are not taking catering requests online right now. Order at bakarandroast.site/order, or message us on WhatsApp.',
+      });
+    }
     if (typeof dto.website === 'string' && dto.website.trim() !== '') {
       throw new BadRequestException('Invalid request.');
     }
