@@ -8,6 +8,8 @@ export type ShopConfigPublic = {
     tagline: string;
     description: string;
     includes: string[];
+    /** Photos, cover first. Empty until the owner adds some. */
+    images: string[];
     price: string;
   }[];
   pickupArea: string;

@@ -158,6 +158,7 @@ export class ShopService {
         tagline: p.tagline,
         description: p.description,
         includes: p.includes,
+        images: p.images,
         price: p.price,
       })),
       pickupArea: SHOP_PICKUP_AREA,

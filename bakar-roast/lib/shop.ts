@@ -65,6 +65,10 @@ export type OrderDraft = {
   slot: string;
   contact: { name: string; phone: string; email: string };
   paymentChoice: "DEPOSIT" | "FULL";
+  /** Delivery or pickup has been picked (the opening question is answered). */
+  methodChosen?: boolean;
+  /** The step the customer was on, so a refresh returns there. */
+  step?: string;
 };
 
 const DRAFT_KEY = "br-order-draft-v1";

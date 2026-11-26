@@ -11,6 +11,13 @@ export type ShopPackage = {
   tagline: string;
   description: string;
   includes: string[];
+  /**
+   * Photos shown on the package card and in its details view, first one is the cover. Paths under
+   * the site's public/ folder ("/images/packages/a-1.jpg" for bakar-roast/public/images/packages/
+   * a-1.jpg). A full URL only works for a host listed in bakar-roast/next.config.mjs. Empty until
+   * the owner has photos: the site shows a placeholder frame.
+   */
+  images: string[];
   /** Fixed price, as a decimal string "88.00". Placeholder until the owner sets real prices. */
   price: string;
 };
@@ -22,6 +29,7 @@ export const SHOP_PACKAGES: ShopPackage[] = [
     tagline: 'For a small table',
     description: 'A starter spread for a small gathering.',
     includes: ['Placeholder item', 'Placeholder item'],
+    images: [],
     price: '88.00',
   },
   {
@@ -30,6 +38,7 @@ export const SHOP_PACKAGES: ShopPackage[] = [
     tagline: 'For the family',
     description: 'A fuller spread for the whole family.',
     includes: ['Placeholder item', 'Placeholder item', 'Placeholder item'],
+    images: [],
     price: '128.00',
   },
   {
@@ -38,6 +47,7 @@ export const SHOP_PACKAGES: ShopPackage[] = [
     tagline: 'For a crowd',
     description: 'The big one, built to feed a crowd.',
     includes: ['Placeholder item', 'Placeholder item', 'Placeholder item', 'Placeholder item'],
+    images: [],
     price: '168.00',
   },
 ];
