@@ -1,58 +1,16 @@
 /**
- * Server-side config for the Bakar & Roast /order flow. The menu is not final, so packages
- * are placeholders (Package A/B/C) with placeholder prices the owner will replace. Prices are
- * authoritative here: the order total is always recomputed server-side, never trusted from the
- * client. Each order item snapshots the name and price so later edits never rewrite past orders.
+ * Server-side config for the Bakar & Roast /order flow. The packages themselves live in the
+ * ShopPackage table and are edited by the owner in the admin (/admin/shop-packages). Prices are
+ * authoritative on the server: the order total is always recomputed from the table, never trusted
+ * from the client. Each order item snapshots the name and price so later edits never rewrite
+ * past orders.
  */
 
-export type ShopPackage = {
-  key: string;
-  name: string;
-  tagline: string;
-  description: string;
-  includes: string[];
-  /**
-   * Photos shown on the package card and in its details view, first one is the cover. Paths under
-   * the site's public/ folder ("/images/packages/a-1.jpg" for bakar-roast/public/images/packages/
-   * a-1.jpg). A full URL only works for a host listed in bakar-roast/next.config.mjs. Empty until
-   * the owner has photos: the site shows a placeholder frame.
-   */
-  images: string[];
-  /** Fixed price, as a decimal string "88.00". Placeholder until the owner sets real prices. */
-  price: string;
-};
-
-export const SHOP_PACKAGES: ShopPackage[] = [
-  {
-    key: 'A',
-    name: 'Package A',
-    tagline: 'For a small table',
-    description: 'A starter spread for a small gathering.',
-    includes: ['Placeholder item', 'Placeholder item'],
-    images: [],
-    price: '88.00',
-  },
-  {
-    key: 'B',
-    name: 'Package B',
-    tagline: 'For the family',
-    description: 'A fuller spread for the whole family.',
-    includes: ['Placeholder item', 'Placeholder item', 'Placeholder item'],
-    images: [],
-    price: '128.00',
-  },
-  {
-    key: 'C',
-    name: 'Package C',
-    tagline: 'For a crowd',
-    description: 'The big one, built to feed a crowd.',
-    includes: ['Placeholder item', 'Placeholder item', 'Placeholder item', 'Placeholder item'],
-    images: [],
-    price: '168.00',
-  },
-];
-
-export const SHOP_PACKAGE_BY_KEY = new Map(SHOP_PACKAGES.map((p) => [p.key, p]));
+/** Limits on one package, shared by the DTOs. */
+export const SHOP_PACKAGE_MAX_IMAGES = 6;
+export const SHOP_PACKAGE_MAX_INCLUDES = 20;
+/** Packages the owner can keep, shown or hidden. Keeps the menu payload bounded. */
+export const SHOP_PACKAGES_MAX = 50;
 
 /** How the customer collects a pickup order. Exact address shared over WhatsApp. */
 export const SHOP_PICKUP_AREA = 'Taman SEA, Petaling Jaya';

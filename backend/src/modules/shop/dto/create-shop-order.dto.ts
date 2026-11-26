@@ -22,7 +22,7 @@ const trim = ({ value }: { value: unknown }) =>
 export class ShopOrderItemDto {
   @IsString()
   @IsNotEmpty()
-  @MaxLength(8)
+  @MaxLength(40)
   packageKey: string;
 
   @IsInt()
@@ -114,6 +114,15 @@ export class CreateShopOrderDto {
   @IsString()
   @MaxLength(160)
   customerEmail?: string;
+
+  /**
+   * The total the customer was shown, "279.00". When sent and it differs from the live total
+   * (the owner changed a price after the page loaded), the order is refused with PRICE_CHANGED.
+   */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{1,9}(\.\d{1,2})?$/)
+  expectedTotal?: string;
 
   /** Client-generated UUID so a double-tap or retry returns the same order. */
   @IsOptional()

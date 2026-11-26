@@ -156,7 +156,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
                 ? [order.address.line1, order.address.line2, `${order.address.postcode} ${order.address.city}`, order.address.state]
                     .filter(Boolean)
                     .join(", ")
-                : order.pickupArea}
+                : "We WhatsApp you the location once your order is confirmed."}
             </dd>
           </div>
         </dl>

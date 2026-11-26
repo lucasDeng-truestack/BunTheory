@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -21,8 +22,13 @@ import {
   ShopOrderQueryDto,
   ShopRangeHoursDto,
 } from './dto/shop-admin.dto';
+import {
+  CreateShopPackageDto,
+  ReorderShopPackagesDto,
+  UpdateShopPackageDto,
+} from './dto/shop-package.dto';
 
-/** Owner-only Bakar & Roast shop admin: list orders, view one, confirm payment, cancel. */
+/** Bakar & Roast shop admin: orders and payments, the schedule, and the packages on the menu. */
 @Controller('shop/admin')
 @UseGuards(AdminAuthGuard)
 export class ShopAdminController {
@@ -96,5 +102,43 @@ export class ShopAdminController {
   @Roles('OWNER', 'MANAGER')
   setDay(@Param('date') date: string, @Body() dto: SetShopDayDto) {
     return this.shop.setDay(date, dto);
+  }
+
+  // ─── Packages (what /order sells) ────────────────────────────────────────────
+
+  /** Every package, hidden ones included. */
+  @Get('packages')
+  packages() {
+    return this.shop.listPackages();
+  }
+
+  @Post('packages')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  createPackage(@Body() dto: CreateShopPackageDto) {
+    return this.shop.createPackage(dto);
+  }
+
+  /** The menu order, as a list of every package id. Declared before :id on purpose. */
+  @Post('packages/reorder')
+  @HttpCode(200)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  reorderPackages(@Body() dto: ReorderShopPackagesDto) {
+    return this.shop.reorderPackages(dto);
+  }
+
+  @Patch('packages/:id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  updatePackage(@Param('id') id: string, @Body() dto: UpdateShopPackageDto) {
+    return this.shop.updatePackage(id, dto);
+  }
+
+  @Delete('packages/:id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  deletePackage(@Param('id') id: string) {
+    return this.shop.deletePackage(id);
   }
 }

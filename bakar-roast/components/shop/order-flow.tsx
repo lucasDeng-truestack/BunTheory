@@ -50,16 +50,14 @@ type View = "menu" | "checkout";
 /** The two ways to get the food, as large tap targets. */
 function MethodChoice({
   value,
-  pickupArea,
   onChoose,
 }: {
   value: ShopFulfilmentType | null;
-  pickupArea: string;
   onChoose: (t: ShopFulfilmentType) => void;
 }) {
   const options = [
-    { t: "DELIVERY" as const, label: "Delivery", sub: "We bring it to you", Icon: Truck },
-    { t: "PICKUP" as const, label: "Pickup", sub: pickupArea, Icon: Store },
+    { t: "DELIVERY" as const, label: "Delivery", sub: "Sent to your address. We confirm the delivery fee on WhatsApp.", Icon: Truck },
+    { t: "PICKUP" as const, label: "Pickup", sub: "We WhatsApp you the pickup location once your order is confirmed.", Icon: Store },
   ];
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -166,6 +164,8 @@ export function OrderFlow({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** Shown above the menu after a package was dropped from the order. */
+  const [menuNotice, setMenuNotice] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   /** Editing a field clears its error at once, so a fixed field never stays flagged red. */
@@ -181,11 +181,13 @@ export function OrderFlow({
   // or slot that the owner has since closed or changed is dropped, so it never reaches submit.
   useEffect(() => {
     const d = loadDraft();
+    // Packages the owner has since hidden or deleted are dropped from a saved order.
+    const kept = Array.isArray(d?.cart) ? d.cart.filter((i) => pm.has(i.packageKey)) : null;
     if (d) {
       if (d.type) setType(d.type);
       if (d.addr) setAddr((a) => ({ ...a, ...d.addr }));
       if (d.deliveryNotes) setDeliveryNotes(d.deliveryNotes);
-      if (Array.isArray(d.cart)) setCart(d.cart);
+      if (kept) setCart(kept);
       const slots = d.date ? (slotsByDate.get(d.date) ?? []) : [];
       if (d.date && slots.length > 0) {
         setDate(d.date);
@@ -196,7 +198,7 @@ export function OrderFlow({
     }
     if (d?.methodChosen) {
       setMethodChosen(true);
-      if (d.step === "checkout" && Array.isArray(d.cart) && d.cart.length > 0) setView("checkout");
+      if (d.step === "checkout" && kept && kept.length > 0) setView("checkout");
     } else {
       setMethodOpen(true);
     }
@@ -204,6 +206,12 @@ export function OrderFlow({
     // Runs once on mount; slotsByDate is from the initial availability.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The menu can change under a saved order (the owner hides or deletes a package): drop what
+  // is no longer sold, so it is never shown without a price or sent to the server.
+  useEffect(() => {
+    setCart((c) => (c.every((i) => pm.has(i.packageKey)) ? c : c.filter((i) => pm.has(i.packageKey))));
+  }, [pm]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -376,6 +384,7 @@ export function OrderFlow({
         customerName: contact.name,
         customerPhone: contact.phone,
         customerEmail: contact.email || undefined,
+        expectedTotal: total,
         idempotencyKey: cartIdempotencyKey(),
       });
       clearDraftAfterOrder(created.accessToken);
@@ -395,6 +404,20 @@ export function OrderFlow({
             err instanceof Error ? err.message : "That is no longer available. Please pick again.",
         }));
         setSubmitError(null);
+      } else if (code === "PRICE_CHANGED") {
+        // The owner changed a price after this page loaded: reload the menu so the order shows
+        // the live prices, and let the customer look before placing it again.
+        router.refresh();
+        setView("menu");
+        setMenuNotice("A price changed while you were ordering. Your order now shows the new total. Please check it and continue.");
+        setSubmitError(null);
+      } else if (code === "PACKAGE_UNAVAILABLE") {
+        // The owner hid or deleted a package after this page loaded: reload the menu, which also
+        // drops it from the order (see the effect on `pm`), and send the customer back to it.
+        router.refresh();
+        setView("menu");
+        setMenuNotice("One of your packages is no longer on the menu, so we took it out of your order. Please check your order and try again.");
+        setSubmitError(null);
       } else {
         setSubmitError(err instanceof Error ? err.message : "Could not place the order. Please try again.");
       }
@@ -407,7 +430,7 @@ export function OrderFlow({
     ? "Delivery or pickup?"
     : type === "DELIVERY"
       ? `Delivery to ${[addr.line1, addr.city].filter((s) => s.trim()).join(", ")}`
-      : `Pickup at ${config.pickupArea}`;
+      : "Pickup, location sent on WhatsApp";
   const canPlace = avail.ordersOpen && !noOpenDays;
 
   const placeButton = (block: boolean) => (
@@ -510,10 +533,18 @@ export function OrderFlow({
                       {methodChosen ? "Change" : "Choose"}
                     </button>
                   </p>
-                  <p className="m-0 text-[13px] text-cream-muted">
-                    The menu is still being finalised. Packages are placeholders for now.
-                  </p>
                 </div>
+                {menuNotice && (
+                  <Banner tone="error" title="Your order changed">
+                    {menuNotice}
+                  </Banner>
+                )}
+                {config.packages.length === 0 && (
+                  <p className="m-0 rounded-card-md border border-dashed border-cream-faint p-6 text-cream-muted">
+                    The menu is being updated and nothing is on it right now. Please check back soon, or message us on
+                    WhatsApp to order.
+                  </p>
+                )}
                 <div className="grid items-start gap-4 sm:grid-cols-2">
                   {config.packages.map((p) => {
                     const qty = qtyOf(p.key);
@@ -701,7 +732,7 @@ export function OrderFlow({
       >
         {methodStage === "method" ? (
           <>
-            <MethodChoice value={methodChosen ? type : null} pickupArea={config.pickupArea} onChoose={pickMethod} />
+            <MethodChoice value={methodChosen ? type : null} onChoose={pickMethod} />
             <p className="m-0 text-[13px] text-cream-muted">
               You can change this any time before you place the order.
             </p>
@@ -773,8 +804,8 @@ export function OrderFlow({
                 onChange={(e) => setDeliveryNotes(e.target.value)}
               />
               <p className="m-0 text-[13px] text-cream-muted">
-                The delivery fee is arranged with you over WhatsApp and is not added to the total
-                here yet.
+                Delivery is charged separately. After you order, we WhatsApp you the delivery fee.
+                It is not part of the total shown here.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">

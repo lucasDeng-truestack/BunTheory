@@ -10,6 +10,7 @@ export type ShopConfigPublic = {
     includes: string[];
     /** Photos, cover first. Empty until the owner adds some. */
     images: string[];
+    /** Decimal string with two places, e.g. "88.00". */
     price: string;
   }[];
   pickupArea: string;
@@ -21,6 +22,21 @@ export type ShopConfigPublic = {
   /** False while pre-orders have not opened yet; then `ordersOpenDate` is when they do. */
   ordersOpen: boolean;
   ordersOpenDate: string | null;
+};
+
+/** One package as the owner sees it in the admin, hidden ones included. */
+export type ShopPackageAdmin = {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  includes: string[];
+  images: string[];
+  /** Decimal string with two places, e.g. "88.00". */
+  price: string;
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
 };
 
 /** One open fulfilment date with the exact time slots offered on it. */

@@ -3,6 +3,7 @@ import {
   ChefHat,
   LayoutDashboard,
   MessageSquareQuote,
+  Package,
   Receipt,
   Settings,
   ShoppingBag,
@@ -36,6 +37,7 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
     items: [
       { label: "Orders", href: "/admin/shop-orders", icon: ShoppingBag, title: "Shop orders" },
       { label: "Schedule", href: "/admin/shop-schedule", icon: CalendarClock, title: "Shop schedule" },
+      { label: "Packages", href: "/admin/shop-packages", icon: Package, title: "Shop packages" },
     ],
   },
   {

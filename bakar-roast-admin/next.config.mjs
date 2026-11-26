@@ -11,6 +11,8 @@ const nextConfig = {
       { protocol: "https", hostname: "plus.unsplash.com" },
       // Owner uploads served by the API (local disk in dev) or object storage.
       { protocol: api.protocol.replace(":", ""), hostname: api.hostname, port: api.port, pathname: "/uploads/**" },
+      // Production uploads (Cloudflare R2). Listed here so photos never depend on an env var.
+      { protocol: "https", hostname: "media.bakarandroast.site" },
       ...(process.env.NEXT_PUBLIC_IMAGE_HOST
         ? [{ protocol: "https", hostname: process.env.NEXT_PUBLIC_IMAGE_HOST }]
         : []),

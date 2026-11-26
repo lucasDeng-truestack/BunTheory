@@ -70,7 +70,7 @@ const BACK = "#back";
  * capture-phase click guard) and browser Back (a duplicate history entry absorbs it). The same
  * guard as the package editor.
  */
-function useLeaveGuard(dirty: boolean) {
+export function useLeaveGuard(dirty: boolean) {
   const router = useRouter();
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
   const leaving = useRef(false);

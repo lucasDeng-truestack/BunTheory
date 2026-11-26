@@ -113,11 +113,14 @@ export interface CreateShopOrderInput {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  /** The total shown to the customer, "279.00". The server refuses the order if it has changed. */
+  expectedTotal?: string;
   idempotencyKey?: string;
 }
 
 export const getShopConfig = () =>
-  api<ShopConfigPublic>("/shop/config", { next: { revalidate: 60 } });
+  // Never cached: the owner edits packages and prices, and the server charges the live price.
+  api<ShopConfigPublic>("/shop/config", { cache: "no-store" });
 
 /** Never cached: it must reflect owner schedule changes the moment they are made. */
 export const getShopAvailability = () =>
@@ -253,6 +256,63 @@ export const shopAdminSetDay = (
     token,
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+
+// ─── Owner admin: packages (what /order sells) ───────────────────────────────
+
+/** One package as the owner sees it, hidden ones included. */
+export interface ShopPackageAdmin {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  includes: string[];
+  /** Photo URLs, cover first. */
+  images: string[];
+  /** Decimal string, e.g. "88.00". */
+  price: string;
+  /** False hides it from the menu. */
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+export interface ShopPackageInput {
+  name: string;
+  tagline: string;
+  description: string;
+  includes: string[];
+  images: string[];
+  price: string;
+  active: boolean;
+}
+
+export const shopAdminListPackages = (token: string) =>
+  api<ShopPackageAdmin[]>("/shop/admin/packages", { token });
+
+export const shopAdminCreatePackage = (token: string, input: ShopPackageInput) =>
+  api<ShopPackageAdmin>("/shop/admin/packages", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const shopAdminUpdatePackage = (token: string, id: string, input: Partial<ShopPackageInput>) =>
+  api<ShopPackageAdmin>(`/shop/admin/packages/${id}`, {
+    token,
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const shopAdminDeletePackage = (token: string, id: string) =>
+  api<{ deleted: true }>(`/shop/admin/packages/${id}`, { token, method: "DELETE" });
+
+/** Every package id, in the order the menu should show them. */
+export const shopAdminReorderPackages = (token: string, ids: string[]) =>
+  api<ShopPackageAdmin[]>("/shop/admin/packages/reorder", {
+    token,
+    method: "POST",
+    body: JSON.stringify({ ids }),
   });
 
 export async function uploadShopReceipt(accessToken: string, file: File): Promise<ShopOrderPublic> {

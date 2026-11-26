@@ -742,7 +742,7 @@ enum ShopOrderStatus {
 /// A customer order from the Bakar & Roast /order flow. It is saved before any payment
 /// detail is shown and served from its accessToken URL, so a refresh, a tab eviction or a
 /// return from the banking app never loses it. Packages and prices are server-side config
-/// (lib/shop-packages); each item snapshots name and price so later edits never rewrite history.
+/// (the ShopPackage table); each item snapshots name and price so later edits never rewrite history.
 model ShopOrder {
   id             String             @id @default(cuid())
   /// Human reference read over the phone, e.g. BR-7K2M9Q.
@@ -799,6 +799,29 @@ model ShopOrderItem {
   quantity    Int
 
   @@index([orderId])
+}
+
+/// A package sold on the Bakar & Roast /order menu, edited by the owner in the admin
+/// (/admin/shop-packages). Order items copy the name and price and hold the id as a plain
+/// string (no relation), so a package can be edited or deleted without touching past orders.
+model ShopPackage {
+  id          String   @id @default(cuid())
+  name        String
+  tagline     String   @default("")
+  description String   @default("")
+  /// "What's included" lines, in order.
+  includes    String[]
+  /// Photo URLs, cover first.
+  images      String[]
+  price       Decimal  @db.Decimal(10, 2)
+  /// False hides it from the menu and refuses new orders for it.
+  active      Boolean  @default(true)
+  /// Menu order, lowest first.
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
 }
 
 /// A payment receipt the customer uploaded from their order page.

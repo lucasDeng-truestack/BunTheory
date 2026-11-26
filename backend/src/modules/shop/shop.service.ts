@@ -11,8 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { addDays, fromDateOnly, klToday, toDateOnly } from '../catering/catering.dates';
 import {
   SHOP_MAX_RECEIPTS,
-  SHOP_PACKAGES,
-  SHOP_PACKAGE_BY_KEY,
+  SHOP_PACKAGES_MAX,
   SHOP_PICKUP_AREA,
   SHOP_RULES_DEFAULT,
   SHOP_WINDOW_DAYS_MAX,
@@ -27,6 +26,11 @@ import {
   ShopRangeHoursDto,
 } from './dto/shop-admin.dto';
 import {
+  CreateShopPackageDto,
+  ReorderShopPackagesDto,
+  UpdateShopPackageDto,
+} from './dto/shop-package.dto';
+import {
   toShopOrderAdmin,
   toShopOrderPublic,
   type ShopOrderRow,
@@ -38,6 +42,7 @@ import {
   ShopOrderAdmin,
   ShopOrderCreated,
   ShopOrderPublic,
+  ShopPackageAdmin,
   ShopSchedule,
   ShopScheduleDay,
 } from './shop.types';
@@ -163,15 +168,21 @@ export class ShopService {
   async config(): Promise<ShopConfigPublic> {
     const rules = await this.rules();
     const { minDate, maxDate } = this.window(rules);
+    // Only what the owner has switched on, in the owner's order.
+    const packages = await this.prisma.shopPackage.findMany({
+      where: { active: true },
+      orderBy: PACKAGE_ORDER,
+      take: SHOP_PACKAGES_MAX,
+    });
     return {
-      packages: SHOP_PACKAGES.map((p) => ({
-        key: p.key,
+      packages: packages.map((p) => ({
+        key: p.id,
         name: p.name,
         tagline: p.tagline,
         description: p.description,
         includes: p.includes,
         images: p.images,
-        price: p.price,
+        price: p.price.toFixed(2),
       })),
       pickupArea: SHOP_PICKUP_AREA,
       minDate,
@@ -262,27 +273,39 @@ export class ShopService {
     // Collapse duplicate package keys into one line with summed quantity.
     const quantities = new Map<string, number>();
     for (const item of dto.items) {
-      const pkg = SHOP_PACKAGE_BY_KEY.get(item.packageKey);
-      if (!pkg) {
-        throw new BadRequestException({
-          code: 'PACKAGE_UNAVAILABLE',
-          message: 'One of the packages is not available. Please try again.',
-        });
-      }
       quantities.set(item.packageKey, (quantities.get(item.packageKey) ?? 0) + item.quantity);
     }
 
-    // Price is always computed server-side from config, never trusted from the client.
+    // Price is always read from the packages table, never trusted from the client. A package
+    // the owner has hidden or deleted since the customer loaded the menu is refused.
+    const found = await this.prisma.shopPackage.findMany({
+      where: { id: { in: [...quantities.keys()] }, active: true },
+    });
+    const byId = new Map(found.map((p) => [p.id, p]));
+    if (byId.size !== quantities.size) {
+      throw new BadRequestException({
+        code: 'PACKAGE_UNAVAILABLE',
+        message:
+          'One of the packages is no longer on the menu. Please refresh the page and check your order.',
+      });
+    }
+
     let subtotal = new Prisma.Decimal(0);
     const itemRows = [...quantities.entries()].map(([key, quantity]) => {
-      const pkg = SHOP_PACKAGE_BY_KEY.get(key)!;
-      const unitPrice = new Prisma.Decimal(pkg.price);
+      const pkg = byId.get(key)!;
+      const unitPrice = pkg.price;
       subtotal = subtotal.add(unitPrice.mul(quantity));
       return { packageKey: key, packageName: pkg.name, unitPrice, quantity };
     });
 
     // No delivery fee line for now (arranged over WhatsApp), so total equals subtotal.
     const total = subtotal;
+    if (dto.expectedTotal !== undefined && !new Prisma.Decimal(dto.expectedTotal).equals(total)) {
+      throw new BadRequestException({
+        code: 'PRICE_CHANGED',
+        message: `A price changed while you were ordering. The total is now RM ${total.toFixed(2)}.`,
+      });
+    }
     const paymentChoice = dto.paymentChoice ?? 'DEPOSIT';
     const amountDue = dueFor(total, paymentChoice);
 
@@ -559,6 +582,82 @@ export class ShopService {
     }
   }
 
+  // ─── Packages (the /order menu) ─────────────────────────────────────────────
+
+  /** Every package, hidden ones included, in menu order. */
+  async listPackages(): Promise<ShopPackageAdmin[]> {
+    const rows = await this.prisma.shopPackage.findMany({
+      orderBy: PACKAGE_ORDER,
+      take: SHOP_PACKAGES_MAX,
+    });
+    return rows.map(toPackageAdmin);
+  }
+
+  async createPackage(dto: CreateShopPackageDto): Promise<ShopPackageAdmin> {
+    const price = packagePrice(dto.price);
+    const [count, last] = await Promise.all([
+      this.prisma.shopPackage.count(),
+      this.prisma.shopPackage.findFirst({ orderBy: { sortOrder: 'desc' } }),
+    ]);
+    if (count >= SHOP_PACKAGES_MAX) {
+      throw new BadRequestException({
+        code: 'TOO_MANY_PACKAGES',
+        message: `You can keep up to ${SHOP_PACKAGES_MAX} packages. Delete one you no longer sell first.`,
+      });
+    }
+    const row = await this.prisma.shopPackage.create({
+      data: {
+        name: dto.name,
+        tagline: dto.tagline ?? '',
+        description: dto.description ?? '',
+        includes: dto.includes ?? [],
+        images: dto.images ?? [],
+        price,
+        active: dto.active ?? true,
+        sortOrder: (last?.sortOrder ?? -1) + 1,
+      },
+    });
+    return toPackageAdmin(row);
+  }
+
+  async updatePackage(id: string, dto: UpdateShopPackageDto): Promise<ShopPackageAdmin> {
+    const data: Prisma.ShopPackageUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.tagline !== undefined) data.tagline = dto.tagline;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.includes !== undefined) data.includes = dto.includes;
+    if (dto.images !== undefined) data.images = dto.images;
+    if (dto.price !== undefined) data.price = packagePrice(dto.price);
+    if (dto.active !== undefined) data.active = dto.active;
+    try {
+      return toPackageAdmin(await this.prisma.shopPackage.update({ where: { id }, data }));
+    } catch (err) {
+      if (isNotFound(err)) throw new NotFoundException('Package not found.');
+      throw err;
+    }
+  }
+
+  /** Past orders keep their own copy of the name and price, so they are not touched. */
+  async deletePackage(id: string): Promise<{ deleted: true }> {
+    try {
+      await this.prisma.shopPackage.delete({ where: { id } });
+    } catch (err) {
+      if (isNotFound(err)) throw new NotFoundException('Package not found.');
+      throw err;
+    }
+    return { deleted: true };
+  }
+
+  /** Set the menu order from a list of ids. Ids that no longer exist are skipped. */
+  async reorderPackages(dto: ReorderShopPackagesDto): Promise<ShopPackageAdmin[]> {
+    await this.prisma.$transaction(
+      dto.ids.map((id, i) =>
+        this.prisma.shopPackage.updateMany({ where: { id }, data: { sortOrder: i } }),
+      ),
+    );
+    return this.listPackages();
+  }
+
   /** Every date from..to inclusive, at most 366 days. */
   private datesBetween(from: string, to: string): string[] {
     toDateOnly(from);
@@ -573,6 +672,53 @@ export class ShopService {
     for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
     return out;
   }
+}
+
+/** Menu order: the owner's order, then oldest first for ties. */
+const PACKAGE_ORDER: Prisma.ShopPackageOrderByWithRelationInput[] = [
+  { sortOrder: 'asc' },
+  { createdAt: 'asc' },
+];
+
+const isNotFound = (err: unknown) =>
+  err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025';
+
+/** A validated price string -> Decimal. Must be above zero. */
+function packagePrice(raw: string): Prisma.Decimal {
+  const price = new Prisma.Decimal(raw);
+  if (price.lte(0)) {
+    throw new BadRequestException({
+      code: 'INVALID_PRICE',
+      message: 'The price must be more than RM 0.',
+    });
+  }
+  return price;
+}
+
+function toPackageAdmin(row: {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  includes: string[];
+  images: string[];
+  price: Prisma.Decimal;
+  active: boolean;
+  sortOrder: number;
+  updatedAt: Date;
+}): ShopPackageAdmin {
+  return {
+    id: row.id,
+    name: row.name,
+    tagline: row.tagline,
+    description: row.description,
+    includes: row.includes,
+    images: row.images,
+    price: row.price.toFixed(2),
+    active: row.active,
+    sortOrder: row.sortOrder,
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 /** A ShopDay row -> the admin schedule view. */
