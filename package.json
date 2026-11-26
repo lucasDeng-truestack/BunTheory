@@ -4,10 +4,11 @@
   "private": true,
   "description": "The Bun Theory by Bakar & Roast",
   "scripts": {
-    "dev": "concurrently -n \"backend,frontend,pos,bakar\" -c \"blue,magenta,green,yellow\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:pos\" \"npm run dev:bakar\"",
+    "dev": "concurrently -n \"backend,frontend,pos,bakar,admin\" -c \"blue,magenta,green,yellow,cyan\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:pos\" \"npm run dev:bakar\" \"npm run dev:admin\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:pos": "cd weekend-grills-pos && npm run dev",
     "dev:bakar": "cd bakar-roast && npm run dev",
+    "dev:admin": "cd bakar-roast-admin && npm run dev",
     "dev:backend": "cd backend && npm run start:dev",
     "build": "npm run build:backend && npm run build:frontend",
     "build:frontend": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build",

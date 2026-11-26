@@ -10,6 +10,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { BatchesModule } from './modules/batches/batches.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { CateringModule } from './modules/catering/catering.module';
+import { ShopModule } from './modules/shop/shop.module';
 // Weekend Grills POS
 import { PosMenuModule } from './modules/pos-menu/pos-menu.module';
 import { PosOrdersModule } from './modules/pos-orders/pos-orders.module';
@@ -39,6 +40,7 @@ import { PosInventoryModule } from './modules/pos-inventory/pos-inventory.module
     FeedbackModule,
     // Bakar & Roast catering bookings
     CateringModule,
+    ShopModule,
     // Weekend Grills POS modules
     PosRealtimeModule,
     PosMenuModule,

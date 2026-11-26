@@ -5,8 +5,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const api = new URL(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3101");
 
-/** The Bun Theory admin now lives in the Bakar & Roast admin. Set in production. */
-const adminBase = (process.env.BAKAR_ROAST_URL || "http://localhost:3200").replace(/\/+$/, "");
+/** The Bun Theory admin now lives in its own admin app (bakar-roast-admin). Set in production. */
+const adminBase = (process.env.ADMIN_URL || "http://localhost:3300").replace(/\/+$/, "");
 
 /** Old storefront admin paths → their new home under /admin/bun-theory. */
 const ADMIN_MOVES = [

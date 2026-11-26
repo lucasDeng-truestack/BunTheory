@@ -19,7 +19,7 @@ import { expo } from "@/lib/motion";
 
 const SEEN_KEY = "br-preloader-seen";
 // Pages where it never plays: the admin, and the calm booking, status and account pages.
-const SKIP = "^/(admin|catering/book|booking|account)(/|$)";
+const SKIP = "^/(admin|order)(/|$)";
 
 const SCRIPT = `(function(){try{var d=document.documentElement;if(new RegExp(${JSON.stringify(SKIP)}).test(location.pathname)||matchMedia("(prefers-reduced-motion: reduce)").matches||sessionStorage.getItem(${JSON.stringify(SEEN_KEY)})==="1")return;d.setAttribute("data-preload","cover");window.__brPreload=setTimeout(function(){d.removeAttribute("data-preload")},8000)}catch(e){}})()`;
 

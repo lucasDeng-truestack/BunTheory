@@ -12,7 +12,7 @@ import { PhotoTrail } from "@/components/photo-trail";
  * and the inline pill photos grow from zero width when reached (classes in globals.css).
  * Reduced motion: all words lit and pills open, by CSS. Hosts the page's hover photo trail.
  */
-export function IntroLead({ eyebrow, lead }: { eyebrow: string; lead: LeadPart[] }) {
+export function IntroLead({ id, eyebrow, lead }: { id?: string; eyebrow: string; lead: LeadPart[] }) {
   const reduce = usePrefersReducedMotion();
   const ref = useRef<HTMLParagraphElement>(null);
 
@@ -41,7 +41,7 @@ export function IntroLead({ eyebrow, lead }: { eyebrow: string; lead: LeadPart[]
   }, [reduce]);
 
   return (
-    <Band>
+    <Band id={id}>
       {/* The page's one hover photo trail, over the whole band (padding included). */}
       <PhotoTrail className="-my-section py-section">
         <Container className="grid gap-8 min-[900px]:grid-cols-[200px_1fr]">

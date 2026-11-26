@@ -6,9 +6,11 @@ const DEFAULT_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3011',
   'http://localhost:3200',
+  'http://localhost:3300',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3011',
   'http://127.0.0.1:3200',
+  'http://127.0.0.1:3300',
 ] as const;
 
 /** Browser origins allowed by CORS and trusted by Better Auth. */

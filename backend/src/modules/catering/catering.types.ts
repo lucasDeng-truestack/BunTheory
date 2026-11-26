@@ -139,8 +139,8 @@ export interface CateringCalendarDay {
   closed: boolean;
   /** Why it is closed (owner note). */
   reason: string | null;
-  /** Sets taken this day (custom or the default). */
-  capacity: number;
+  /** Sets taken this day (custom or the default). Null = no limit (the daily limit is off). */
+  capacity: number | null;
   /** True when the owner set this day's capacity. */
   customCapacity: boolean;
   /** This day's delivery hours (its own, or the usual ones). */

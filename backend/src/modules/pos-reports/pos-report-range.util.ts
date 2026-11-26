@@ -1,5 +1,24 @@
 export type PosReportRange = 'today' | '7d' | 'all';
 
+/**
+ * YYYY-MM-DD in the server's local timezone. Report days are bounded at local
+ * midnight, so labelling them with toISOString() (UTC) shows the previous day
+ * for anywhere east of UTC (e.g. 00:00 MYT = 16:00 UTC the day before).
+ */
+export function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Parse YYYY-MM-DD as a local calendar date (new Date('YYYY-MM-DD') is UTC). */
+export function parseLocalDateKey(value: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(value);
+}
+
 export function parseReportRange(raw?: string): PosReportRange {
   if (raw === '7d' || raw === 'all') return raw;
   return 'today';
@@ -48,7 +67,7 @@ export function last7DayBuckets(now = new Date()) {
     const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
     buckets.push({
-      date: start.toISOString().slice(0, 10),
+      date: localDateKey(start),
       start,
       end,
     });

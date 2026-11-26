@@ -4,6 +4,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import {
   createdAtFilter,
   last7DayBuckets,
+  localDateKey,
+  parseLocalDateKey,
   parseReportRange,
   PosReportRange,
   reportRangeBounds,
@@ -15,7 +17,7 @@ export class PosReportsService {
 
   async getDailySummary(date?: string) {
     if (date) {
-      const target = new Date(date);
+      const target = parseLocalDateKey(date);
       const startOfDay = new Date(
         target.getFullYear(),
         target.getMonth(),
@@ -29,7 +31,7 @@ export class PosReportsService {
           target.getDate() + 1,
         ),
         range: 'today',
-        periodStart: startOfDay.toISOString().slice(0, 10),
+        periodStart: localDateKey(startOfDay),
       });
     }
     return this.getPeriodSummary('today');
@@ -42,7 +44,7 @@ export class PosReportsService {
       gte: bounds.gte,
       lt: bounds.lt,
       range,
-      periodStart: bounds.gte?.toISOString().slice(0, 10) ?? 'all',
+      periodStart: bounds.gte ? localDateKey(bounds.gte) : 'all',
     });
   }
 

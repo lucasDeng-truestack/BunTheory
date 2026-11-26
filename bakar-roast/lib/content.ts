@@ -7,7 +7,7 @@ import type { CateringRules } from "./catering-api";
 
 export const brand = {
   name: "Bakar & Roast",
-  tagline: "Fire. Feast. Family.",
+  tagline: "Real Smoke, Bold Flavours.",
   location: "Petaling Jaya, Kuala Lumpur",
   whatsappNumber: "60146856433",
   whatsappDisplay: "+60 14-685 6433",
@@ -22,13 +22,15 @@ export function waLink(message?: string) {
 }
 
 // Header and phone menu, in this order. The wordmark links home.
-export const nav = [
-  { label: "Packages", href: "/#packages" },
-  { label: "Menu", href: "/menu" },
-  { label: "Story", href: "/story" },
-  { label: "Contact", href: "/contact" },
-  { label: "My bookings", href: "/account" },
+// Contact opens WhatsApp (external); "Who are we" scrolls to the intro on the home page.
+// "Order Now" is the ember CTA button (bookCta), so it is not repeated here.
+export const nav: { label: string; href: string; external?: boolean }[] = [
+  { label: "Who are we", href: "/#who" },
+  { label: "Contact", href: waLink("Hi Bakar & Roast, I've got a question."), external: true },
 ];
+
+// The ordering route. The hero/header CTA and footer all point here.
+export const ORDER_PATH = "/order";
 
 /** Used only when the settings call fails. The owner's real numbers always come from the API. */
 export const fallbackRules: CateringRules = {
@@ -38,26 +40,18 @@ export const fallbackRules: CateringRules = {
   cateringCancelCutoffDays: 3,
 };
 
-export const bookCta = { label: "Check a date", href: "/catering/book" };
+// The main call to action across the site. Points at the ordering flow.
+export const bookCta = { label: "Order Now", href: "/order" };
 
 export const footerColumns: {
   title: string;
   links: { label: string; href: string; external?: boolean }[];
 }[] = [
   {
-    title: "Catering",
+    title: "Order",
     links: [
-      { label: "Packages", href: "/#packages" },
-      { label: "Check a date", href: "/catering/book" },
-      { label: "My bookings", href: "/account" },
-    ],
-  },
-  {
-    title: "The fire",
-    links: [
-      { label: "Our story", href: "/story" },
-      { label: "Menu", href: "/menu" },
-      { label: "The Bun Theory", href: brand.bunTheoryUrl, external: true },
+      { label: "Order Now", href: "/order" },
+      { label: "Who are we", href: "/#who" },
     ],
   },
   {
@@ -66,10 +60,10 @@ export const footerColumns: {
       // Non-breaking so the number never splits across lines in a narrow column.
       {
         label: `WhatsApp ${brand.whatsappDisplay.replace(/-/g, "\u2011").replace(/ /g, "\u00a0")}`,
-        href: waLink(),
+        href: waLink("Hi Bakar & Roast, I've got a question."),
         external: true,
       },
-      { label: "Contact", href: "/contact" },
+      { label: "Instagram", href: brand.instagramUrl, external: true },
     ],
   },
 ];
@@ -96,13 +90,13 @@ export const cateringHero: HeroCopy = {
 
 // DRAFT copy from the prototype. The owner to confirm or rewrite.
 export const cateringIntro: { eyebrow: string; lead: LeadPart[] } = {
-  eyebrow: "Who we are",
+  eyebrow: "Who are we",
   lead: [
     "We are John and Grace. We cook over wood",
     { photo: "Photo: embers under a whole chicken." },
     "the slow way. Apple-wood smoke, live coals, whole birds turned by hand",
     { photo: "Photo: hands turning a bird on the spit." },
-    "until the skin snaps. Then we carry all of it to your table and feed the people you love.",
+    "until the skin snaps and the smoke runs deep. Real smoke, bold flavours, every plate.",
   ],
 };
 
@@ -153,9 +147,7 @@ export const chatCopy = {
 
 export const homeHero: HeroCopy = {
   eyebrow: "Wood-fire kitchen, Petaling Jaya",
-  lines: ["Fire.", "Feast.", "*Family.*"],
-  body: "Catering for the tables that matter. Home of The Bun Theory and The Weekend Grill.",
-  photo: "Photo: a long table at dusk, the fire behind it, guests mid-meal.",
+  lines: ["Real Smoke,", "*Bold Flavours.*"],
 };
 
 /** The home page's "other kitchens" band (catering is the page itself, so it is left out there). */
@@ -388,14 +380,8 @@ export const MAX_PENDING = 2;
 /** The destination's name on the page transition panels (app/template.tsx). */
 export function routeName(pathname: string): string {
   if (pathname === "/") return "Home";
-  if (pathname.startsWith("/catering/book")) return "Check a date";
-  if (pathname.startsWith("/booking/")) return "Your booking";
   const names: Record<string, string> = {
-    catering: "Catering",
-    menu: "Menu",
-    story: "Story",
-    contact: "Contact",
-    account: "My bookings",
+    order: "Order Now",
   };
   return names[pathname.split("/")[1]] ?? "Bakar & Roast";
 }

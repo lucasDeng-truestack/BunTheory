@@ -23,7 +23,7 @@ date at `localhost:3200/catering/book`, seeing that date go unavailable, approvi
 Decision taken: "Plan + design brief". On approval I only write two files:
 
 - `docs/bakar-roast-catering-plan.md`: this plan, so later runs read it from the repo.
-- `docs/bakar-roast-design-brief.md`: the brief below, expanded, ready to paste into Claude Design.
+- `design/bakar-roast/design-brief.md`: the brief below, expanded, ready to paste into Claude Design.
 
 Code is built in later runs, each started by you:
 
@@ -284,7 +284,7 @@ mirrored in `bakar-roast/lib/api.ts`.
 
 ## Run 2 as built (2026-11-11): the Bakar & Roast site
 
-Built from the Claude Design handoff in `bakar-roast-handoff/`. The app's own rules
+Built from the Claude Design handoff in `design/bakar-roast/`. The app's own rules
 (`bakar-roast/.cursor/rules/design.mdc`, `project.mdc`) document every component and route.
 
 - **Design system:** `components/ui/` (19 components, Bricolage Grotesque + Figtree, dark ember
@@ -336,7 +336,7 @@ signatures, CORS origins, `bakar-roast/lib/api.ts` types, `bakar-roast/.env.loca
 (`NEXT_PUBLIC_API_URL=http://localhost:3101`; the app has no env file today), installing
 `resend` and `@nestjs/throttler`, and the `EmailService` method signatures below.
 
-## Design brief for Claude Design (expanded into `docs/bakar-roast-design-brief.md`)
+## Design brief for Claude Design (expanded into `design/bakar-roast/design-brief.md`)
 
 Brand: Bakar & Roast, "Fire. Feast. Family.", wood-fire catering in Petaling Jaya. Dark and
 fiery: ink `#0B0908` / `#141010` / `#1C1614` / line `#2A211D`, cream `#F4ECE1` / `#C7B9A8` /

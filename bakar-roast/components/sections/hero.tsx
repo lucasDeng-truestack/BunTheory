@@ -59,12 +59,15 @@ export function Hero({
   action,
   chips,
   stamp = false,
+  centered = false,
   headingClassName,
 }: {
   copy: HeroCopy;
   action?: ReactNode;
   chips?: ReactNode;
   stamp?: boolean;
+  /** Stack and centre the eyebrow, headline and action (the pared-back home hero). */
+  centered?: boolean;
   headingClassName?: string;
 }) {
   const { scrollY } = useScroll();
@@ -93,10 +96,14 @@ export function Hero({
         <div
           className={cn(
             "relative grid items-end gap-7",
-            copy.body && "min-[900px]:grid-cols-[1fr_minmax(260px,340px)]",
+            centered && "place-items-center text-center",
+            !centered && copy.body && "min-[900px]:grid-cols-[1fr_minmax(260px,340px)]",
           )}
         >
-          <motion.div style={{ y: drift }} className="rm-static grid gap-5">
+          <motion.div
+            style={{ y: drift }}
+            className={cn("rm-static grid gap-5", centered && "justify-items-center")}
+          >
             <Eyebrow>{copy.eyebrow}</Eyebrow>
             <h1 aria-label={label} className={cn("display-hero m-0", headingClassName)}>
               {lines}
@@ -104,7 +111,10 @@ export function Hero({
           </motion.div>
           {(copy.body || action) && (
             <div
-              className="grid justify-items-start gap-6 pb-[1vw] animate-fade-up motion-reduce:animate-none"
+              className={cn(
+                "grid gap-6 pb-[1vw] animate-fade-up motion-reduce:animate-none",
+                centered ? "justify-items-center" : "justify-items-start",
+              )}
               style={{ animationDelay: "450ms" }}
             >
               {copy.body && <p className="m-0 max-w-[34ch] text-[17px] text-cream-muted">{copy.body}</p>}

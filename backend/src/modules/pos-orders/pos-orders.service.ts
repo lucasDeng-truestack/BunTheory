@@ -16,6 +16,7 @@ import {
 import {
   createdAtFilter,
   ordersListLimit,
+  parseLocalDateKey,
   parseReportRange,
 } from '../pos-reports/pos-report-range.util';
 
@@ -407,7 +408,7 @@ export class PosOrdersService {
     }
 
     if (filters?.date) {
-      const d = new Date(filters.date);
+      const d = parseLocalDateKey(filters.date);
       where.createdAt = {
         gte: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
         lt: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1),
