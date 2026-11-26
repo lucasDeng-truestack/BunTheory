@@ -61,7 +61,9 @@ export default function CompleteQueuePage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      // Local calendar date: toISOString() is UTC and lags a day before 8am MYT.
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const completed = await posOrdersService.list({
         status: 'COMPLETED',
         date: today,
