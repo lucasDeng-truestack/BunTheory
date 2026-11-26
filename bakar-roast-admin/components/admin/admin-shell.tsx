@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLenis } from "lenis/react";
 import { motion } from "motion/react";
-import { ArrowLeft, Ellipsis, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Ellipsis, X } from "lucide-react";
 import { ordersPendingCount } from "@/lib/bun-theory-api";
 import {
   clearSession,
@@ -254,8 +254,26 @@ function SideNav({
         <div key={g.group} className="grid gap-0.5">
           <p className="type-admin-meta m-0 px-3 pb-1.5 pt-3.5 text-cream-faint">{g.group}</p>
           {g.items.map((item) => {
-            const current = isCurrent(pathname, item.href);
             const Icon = item.icon;
+            if (item.external) {
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex min-h-11 items-center justify-between gap-2 rounded-[12px] px-3 font-semibold text-cream-muted no-underline transition-colors hover:text-cream"
+                >
+                  <span className="inline-flex min-w-0 items-center gap-3">
+                    <Icon aria-hidden size={20} strokeWidth={1.6} className="flex-none" />
+                    {item.label}
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </span>
+                  <ArrowUpRight aria-hidden size={16} strokeWidth={1.6} className="flex-none text-cream-faint" />
+                </a>
+              );
+            }
+            const current = isCurrent(pathname, item.href);
             return (
               <Link
                 key={item.href}

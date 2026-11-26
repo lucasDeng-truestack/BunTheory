@@ -6,6 +6,7 @@ import {
   Receipt,
   Settings,
   ShoppingBag,
+  Store,
   Users,
   UtensilsCrossed,
   type LucideIcon,
@@ -21,7 +22,12 @@ export type AdminNavItem = {
   badge?: AdminNavBadge;
   /** Phone top bar title when the menu label alone is unclear (two groups have Settings). */
   title?: string;
+  /** A link to another app (the POS). Opens in a new tab and is never the current page. */
+  external?: boolean;
 };
+
+/** The Weekend Grill POS is its own app. Set NEXT_PUBLIC_POS_URL in production. */
+const POS_URL = (process.env.NEXT_PUBLIC_POS_URL || "http://localhost:3011").replace(/\/+$/, "");
 
 /** The admin sections, in groups. Every staff login sees the same menu (roles come later). */
 export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
@@ -44,6 +50,10 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Feedback", href: "/admin/bun-theory/feedback", icon: MessageSquareQuote },
       { label: "Settings", href: "/admin/bun-theory/settings", icon: Settings, title: "Bun Theory settings" },
     ],
+  },
+  {
+    group: "Weekend Grill",
+    items: [{ label: "Open POS", href: POS_URL, icon: Store, external: true }],
   },
   {
     group: "Staff",
