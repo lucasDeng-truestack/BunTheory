@@ -50,36 +50,36 @@ model MenuOption {
 }
 
 model Order {
-  id           String       @id @default(cuid())
-  slugId       String       @unique
-  customerName String
-  phone        String
-  type         OrderType
+  id                String        @id @default(cuid())
+  slugId            String        @unique
+  customerName      String
+  phone             String
+  type              OrderType
   /// Full street address when type is DELIVERY.
-  deliveryAddress String?
+  deliveryAddress   String?
   /// Gate, unit, landmarks (optional) when type is DELIVERY.
-  deliveryNotes   String?
-  status       OrderStatus  @default(RECEIVED)
+  deliveryNotes     String?
+  status            OrderStatus   @default(RECEIVED)
   /// Set when status becomes CANCELLED.
-  cancelledAt  DateTime?
-  batchId      String?
-  batch        OrderBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  createdAt    DateTime     @default(now())
+  cancelledAt       DateTime?
+  batchId           String?
+  batch             OrderBatch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
   /// Free-text "Comments for the restaurant" captured on the confirm screen.
-  restaurantComment     String?
+  restaurantComment String?
   /// Persisted money breakdown (null on legacy orders predating the revamp; compute from line items).
-  subtotal              Decimal?              @db.Decimal(10, 2)
-  deliveryFee           Decimal?              @db.Decimal(10, 2)
-  processingFee         Decimal?              @db.Decimal(10, 2)
+  subtotal          Decimal?      @db.Decimal(10, 2)
+  deliveryFee       Decimal?      @db.Decimal(10, 2)
+  processingFee     Decimal?      @db.Decimal(10, 2)
   /// Tax portion already INCLUDED in `total` (SST, default 6%).
-  taxAmount             Decimal?              @db.Decimal(10, 2)
-  total                 Decimal?              @db.Decimal(10, 2)
+  taxAmount         Decimal?      @db.Decimal(10, 2)
+  total             Decimal?      @db.Decimal(10, 2)
   /// Checkout selection: pay at pickup vs online transfer + receipt.
-  paymentChoice         PaymentChoice         @default(PAY_LATER)
+  paymentChoice     PaymentChoice @default(PAY_LATER)
   /// Set when PAY_NOW: URL to uploaded payment proof (same host as /uploads).
-  paymentReceiptUrl     String?
-  orderItems   OrderItem[]
-  appFeedbacks AppFeedback[]
+  paymentReceiptUrl String?
+  orderItems        OrderItem[]
+  appFeedbacks      AppFeedback[]
 }
 
 /// Optional post-checkout remarks about the storefront experience (linked to order when provided).
@@ -141,15 +141,15 @@ model OrderBatch {
 }
 
 model OrderItem {
-  id                String   @id @default(cuid())
-  orderId           String
-  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  quantity          Int
-  menuId            String
-  menu              Menu     @relation(fields: [menuId], references: [id])
-  remarks           String?
-  unitPrice         Decimal  @db.Decimal(10, 2)
-  selectedOptions   Json?
+  id              String  @id @default(cuid())
+  orderId         String
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity        Int
+  menuId          String
+  menu            Menu    @relation(fields: [menuId], references: [id])
+  remarks         String?
+  unitPrice       Decimal @db.Decimal(10, 2)
+  selectedOptions Json?
 }
 
 enum AdminRole {
@@ -162,15 +162,14 @@ enum AdminRole {
 /// DEPRECATED: replaced by `User` (Better Auth). Kept one release as a backup of staff
 /// logins; nothing reads it. Drop in a later migration.
 model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  password     String
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
   /// POS / admin UI display name (e.g. \"Ahmad\") — falls back to email if empty.
-  displayName  String?
+  displayName String?
   /// Light RBAC: gates a few sensitive admin screens. Existing admins default to full access.
-  role         AdminRole @default(OWNER)
-  createdAt    DateTime @default(now())
-
+  role        AdminRole @default(OWNER)
+  createdAt   DateTime  @default(now())
 }
 
 // ─── Better Auth (v1.7): staff and customers share these tables ───────────────
@@ -302,11 +301,11 @@ model PosProduct {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  combo       PosCombo?
-  variants    PosProductVariant[]
-  optionSlots PosProductOptionSlot[]
-  orderItems          PosOrderItem[]
-  productIngredients  PosProductIngredient[]
+  combo              PosCombo?
+  variants           PosProductVariant[]
+  optionSlots        PosProductOptionSlot[]
+  orderItems         PosOrderItem[]
+  productIngredients PosProductIngredient[]
 
   @@index([sectionId, sortOrder])
 }
@@ -395,15 +394,15 @@ model PosComboSlotOption {
 }
 
 model PosOrder {
-  id              String           @id @default(cuid())
-  orderNumber     String           @unique
-  customerName    String
-  status          PosOrderStatus   @default(PLACED)
-  paymentMethod   PosPaymentMethod
-  paymentStatus   PosPaymentStatus @default(UNPAID)
-  subtotal        Decimal          @db.Decimal(10, 2)
-  total           Decimal          @db.Decimal(10, 2)
-  notes           String?
+  id            String           @id @default(cuid())
+  orderNumber   String           @unique
+  customerName  String
+  status        PosOrderStatus   @default(PLACED)
+  paymentMethod PosPaymentMethod
+  paymentStatus PosPaymentStatus @default(UNPAID)
+  subtotal      Decimal          @db.Decimal(10, 2)
+  total         Decimal          @db.Decimal(10, 2)
+  notes         String?
 
   createdByAdminId String?
   createdBy        User?   @relation("CreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
@@ -411,37 +410,37 @@ model PosOrder {
   paidByAdminId String?
   paidBy        User?   @relation("PaidByAdmin", fields: [paidByAdminId], references: [id], onDelete: SetNull)
 
-  paidAt      DateTime?
-  startedAt   DateTime?
-  readyAt     DateTime?
-  completedAt DateTime?
+  paidAt              DateTime?
+  startedAt           DateTime?
+  readyAt             DateTime?
+  completedAt         DateTime?
   /// Set when countable inventory was deducted at Start Cooking (PLACED → PREPARING).
   inventoryDeductedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  orderItems           PosOrderItem[]
-  inventoryMovements   PosInventoryMovement[]
+  orderItems         PosOrderItem[]
+  inventoryMovements PosInventoryMovement[]
 
   @@index([status])
   @@index([createdAt])
 }
 
 model PosOrderItem {
-  id              String            @id @default(cuid())
-  orderId         String
-  order           PosOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  lineType        PosOrderLineType
-  productId       String?
-  product         PosProduct?       @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variantId       String?
-  variant         PosProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  displayName     String
-  choicesSummary  String?
-  choicesJson     Json?
-  quantity        Int
-  unitPrice       Decimal           @db.Decimal(10, 2)
-  remarks         String?
+  id             String             @id @default(cuid())
+  orderId        String
+  order          PosOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lineType       PosOrderLineType
+  productId      String?
+  product        PosProduct?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId      String?
+  variant        PosProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  displayName    String
+  choicesSummary String?
+  choicesJson    Json?
+  quantity       Int
+  unitPrice      Decimal            @db.Decimal(10, 2)
+  remarks        String?
 
   @@index([productId])
   @@index([orderId])
@@ -481,14 +480,14 @@ model PosProductIngredient {
 }
 
 model PosInventoryMovement {
-  id              String            @id @default(cuid())
+  id              String           @id @default(cuid())
   inventoryItemId String
-  inventoryItem   PosInventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  inventoryItem   PosInventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   orderId         String?
-  order           PosOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  delta           Decimal           @db.Decimal(10, 2)
+  order           PosOrder?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  delta           Decimal          @db.Decimal(10, 2)
   reason          String
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime         @default(now())
 
   @@index([orderId])
   @@index([inventoryItemId, createdAt])
@@ -509,46 +508,46 @@ model PosPurchase {
 }
 
 model SystemSettings {
-  id                      String   @id @default(cuid())
-  maxOrdersPerDay         Int      @default(15)
-  orderingEnabled         Boolean  @default(true)
-  minimumDeliveryAmount   Decimal? @db.Decimal(10, 2)
+  id                          String   @id @default(cuid())
+  maxOrdersPerDay             Int      @default(15)
+  orderingEnabled             Boolean  @default(true)
+  minimumDeliveryAmount       Decimal? @db.Decimal(10, 2)
   /// Admin storefront display name (sidebar, optional public use).
-  companyName             String?
+  companyName                 String?
   /// URL from POST /uploads/image (admin).
-  companyLogoUrl          String?
+  companyLogoUrl              String?
   /// Payment transfer QR shown at checkout (uploaded image / SVG URL).
-  paymentQrUrl            String?
+  paymentQrUrl                String?
   // ─── Single-outlet config (fulfillment header, fees, tax, ETA) ──────────────
   /// Public outlet name shown in the pickup block.
-  outletName              String?
+  outletName                  String?
   /// Pickup address shown in the fulfillment header.
-  outletAddress           String?
+  outletAddress               String?
   /// Opening hours as JSON (e.g. { "mon": "11:00-21:00", ... }).
-  outletHours             Json?
+  outletHours                 Json?
   /// Prep-time minutes powering "Delivery/Pickup in N min" ETA.
-  prepTimeMinutes         Int?
+  prepTimeMinutes             Int?
   /// Flat delivery fee (delivery orders only). Null = free / not charged.
-  deliveryFee             Decimal? @db.Decimal(10, 2)
+  deliveryFee                 Decimal? @db.Decimal(10, 2)
   /// Optional flat processing fee applied to every order.
-  processingFee           Decimal? @db.Decimal(10, 2)
+  processingFee               Decimal? @db.Decimal(10, 2)
   /// SST rate percent included in the total (default 6%).
-  taxRatePercent          Decimal  @default(6) @db.Decimal(5, 2)
+  taxRatePercent              Decimal  @default(6) @db.Decimal(5, 2)
   /// Informational delivery-radius note (no geocoding/enforcement).
-  deliveryRadiusNote      String?
+  deliveryRadiusNote          String?
   // ─── Bakar & Roast catering booking rules ───────────────────────────────────
   /// Earliest bookable date = today + this many days (Malaysia local).
-  cateringMinNoticeDays       Int     @default(7)
+  cateringMinNoticeDays       Int      @default(7)
   /// Latest bookable date = today + this many months.
-  cateringBookingWindowMonths Int     @default(6)
+  cateringBookingWindowMonths Int      @default(6)
   /// A PENDING request holds its date this many days before it expires.
-  cateringHoldExpiryDays      Int     @default(3)
+  cateringHoldExpiryDays      Int      @default(3)
   /// Customers may cancel until this many days before the event.
-  cateringCancelCutoffDays    Int     @default(3)
+  cateringCancelCutoffDays    Int      @default(3)
   /// Owner inbox for new-request and customer-cancelled emails (Resend).
   cateringNotifyEmail         String?
   /// Default bookings (sets) taken per day. A CateringDay row can override one date.
-  cateringDailySets           Int     @default(5)
+  cateringDailySets           Int      @default(5)
   /// Shown on the customer's booking page so they can pay.
   cateringBankName            String?
   cateringBankAccountName     String?
@@ -556,9 +555,21 @@ model SystemSettings {
   /// DuitNow / bank QR image URL.
   cateringPaymentQrUrl        String?
   /// Delivery hours customers can pick from, "HH:mm" Malaysia time. A CateringDay can override.
-  cateringDeliveryStart       String  @default("10:00")
-  cateringDeliveryEnd         String  @default("21:00")
-  updatedAt               DateTime @updatedAt
+  cateringDeliveryStart       String   @default("10:00")
+  cateringDeliveryEnd         String   @default("21:00")
+  // ─── Bakar & Roast shop (/order) availability rules ─────────────────────────
+  /// Earliest fulfilment date (official open; nothing is cooked before this). YYYY-MM-DD.
+  shopEarliestDate            String   @default("2026-12-14")
+  /// Orders are accepted only from this date on (pre-orders open). Null = open now.
+  shopOrdersOpenDate          String?
+  /// Buffer: a customer cannot order within this many days of the fulfilment date.
+  shopMinNoticeDays           Int      @default(2)
+  /// Latest fulfilment date = today + this many days.
+  shopWindowDays              Int      @default(60)
+  /// Default serving window, on the hour "HH:00" Malaysia time. A ShopDay can override.
+  shopServeStart              String   @default("12:00")
+  shopServeEnd                String   @default("20:00")
+  updatedAt                   DateTime @updatedAt
 }
 
 // ─── Bakar & Roast catering ───────────────────────────────────────────────────
@@ -584,7 +595,7 @@ enum CateringPaymentChoice {
 }
 
 model CateringPackage {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   name        String
   /// Price per set or per pax (priceUnit). Null = quoted by the owner after the request.
   price       Decimal?          @db.Decimal(10, 2)
@@ -593,12 +604,12 @@ model CateringPackage {
   description String
   includes    String[]
   imageUrl    String?
-  minGuests   Int      @default(10)
+  minGuests   Int               @default(10)
   maxGuests   Int?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   bookings    CateringBooking[]
 }
 
@@ -627,9 +638,9 @@ model CateringBooking {
   eventAddress  String
   dietaryNotes  String?
   notes         String?
-  quoteAmount   Decimal?  @db.Decimal(10, 2)
+  quoteAmount   Decimal?              @db.Decimal(10, 2)
   /// Amount asked first: half (DEPOSIT) or the whole total (FULL).
-  depositAmount Decimal?  @db.Decimal(10, 2)
+  depositAmount Decimal?              @db.Decimal(10, 2)
   paymentChoice CateringPaymentChoice @default(DEPOSIT)
   depositPaidAt DateTime?
   balancePaidAt DateTime?
@@ -638,11 +649,11 @@ model CateringBooking {
   holdExpiresAt DateTime?
   decidedAt     DateTime?
   cancelledAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
   /// Set when the customer was signed in while booking. Guest bookings stay null.
   userId        String?
-  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   receipts      CateringReceipt[]
 
   @@index([status, eventDate])
@@ -656,16 +667,16 @@ model CateringBooking {
 /// One row per date the owner changed: closed, or a different number of sets than the
 /// default. Also the row lock that stops two customers taking the last set at once.
 model CateringDay {
-  date      DateTime @id @db.Date
-  closed    Boolean  @default(false)
+  date          DateTime @id @db.Date
+  closed        Boolean  @default(false)
   /// Sets (bookings) taken this day. Null = SystemSettings.cateringDailySets.
-  capacity  Int?
+  capacity      Int?
   /// Why it is closed, shown to the owner only.
-  note      String?
+  note          String?
   /// This day's delivery hours, "HH:mm". Null = the defaults in SystemSettings.
   deliveryStart String?
   deliveryEnd   String?
-  updatedAt DateTime @updatedAt
+  updatedAt     DateTime @updatedAt
 }
 
 /// A payment receipt the customer uploaded from their booking page.
@@ -697,4 +708,115 @@ model CateringTestimonial {
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+// ─── Bakar & Roast shop orders (the public /order flow) ───────────────────────
+
+enum ShopFulfilmentType {
+  PICKUP
+  DELIVERY
+}
+
+/// Payment chosen at checkout: half now (DEPOSIT) or the whole total (FULL).
+enum ShopPaymentChoice {
+  DEPOSIT
+  FULL
+}
+
+enum ShopOrderStatus {
+  /// Saved, waiting for the customer to pay and upload proof.
+  AWAITING_PAYMENT
+  /// Owner has seen a receipt and confirmed the deposit (half) payment.
+  DEPOSIT_PAID
+  /// Owner has confirmed the order is paid in full.
+  PAID
+  CANCELLED
+}
+
+/// A customer order from the Bakar & Roast /order flow. It is saved before any payment
+/// detail is shown and served from its accessToken URL, so a refresh, a tab eviction or a
+/// return from the banking app never loses it. Packages and prices are server-side config
+/// (lib/shop-packages); each item snapshots name and price so later edits never rewrite history.
+model ShopOrder {
+  id             String             @id @default(cuid())
+  /// Human reference read over the phone, e.g. BR-7K2M9Q.
+  reference      String             @unique
+  /// Unguessable token: the only key to the public order page and receipt upload.
+  accessToken    String             @unique
+  /// Client-generated key so a double-tap or a retry returns the same order, not a duplicate.
+  idempotencyKey String?            @unique
+  status         ShopOrderStatus    @default(AWAITING_PAYMENT)
+  type           ShopFulfilmentType
+  /// Delivery address (all null for pickup). Country is always Malaysia.
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  state          String?
+  postcode       String?
+  deliveryNotes  String?
+  /// Malaysia-local fulfilment date. Never a timestamp.
+  fulfilmentDate DateTime           @db.Date
+  /// Chosen time window as "HH:mm-HH:mm", e.g. 12:00-13:00.
+  timeSlot       String
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+  /// Money snapshot. No delivery fee line for now (arranged over WhatsApp), so total == subtotal.
+  subtotal       Decimal            @db.Decimal(10, 2)
+  total          Decimal            @db.Decimal(10, 2)
+  paymentChoice  ShopPaymentChoice  @default(DEPOSIT)
+  /// Amount asked now: half of total (DEPOSIT) or the whole total (FULL).
+  amountDue      Decimal            @db.Decimal(10, 2)
+  depositPaidAt  DateTime?
+  fullyPaidAt    DateTime?
+  adminNotes     String?
+  cancelledAt    DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  items          ShopOrderItem[]
+  receipts       ShopReceipt[]
+
+  @@index([status, createdAt])
+  @@index([fulfilmentDate])
+  @@index([customerPhone])
+}
+
+model ShopOrderItem {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Package key (A/B/C) at order time.
+  packageKey  String
+  /// Snapshot so later price or name edits never rewrite past orders.
+  packageName String
+  unitPrice   Decimal   @db.Decimal(10, 2)
+  quantity    Int
+
+  @@index([orderId])
+}
+
+/// A payment receipt the customer uploaded from their order page.
+model ShopReceipt {
+  id        String    @id @default(cuid())
+  orderId   String
+  order     ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileUrl   String
+  fileName  String?
+  createdAt DateTime  @default(now())
+
+  @@index([orderId])
+}
+
+/// One row per date the owner changed for the shop: closed, or serving hours different from
+/// the SystemSettings default. Mirrors CateringDay, but the shop has no capacity, so there is
+/// no lock row — only owner-set overrides live here.
+model ShopDay {
+  date       DateTime @id @db.Date
+  closed     Boolean  @default(false)
+  /// Why it is closed, shown to the owner only.
+  note       String?
+  /// This day's serving window, on the hour "HH:00". Null = the default in SystemSettings.
+  serveStart String?
+  serveEnd   String?
+  updatedAt  DateTime @updatedAt
 }

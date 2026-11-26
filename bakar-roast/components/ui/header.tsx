@@ -112,17 +112,30 @@ export function Header() {
 
           <nav aria-label="Main" className="hidden lg:block">
             <ul className="m-0 flex list-none gap-7 p-0">
-              {nav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
-                    className="inline-flex min-h-11 items-center text-[15px] font-semibold text-cream-muted no-underline transition-colors hover:text-cream aria-[current=page]:text-cream"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {nav.map((item) =>
+                item.external ? (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center text-[15px] font-semibold text-cream-muted no-underline transition-colors hover:text-cream"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+                      className="inline-flex min-h-11 items-center text-[15px] font-semibold text-cream-muted no-underline transition-colors hover:text-cream aria-[current=page]:text-cream"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ),
+              )}
             </ul>
           </nav>
 
@@ -174,19 +187,31 @@ export function Header() {
         data-lenis-prevent
       >
         <ul className="m-0 list-none p-0">
-          {nav.map((item, i) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => setOpen(false)}
-                aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
-                className="display-md grid grid-cols-[40px_1fr] items-baseline border-b border-ink-line py-3.5 leading-[0.9] text-cream no-underline aria-[current=page]:text-ember"
-              >
-                <small className="type-eyebrow text-cream-faint">{String(i + 1).padStart(2, "0")}</small>
-                {item.label}
-              </Link>
-            </li>
-          ))}
+          {nav.map((item, i) => {
+            const cls =
+              "display-md grid grid-cols-[40px_1fr] items-baseline border-b border-ink-line py-3.5 leading-[0.9] text-cream no-underline aria-[current=page]:text-ember";
+            const num = <small className="type-eyebrow text-cream-faint">{String(i + 1).padStart(2, "0")}</small>;
+            return (
+              <li key={item.href}>
+                {item.external ? (
+                  <a href={item.href} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className={cls}>
+                    {num}
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+                    className={cls}
+                  >
+                    {num}
+                    {item.label}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <Button href={bookCta.href} block className="mt-8" onClick={() => setOpen(false)}>
           {bookCta.label}

@@ -25,13 +25,12 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Bakar & Roast | Fire. Feast. Family.",
+  title: "Bakar & Roast | Real Smoke, Bold Flavours",
   description:
-    "Wood-fired catering from Petaling Jaya, Kuala Lumpur. From one Christmas table to yours. Home of The Bun Theory and The Weekend Grill.",
+    "Wood-fire kitchen in Petaling Jaya, Kuala Lumpur. Real smoke, bold flavours. Order online from Bakar & Roast.",
   openGraph: {
-    title: "Bakar & Roast | Fire. Feast. Family.",
-    description:
-      "Wood-fired catering for the gatherings that matter. Petaling Jaya, Kuala Lumpur.",
+    title: "Bakar & Roast | Real Smoke, Bold Flavours",
+    description: "Wood-fire kitchen in Petaling Jaya, Kuala Lumpur. Real smoke, bold flavours.",
     type: "website",
   },
 };

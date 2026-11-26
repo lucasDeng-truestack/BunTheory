@@ -245,6 +245,62 @@ export class SettingsService {
     });
   }
 
+  /**
+   * Bakar & Roast shop (/order) availability rules. Empty shopOrdersOpenDate clears it (open now).
+   * Validated as a whole so a partial update cannot leave the window empty or hours inverted.
+   */
+  async updateShop(dto: {
+    shopEarliestDate?: string;
+    shopOrdersOpenDate?: string;
+    shopMinNoticeDays?: number;
+    shopWindowDays?: number;
+    shopServeStart?: string;
+    shopServeEnd?: string;
+  }) {
+    const data: Prisma.SystemSettingsUpdateInput &
+      Prisma.SystemSettingsCreateInput = {};
+    if (dto.shopEarliestDate != null) data.shopEarliestDate = dto.shopEarliestDate;
+    if (dto.shopOrdersOpenDate !== undefined) {
+      const v = (dto.shopOrdersOpenDate ?? '').trim();
+      data.shopOrdersOpenDate = v === '' ? null : v;
+    }
+    if (dto.shopMinNoticeDays != null) data.shopMinNoticeDays = dto.shopMinNoticeDays;
+    if (dto.shopWindowDays != null) data.shopWindowDays = dto.shopWindowDays;
+    if (dto.shopServeStart != null) data.shopServeStart = dto.shopServeStart;
+    if (dto.shopServeEnd != null) data.shopServeEnd = dto.shopServeEnd;
+    if (Object.keys(data).length === 0) return this.getSettings();
+
+    const settings = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    // Merge with the stored row (schema defaults when none) so a partial update stays coherent.
+    const notice = dto.shopMinNoticeDays ?? settings?.shopMinNoticeDays ?? 2;
+    const windowDays = dto.shopWindowDays ?? settings?.shopWindowDays ?? 60;
+    if (notice >= windowDays) {
+      throw new BadRequestException({
+        code: 'INVALID_RULES',
+        message: 'The notice buffer must be shorter than the ordering window.',
+      });
+    }
+    const start = dto.shopServeStart ?? settings?.shopServeStart ?? '12:00';
+    const end = dto.shopServeEnd ?? settings?.shopServeEnd ?? '20:00';
+    if (start >= end) {
+      throw new BadRequestException({
+        code: 'INVALID_RULES',
+        message: 'Serving must end after it starts.',
+      });
+    }
+    if (!settings) {
+      return this.prisma.systemSettings.create({
+        data: { maxOrdersPerDay: 15, orderingEnabled: true, ...data },
+      });
+    }
+    return this.prisma.systemSettings.update({
+      where: { id: settings.id },
+      data,
+    });
+  }
+
   async updateBranding(dto: {
     companyName?: string;
     companyLogoUrl?: string;

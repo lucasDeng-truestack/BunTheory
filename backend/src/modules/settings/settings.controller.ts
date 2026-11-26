@@ -8,6 +8,7 @@ import {
 import { UpdateBrandingDto } from './dto/update-branding.dto';
 import { UpdateOutletDto } from './dto/update-outlet.dto';
 import { UpdateCateringSettingsDto } from './dto/update-catering-settings.dto';
+import { UpdateShopSettingsDto } from './dto/update-shop-settings.dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -67,5 +68,13 @@ export class SettingsController {
   @Roles('OWNER', 'MANAGER')
   updateCatering(@Body() dto: UpdateCateringSettingsDto) {
     return this.settingsService.updateCatering(dto);
+  }
+
+  /** Bakar & Roast shop (/order) availability rules. */
+  @Patch('shop')
+  @UseGuards(AdminAuthGuard, RolesGuard)
+  @Roles('OWNER', 'MANAGER')
+  updateShop(@Body() dto: UpdateShopSettingsDto) {
+    return this.settingsService.updateShop(dto);
   }
 }
