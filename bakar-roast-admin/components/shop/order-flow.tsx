@@ -168,6 +168,14 @@ export function OrderFlow({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
+  /** Editing a field clears its error at once, so a fixed field never stays flagged red. */
+  const clearError = (key: string) =>
+    setErrors((e) => {
+      if (!(key in e)) return e;
+      const { [key]: _gone, ...rest } = e;
+      return rest;
+    });
+
   // The whole draft survives a refresh before the order is saved. After the order exists, the
   // token page is the source of truth. Hydrate once, then persist on every change. A saved date
   // or slot that the owner has since closed or changed is dropped, so it never reaches submit.
@@ -506,7 +514,7 @@ export function OrderFlow({
                     The menu is still being finalised. Packages are placeholders for now.
                   </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid items-start gap-4 sm:grid-cols-2">
                   {config.packages.map((p) => {
                     const qty = qtyOf(p.key);
                     return (
@@ -593,17 +601,23 @@ export function OrderFlow({
                   <Field
                     label="Name"
                     value={contact.name}
-                    onChange={(e) => setContact({ ...contact, name: e.target.value })}
+                    onChange={(e) => {
+                      setContact({ ...contact, name: e.target.value });
+                      clearError("name");
+                    }}
                     error={errors.name}
                     autoComplete="name"
                   />
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid items-start gap-4 sm:grid-cols-2">
                     <Field
                       label="Phone"
                       type="tel"
                       inputMode="tel"
                       value={contact.phone}
-                      onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                      onChange={(e) => {
+                      setContact({ ...contact, phone: e.target.value });
+                      clearError("phone");
+                    }}
                       error={errors.phone}
                       help="We reach you on WhatsApp."
                       autoComplete="tel"
@@ -698,7 +712,10 @@ export function OrderFlow({
               <Field
                 label="Address line 1"
                 value={addr.line1}
-                onChange={(e) => setAddr({ ...addr, line1: e.target.value })}
+                onChange={(e) => {
+                  setAddr({ ...addr, line1: e.target.value });
+                  clearError("line1");
+                }}
                 error={errors.line1}
                 autoComplete="address-line1"
               />
@@ -709,11 +726,14 @@ export function OrderFlow({
                 onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
                 autoComplete="address-line2"
               />
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-4 sm:grid-cols-2">
                 <Field
                   label="City"
                   value={addr.city}
-                  onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                  onChange={(e) => {
+                  setAddr({ ...addr, city: e.target.value });
+                  clearError("city");
+                }}
                   error={errors.city}
                   autoComplete="address-level2"
                 />
@@ -722,7 +742,10 @@ export function OrderFlow({
                   inputMode="numeric"
                   maxLength={5}
                   value={addr.postcode}
-                  onChange={(e) => setAddr({ ...addr, postcode: e.target.value.replace(/\D/g, "") })}
+                  onChange={(e) => {
+                    setAddr({ ...addr, postcode: e.target.value.replace(/\D/g, "") });
+                    clearError("postcode");
+                  }}
                   error={errors.postcode}
                   autoComplete="postal-code"
                 />
@@ -730,7 +753,10 @@ export function OrderFlow({
               <SelectField
                 label="State"
                 value={addr.state}
-                onChange={(e) => setAddr({ ...addr, state: e.target.value })}
+                onChange={(e) => {
+                  setAddr({ ...addr, state: e.target.value });
+                  clearError("state");
+                }}
                 error={errors.state}
               >
                 {MY_STATES.map((s) => (
