@@ -45,9 +45,9 @@ Responsive layout:
 - **Desktop:** widen containers, use multi-column grids where appropriate; keep the same palette and components.
 
 Design references (optional):
-- When `Icons/`, `UI Design/`, and/or `Preview/` exist in the repo, use them for **layout and imagery**; keep **colors and theme** aligned with this document unless intentionally updated.
+- Use the mockups in `design/bun-theory/` (`icons/`, `screens/`, `preview/`) for **layout and imagery**; keep **colors and theme** aligned with this document unless intentionally updated.
 - Export paths may live under `frontend/public/` or a top-level `docs/` asset folder—document the chosen location in [`product.md`](./product.md) when you add files.
-- Admin dashboard layout references may live under [`docs/design-references/`](./design-references/) (see that folder’s README); remap visuals to this document’s palette and typography.
+- Admin dashboard layout references may live under [`design/bun-theory/references/`](../design/bun-theory/references/) (see that folder’s README); remap visuals to this document’s palette and typography.
 
 Related docs:
 - [`product.md`](./product.md) — customer vs admin access and deployment assumptions

@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Design system
 
-Source of truth: `bakar-roast-handoff/` (design-system README, tokens.json, motion.md,
+Source of truth: `design/bakar-roast/` (repo root) (design-system README, tokens.json, motion.md,
 screens.md, component READMEs, prototype). Where this file and the handoff disagree, the
 handoff wins. Look at `/dev/components` to see every component and state.
 

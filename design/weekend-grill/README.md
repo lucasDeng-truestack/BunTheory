@@ -1,4 +1,4 @@
-# UI Design Weekend Grills
+# Weekend Grill POS design
 
 Weekend Grills POS reference assets: screenshots, exported frames, typography samples, spacing notes, component specs — anything the team uses to mirror the Tropical Vibe Barbeque POS before coding.
 

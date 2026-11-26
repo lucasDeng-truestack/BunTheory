@@ -6,7 +6,7 @@ A lightweight GrabFood-style food ordering system for a single restaurant. Custo
 
 | Doc | Purpose |
 | --- | --- |
-| [docs/product.md](docs/product.md) | Customer vs admin access, mobile/desktop goals, optional design asset folders (`Icons/`, `UI Design/`, `Preview/`) |
+| [docs/product.md](docs/product.md) | Customer vs admin access, mobile/desktop goals, design assets in [`design/`](design/README.md) |
 | [docs/cart-and-menu.md](docs/cart-and-menu.md) | Cart vs backend menu (slugs, API fetch, persistence) — avoids add/remove cart bugs |
 | [docs/branding.md](docs/branding.md) | Colors, typography, UI tone, responsive notes |
 | [docs/setup.md](docs/setup.md) | Database (Docker), dev commands, root npm scripts |
@@ -35,7 +35,7 @@ Bun-Theory/
 └── .cursor/      # Editor rules
 ```
 
-Optional design exports (when added): e.g. `Icons/`, `UI Design/`, `Preview/` — see [docs/product.md](docs/product.md).
+All design files and handoffs live in [`design/`](design/README.md), one folder per brand.
 
 ## Quick Start
 

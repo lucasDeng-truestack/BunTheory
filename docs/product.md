@@ -23,10 +23,10 @@ Single-restaurant ordering (GrabFood-style flow) for **The Bun Theory by Bakar &
   headings, nav labels, titles, and CTA copy; body copy remains in the sans body font
   unless intentionally changed.
 - **Layout and component patterns** may follow exported references when present in the repo, for example:
-  - `Icons/` — icon assets
-  - `UI Design/` — frames or style notes
-  - `Preview/` — screen previews  
-  - [`design-references/`](./design-references/) — optional UX mockups (e.g. admin dashboard); add files such as `design-references/admin-dashboard-reference.png` when tracking a reference image in-repo.  
+  - `design/bun-theory/icons/` — icon assets
+  - `design/bun-theory/screens/` — frames or style notes
+  - `design/bun-theory/preview/` — screen previews  
+  - [`design/bun-theory/references/`](../design/bun-theory/references/) — optional UX mockups (e.g. admin dashboard); add files such as `design/bun-theory/references/admin-dashboard-reference.png` when tracking a reference image in-repo.  
   Paths are conventional; add these folders under the project when assets are available. Until then, implement with the existing stack (Next.js, Tailwind, shadcn/ui) and branding tokens.
 
 ## Notifications

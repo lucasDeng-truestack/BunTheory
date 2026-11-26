@@ -33,7 +33,7 @@ edit them here, never copy them.
 2. Read the applicable rules: `.cursor/rules/backend.mdc` + `backend-folderstructure.mdc`,
    `frontend.mdc` + `frontend-folderstructure.mdc`, and for storefront UI
    `docs/branding.md` + `branding-typography-nav.mdc`. POS work → `weekend-grills-pos.mdc`
-   and the `UI Design Weekend Grills/` folder instead of the storefront rules.
+   and the `design/weekend-grill/` folder instead of the storefront rules.
 3. Find the closest existing feature and read it end-to-end (controller → service → DTO
    → `lib/api.ts` call → page → components). Copy its shape. A feature that ignores an
    existing pattern is wrong even if it works.

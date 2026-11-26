@@ -14,12 +14,12 @@ Follow workspace rules in `.cursor/rules/project.mdc` for overall architecture; 
 
 ## Design source folder
 
-**Treat `UI Design Weekend Grills/` (repo root) as the design system reference** for Weekend Grills: layouts, component shapes, spacing rhythm, typography scale, imagery, and any exported tokens or screenshots stored there.
+**Treat `design/weekend-grill/` as the design system reference** for Weekend Grills: layouts, component shapes, spacing rhythm, typography scale, imagery, and any exported tokens or screenshots stored there.
 
-- Before introducing new layouts or primitives, align with artifacts in **`UI Design Weekend Grills/`** (figma exports, PNGs, component notes, README if present).
+- Before introducing new layouts or primitives, align with artifacts in **`design/weekend-grill/`** (figma exports, PNGs, component notes, README if present).
 - If design assets are missing there, reuse existing POS patterns (`components/kitchen`, `components/order-menu`, `components/layout`, `app/globals.css`) rather than cloning `frontend/` customer UI.
 
-Paths with spaces: refer to `[UI Design Weekend Grills](../UI Design Weekend Grills/)` from repo root.
+Link: `[design/weekend-grill](../../design/weekend-grill/)` from repo root.
 
 ---
 
@@ -65,7 +65,7 @@ Follow `.cursor/rules/branding-typography-nav.mdc`:
    - Preserve large tap/click zones (staff may use touchscreen monitors).
    - Side navigation (`components/layout/pos-shell.tsx`) can stay compact rail; optionally document wider nav for desktop if design folder shows it — don’t shrink touch targets solely for aesthetics.
 
-Avoid layouts that rely on fragile fixed pixel widths unless specified in **`UI Design Weekend Grills/`**.
+Avoid layouts that rely on fragile fixed pixel widths unless specified in **`design/weekend-grill/`**.
 
 ---
 
@@ -98,4 +98,4 @@ weekend-grills-pos/
 
 ## Conflict resolution
 
-When **`UI Design Weekend Grills/`** conflicts with globals or boilerplate defaults, **prioritize the design folder** after confirming it is current; otherwise keep Tropical Barbeque tokens in `globals.css` and reconcile in a PR-sized change (don’t silently revert theme).
+When **`design/weekend-grill/`** conflicts with globals or boilerplate defaults, **prioritize the design folder** after confirming it is current; otherwise keep Tropical Barbeque tokens in `globals.css` and reconcile in a PR-sized change (don’t silently revert theme).
