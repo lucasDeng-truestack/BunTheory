@@ -64,6 +64,7 @@ export function toShopOrderPublic(o: ShopOrderRow): ShopOrderPublic {
     depositPaidAt: iso(o.depositPaidAt),
     fullyPaidAt: iso(o.fullyPaidAt),
     customerPaidAt: iso(o.customerPaidAt),
+    inAccount: o.userId != null,
     receipts: [...(o.receipts ?? [])]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .map(toReceipt),

@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { BadgeCheck, Check, Copy, Download, Expand, MessageCircle, Upload } from "lucide-react";
+import { BadgeCheck, Check, Copy, Download, Expand, MessageCircle, ReceiptText, Upload, UserRound } from "lucide-react";
+import Link from "next/link";
+import { useCustomer } from "@/components/account/use-customer";
 import { Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/headline";
 import { Banner } from "@/components/ui/banner";
 import { waLink } from "@/lib/content";
 import { cn } from "@/lib/utils";
-import { markShopOrderPaid, uploadShopReceipt, type ShopOrderPage, type ShopOrderPublic } from "@/lib/shop-api";
+import { claimShopOrder, markShopOrderPaid, uploadShopReceipt, type ShopOrderPage, type ShopOrderPublic } from "@/lib/shop-api";
 import { imageSrc } from "@/lib/catering-api";
 import { formatDateLabel, formatRm, slotLabel } from "@/lib/shop";
 import { Modal } from "@/components/shop/modal";
@@ -99,6 +101,36 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   const qrSrc = imageSrc(pay.qrUrl);
   const hasPayDetails = !!(pay.accountNumber || qrSrc);
   const [qrOpen, setQrOpen] = useState(false);
+
+  // Saving this order to an account. Coming back from sign-in with ?save=1 saves it at once;
+  // otherwise a signed-in customer taps "Save to my account".
+  const customer = useCustomer();
+  const [saving, setSaving] = useState(false);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  async function saveToAccount() {
+    if (customer.status !== "signed-in") return;
+    setSaving(true);
+    setSaveNote(null);
+    try {
+      setOrder(await claimShopOrder(order.accessToken, customer.token));
+    } catch (err) {
+      setSaveNote(err instanceof Error ? err.message : "Could not save it just now. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  const autoSave = useRef(false);
+  useEffect(() => {
+    if (customer.status !== "signed-in" || order.inAccount || autoSave.current) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("save") !== "1") return;
+    autoSave.current = true;
+    url.searchParams.delete("save");
+    window.history.replaceState(null, "", url.pathname + url.search);
+    void saveToAccount();
+    // saveToAccount reads the latest customer and order; run once per sign-in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.status, order.inAccount]);
   const [phoneQrOpen, setPhoneQrOpen] = useState(false);
   const receiptIn = order.receipts.length > 0;
   // "I've made the payment" counts like a receipt: the order is placed, and we check the money.
@@ -403,6 +435,55 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
           </section>
         )}
         {summary}
+        {/* Keep this order: sign in (or save, when signed in) so it shows in My orders on any device. */}
+        {customer.status !== "loading" && (
+          <section className="grid gap-3 rounded-card-sm border border-cream-faint p-5">
+            {order.inAccount ? (
+              <p className="m-0 flex items-start gap-2 text-[14px] text-cream">
+                <ReceiptText aria-hidden size={18} className="mt-0.5 flex-none text-ember" />
+                <span>
+                  Saved to your account.{" "}
+                  {customer.status === "signed-in" && (
+                    <Link href="/account" className="font-semibold text-cream underline hover:text-ember">
+                      My orders
+                    </Link>
+                  )}
+                </span>
+              </p>
+            ) : customer.status === "signed-in" ? (
+              <>
+                <div className="grid gap-1">
+                  <b className="text-cream">Keep this order</b>
+                  <span className="text-[13px] text-cream-muted">Save it to {customer.email} to find it in My orders.</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => void saveToAccount()} loading={saving} loadingLabel="Saving" block>
+                  Save to my account
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-1">
+                  <b className="text-cream">Keep this order</b>
+                  <span className="text-[13px] text-cream-muted">
+                    Sign in to save it to My orders and see it on any device. No password, we email you a code.
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  href={`/account?next=${encodeURIComponent(`/order/${order.accessToken}?save=1`)}`}
+                  block
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <UserRound aria-hidden size={16} />
+                    Sign in to save it
+                  </span>
+                </Button>
+              </>
+            )}
+            {saveNote && <Banner tone="error" title={saveNote} />}
+          </section>
+        )}
       </aside>
       </div>
 

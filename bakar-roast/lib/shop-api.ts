@@ -91,6 +91,8 @@ export interface ShopOrderPublic {
   fullyPaidAt: string | null;
   /** When the customer tapped "I've made the payment". The owner still confirms it. */
   customerPaidAt: string | null;
+  /** True once the order is saved to a customer account. */
+  inAccount: boolean;
   receipts: ShopReceiptView[];
   createdAt: string;
 }
@@ -393,6 +395,10 @@ export const shopAdminReorderPackages = (token: string, ids: string[]) =>
     method: "POST",
     body: JSON.stringify({ ids }),
   });
+
+/** Save the order to the signed-in customer's account (409 ORDER_IN_OTHER_ACCOUNT if taken). */
+export const claimShopOrder = (accessToken: string, customerToken: string) =>
+  api<ShopOrderPage>(`/shop/orders/${encodeURIComponent(accessToken)}/claim`, { method: "POST", token: customerToken });
 
 /** "I've made the payment": records the customer's word on the order, for the owner to check. */
 export const markShopOrderPaid = (accessToken: string) =>

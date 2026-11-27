@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Body,
   Controller,
   Get,
@@ -70,6 +71,19 @@ export class ShopController {
   @Get('orders/:accessToken')
   order(@Param('accessToken') accessToken: string) {
     return this.shop.getPublicOrder(accessToken);
+  }
+
+  /** Save this order to the signed-in customer's account (customers only, not staff). */
+  @Post('orders/:accessToken/claim')
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard, CustomerAuthGuard)
+  @Throttle({ default: { limit: 30, ttl: 3600000 } })
+  @SkipThrottle({ day: true })
+  claim(@Param('accessToken') accessToken: string, @Req() req: Request) {
+    if (req.user!.role !== 'CUSTOMER') {
+      throw new ForbiddenException('Staff accounts do not keep orders. Sign in with a customer email.');
+    }
+    return this.shop.claim(accessToken, req.user!);
   }
 
   /** "I've made the payment": the customer's word, for the owner to check. */

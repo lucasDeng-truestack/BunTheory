@@ -440,6 +440,26 @@ export class ShopService {
     return this.getPublicOrder(accessToken);
   }
 
+  /**
+   * Save an order to the signed-in customer's account. The order's link is the proof of ownership
+   * (the same key that pays for it and uploads receipts). An order already saved to another
+   * account stays where it is.
+   */
+  async claim(accessToken: string, user: { id: string }): Promise<ShopOrderPage> {
+    const order = await this.findByToken(accessToken);
+    if (order.userId && order.userId !== user.id) {
+      throw new ConflictException({
+        code: 'ORDER_IN_OTHER_ACCOUNT',
+        message: 'This order is already saved to another account.',
+      });
+    }
+    if (!order.userId) {
+      await this.prisma.shopOrder.updateMany({ where: { id: order.id, userId: null }, data: { userId: user.id } });
+      await nameCustomerFromOrder(this.prisma, user.id, order.customerName);
+    }
+    return this.getPublicOrder(accessToken);
+  }
+
   async assertCanAddReceipt(accessToken: string): Promise<void> {
     const order = await this.findByToken(accessToken);
     if (order.status === 'CANCELLED') {

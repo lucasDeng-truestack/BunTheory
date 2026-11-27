@@ -145,6 +145,8 @@ export type ShopOrderPublic = {
   fullyPaidAt: string | null;
   /** When the customer said they have paid. The owner still confirms it. */
   customerPaidAt: string | null;
+  /** True once the order is saved to a customer account (whose is never shown). */
+  inAccount: boolean;
   receipts: ShopReceiptView[];
   createdAt: string;
 };
