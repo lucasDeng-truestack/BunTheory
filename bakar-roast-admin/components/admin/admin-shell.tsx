@@ -24,7 +24,6 @@ import { AdminContext, type AdminContextValue, type TopBar } from "@/components/
 import { PendingBadge } from "@/components/admin/admin-page";
 import { ThemeToggle } from "@/components/theme";
 import { Logo } from "@/components/ui/logo";
-import { SITE_URL } from "@/components/admin/nav";
 import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS, type AdminNavItem } from "@/components/admin/nav";
 
 type Counts = { ordersPending: number | null };
@@ -310,14 +309,6 @@ function SideNav({
         <div className="min-w-0">
           <b className="block truncate">{admin.displayName || admin.email}</b>
           <div className="flex gap-3.5">
-            <a
-              href={SITE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center font-semibold text-cream-muted underline"
-            >
-              View site
-            </a>
             <button
               type="button"
               onClick={onSignOut}
