@@ -121,13 +121,17 @@ function brandMark(): string {
   return `<img src="${escapeHtml(site)}/images/logo-email.png" width="150" height="119" alt="BAKAR &amp; ROAST" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:150px;color:${C.cream};">`;
 }
 
-function layout(innerHtml: string): string {
+/** Which site an email is from. The Bun Theory gets its own name in the header and footer. */
+export type EmailBrand = 'bakar-roast' | 'bun-theory';
+
+function layout(innerHtml: string, brand: EmailBrand = 'bakar-roast'): string {
+  const bun = brand === 'bun-theory';
   return `<!doctype html><html><body style="margin:0;padding:0;background:${C.cream};">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${C.cream};"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;font-family:Arial,Helvetica,sans-serif;">
-<tr><td style="background:${C.night};padding:20px 24px;font-size:18px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${C.cream};">${brandMark()}</td></tr>
+<tr><td style="background:${C.night};padding:20px 24px;font-size:18px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${C.cream};">${bun ? 'THE BUN THEORY' : brandMark()}</td></tr>
 <tr><td style="background:${C.cream};padding:28px 24px 8px;">${innerHtml}</td></tr>
-<tr><td style="padding:16px 24px 24px;border-top:1px solid ${C.line};font-size:12px;line-height:1.6;color:${C.muted};">Real Smoke, Bold Flavours.<br>Petaling Jaya, Kuala Lumpur</td></tr>
+<tr><td style="padding:16px 24px 24px;border-top:1px solid ${C.line};font-size:12px;line-height:1.6;color:${C.muted};">${bun ? 'The Bun Theory by Bakar &amp; Roast' : 'Real Smoke, Bold Flavours.'}<br>Petaling Jaya, Kuala Lumpur</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -149,11 +153,19 @@ const summary = (rows: Row[]): Part => ({
   text: tableText(rows),
 });
 
-function build(subject: string, parts: Part[]): EmailContent {
+function build(subject: string, parts: Part[]): EmailContent;
+function build(subject: string, brand: EmailBrand, parts: Part[]): EmailContent;
+function build(subject: string, a: EmailBrand | Part[], b?: Part[]): EmailContent {
+  const brand: EmailBrand = typeof a === 'string' ? a : 'bakar-roast';
+  const parts = typeof a === 'string' ? (b ?? []) : a;
+  const footer =
+    brand === 'bun-theory'
+      ? '\n\nThe Bun Theory by Bakar & Roast\nPetaling Jaya, Kuala Lumpur'
+      : FOOTER_TEXT;
   return {
     subject: subjectSafe(subject),
-    html: layout(parts.map((x) => x.html).join('')),
-    text: parts.map((x) => x.text).join('\n\n') + FOOTER_TEXT,
+    html: layout(parts.map((x) => x.html).join(''), brand),
+    text: parts.map((x) => x.text).join('\n\n') + footer,
   };
 }
 
@@ -352,9 +364,10 @@ export function ownerCustomerCancelledEmail(
   ]);
 }
 
-export function signInCodeEmail(otp: string): EmailContent {
+export function signInCodeEmail(otp: string, brand: EmailBrand = 'bakar-roast'): EmailContent {
   const code = escapeHtml(otp);
-  return build(`Your Bakar & Roast code: ${otp}`, [
+  const name = brand === 'bun-theory' ? 'Bun Theory' : 'Bakar & Roast';
+  return build(`Your ${name} code: ${otp}`, brand, [
     para('Here is your code:', 'Here is your code:'),
     {
       html: `<p style="margin:0 0 24px;font-size:36px;font-weight:bold;letter-spacing:8px;color:${C.ink};">${code}</p>`,

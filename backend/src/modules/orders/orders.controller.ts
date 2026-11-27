@@ -6,13 +6,17 @@ import {
   Patch,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import type { Request } from 'express';
+import { OrdersService, withoutOwner } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { TrackOrderQueryDto } from './dto/track-order-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { AdminAuthGuard } from '../../common/guards/admin-auth.guard';
+import { CustomerAuthGuard } from '../../common/guards/customer-auth.guard';
+import { OptionalAuthGuard } from '../../common/guards/optional-auth.guard';
 
 @Controller('orders')
 export class OrdersController {
@@ -28,15 +32,26 @@ export class OrdersController {
     return this.ordersService.getStorefrontContext();
   }
 
+  // Sign-in is optional: OptionalAuthGuard never rejects, so a guest (or a dead token) still orders.
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  @UseGuards(OptionalAuthGuard)
+  async create(@Body() createOrderDto: CreateOrderDto, @Req() req: Request) {
+    // Staff sessions are not customers: their test orders stay guest orders.
+    const userId = req.user?.role === 'CUSTOMER' ? req.user.id : null;
+    return withoutOwner(await this.ordersService.create(createOrderDto, userId));
+  }
+
+  /** The signed-in customer's own orders, and their name and phone for checkout. */
+  @Get('me')
+  @UseGuards(CustomerAuthGuard)
+  mine(@Req() req: Request) {
+    return this.ordersService.mine(req.user!);
   }
 
   /** Public: live orders for a phone (excludes DELIVERED; last 7 days). */
   @Get('track')
-  track(@Query() query: TrackOrderQueryDto) {
-    return this.ordersService.findTrackableByPhone(query.phone);
+  async track(@Query() query: TrackOrderQueryDto) {
+    return (await this.ordersService.findTrackableByPhone(query.phone)).map(withoutOwner);
   }
 
   @Get()
@@ -65,8 +80,8 @@ export class OrdersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    return withoutOwner(await this.ordersService.findOne(id));
   }
 
   @Patch(':id/status')

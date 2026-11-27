@@ -13,6 +13,7 @@ import {
   ownerNewRequestEmail,
   ownerReceiptUploadedEmail,
   signInCodeEmail,
+  type EmailBrand,
 } from './email.templates';
 
 type Builder = (b: CateringBooking, site: string) => EmailContent;
@@ -75,7 +76,13 @@ export class EmailService {
   }
 
   /** Better Auth email OTP. The code is only ever logged outside production with no Resend key. */
-  async signInCode(email: string, otp: string, type: string): Promise<void> {
+  /** `brand` is the site the customer is signing in on; it sets the name on the email. */
+  async signInCode(
+    email: string,
+    otp: string,
+    type: string,
+    brand: EmailBrand = 'bakar-roast',
+  ): Promise<void> {
     const ctx = `[signInCode ${type}]`;
     try {
       if (!this.resend) {
@@ -86,9 +93,10 @@ export class EmailService {
         }
         return;
       }
-      const { subject, html, text } = signInCodeEmail(otp);
+      const { subject, html, text } = signInCodeEmail(otp, brand);
       const { error } = await this.resend.emails.send({
-        from: this.from,
+        // Same sending address; only the display name follows the site.
+        from: brand === 'bun-theory' ? this.from.replace(/^[^<]*</, 'The Bun Theory <') : this.from,
         to: email,
         subject,
         html,

@@ -17,7 +17,8 @@ import { FulfillmentHeader, OrderSummary } from "@/components/storefront";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useCartStore, cartSelectionsToPayload } from "@/store/cart.store";
 import type { PublicSystemSettings } from "@/services/storefront-settings.service";
-import { createOrder } from "@/services/orders.service";
+import { createOrder, getMyOrders } from "@/services/orders.service";
+import { useCustomer } from "@/hooks/use-customer";
 import { uploadPaymentReceipt } from "@/services/upload.service";
 import { saveLastOrderId } from "@/lib/last-order";
 import { normalizeMenuSlug } from "@/lib/menu-slug";
@@ -61,13 +62,15 @@ export function ConfirmPayView({
 
   // Redirect out if there's nothing to confirm (after hydration).
   useEffect(() => {
-    if (!hydrated) return;
+    // While an order is being placed the cart is emptied on purpose, on the way to the
+    // success page. Redirecting to the menu then would race that navigation and could win.
+    if (!hydrated || submitting) return;
     if (items.length === 0) {
       router.replace("/menu");
     } else if (!fulfillment.type) {
       router.replace("/menu");
     }
-  }, [hydrated, items.length, fulfillment.type, router]);
+  }, [hydrated, submitting, items.length, fulfillment.type, router]);
 
   // Prefill remembered contact.
   useEffect(() => {
@@ -84,6 +87,28 @@ export function ConfirmPayView({
       localStorage.removeItem(REMEMBER_CUSTOMER_KEY);
     }
   }, [hydrated]);
+
+  // Optional sign-in: a signed-in customer's order is saved to their account, and the name and
+  // phone from their last order fill whatever is still empty (typed and remembered values win).
+  const customer = useCustomer();
+  useEffect(() => {
+    if (!hydrated || customer.status !== "signed-in") return;
+    let live = true;
+    getMyOrders(customer.token).then(
+      (me) => {
+        if (!live || !me.details) return;
+        const { name: savedName, phone: savedPhone } = me.details;
+        setName((cur) => (cur.trim() ? cur : savedName));
+        setPhone((cur) => (cur.trim() ? cur : savedPhone));
+      },
+      () => {
+        /* Prefill is a convenience: checkout works the same without it. */
+      }
+    );
+    return () => {
+      live = false;
+    };
+  }, [hydrated, customer.status, customer.token]);
 
   // Manage object URL lifecycle for the receipt preview.
   useEffect(() => {
@@ -181,7 +206,7 @@ export function ConfirmPayView({
             ? { ...base, slug: normalizeMenuSlug(i.slug) }
             : { ...base, menuId: i.menuId! };
         }),
-      });
+      }, customer.status === "signed-in" ? customer.token : undefined);
 
       persistRemember();
       clearCart();
@@ -245,6 +270,25 @@ export function ConfirmPayView({
               <h2 className="font-display text-xl font-bold text-bun-ink">
                 Your details
               </h2>
+              {customer.status === "signed-in" ? (
+                <p className="text-sm text-bun-ink-soft [overflow-wrap:anywhere]">
+                  Signed in as {customer.email}. This order is saved to{" "}
+                  <Link href="/account" className="font-semibold text-bun-ink underline underline-offset-4">
+                    your account
+                  </Link>
+                  .
+                </p>
+              ) : customer.status === "guest" ? (
+                <p className="text-sm text-bun-ink-soft">
+                  Ordered before, or want to keep your orders in one place?{" "}
+                  <Link
+                    href="/account?next=/order/confirm"
+                    className="font-semibold text-bun-ink underline underline-offset-4"
+                  >
+                    Sign in or create an account
+                  </Link>
+                </p>
+              ) : null}
               <div className="space-y-1.5">
                 <Label htmlFor="cp-name" className="font-display">
                   Name

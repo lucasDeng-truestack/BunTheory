@@ -78,8 +78,13 @@ model Order {
   paymentChoice     PaymentChoice @default(PAY_LATER)
   /// Set when PAY_NOW: URL to uploaded payment proof (same host as /uploads).
   paymentReceiptUrl String?
+  /// The signed-in customer who placed it. Null for a guest order. Never sent to the public.
+  userId            String?
+  user              User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   orderItems        OrderItem[]
   appFeedbacks      AppFeedback[]
+
+  @@index([userId])
 }
 
 /// Optional post-checkout remarks about the storefront experience (linked to order when provided).
@@ -195,6 +200,7 @@ model User {
   posPurchases     PosPurchase[]
   cateringBookings CateringBooking[]
   shopOrders       ShopOrder[]
+  orders           Order[]
 }
 
 model Session {

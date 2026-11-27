@@ -25,11 +25,28 @@ export interface CreateOrderPayload {
   }[];
 }
 
-export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
+/** `customerToken` (optional) saves the order to the signed-in customer's account. */
+export async function createOrder(
+  payload: CreateOrderPayload,
+  customerToken?: string
+): Promise<Order> {
   return api<Order>("/orders", {
     method: "POST",
     body: JSON.stringify(payload),
+    ...(customerToken ? { token: customerToken } : {}),
   });
+}
+
+/** A signed-in customer's own orders, newest first, and their details for checkout. */
+export interface MyOrders {
+  email: string;
+  /** From their latest order. Null until they have placed one while signed in. */
+  details: { name: string; phone: string } | null;
+  orders: Order[];
+}
+
+export async function getMyOrders(customerToken: string): Promise<MyOrders> {
+  return api<MyOrders>("/orders/me", { token: customerToken });
 }
 
 export async function getOrder(

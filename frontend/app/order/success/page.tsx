@@ -15,9 +15,11 @@ export const dynamic = "force-dynamic";
 export default async function OrderSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; from?: string }>;
 }) {
-  const { id } = await searchParams;
+  const { id, from } = await searchParams;
+  // Opened from the account page: an earlier order, not one just placed.
+  const past = from === "account";
 
   let order: Order | null = null;
   let loadFailed = false;
@@ -31,7 +33,12 @@ export default async function OrderSuccessPage({
   }
 
   return (
-    <SubPageShell title="Order confirmed" eyebrow="You're all set" backHref="/menu" backLabel="Menu">
+    <SubPageShell
+      title={past ? "Your order" : "Order confirmed"}
+      eyebrow={past ? "Order details" : "You're all set"}
+      backHref={past ? "/account" : "/menu"}
+      backLabel={past ? "My orders" : "Menu"}
+    >
       {!id && <OrderSuccessRedirect />}
 
       {id && loadFailed && (
@@ -59,7 +66,7 @@ export default async function OrderSuccessPage({
                 <CheckCircle className="h-10 w-10" aria-hidden />
               </div>
               <h2 className="font-display text-3xl font-bold tracking-tight text-bun-ink sm:text-4xl lg:text-5xl">
-                Thank you for your order!
+                {past ? "Your order" : "Thank you for your order!"}
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-pretty text-bun-ink-soft lg:text-lg">
                 Follow your order status here or on the Track page.
@@ -81,7 +88,7 @@ export default async function OrderSuccessPage({
               </Card>
             </div>
 
-            <PostOrderFeedback orderId={order.id} />
+            {!past && <PostOrderFeedback orderId={order.id} />}
           </div>
 
           <div className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center lg:mt-12 lg:max-w-2xl">

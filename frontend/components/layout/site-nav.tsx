@@ -24,6 +24,7 @@ const DEFAULT_LINKS: SiteNavLink[] = [
   { href: "/menu", label: "Menu" },
   { href: "/story", label: "Our Story" },
   { href: "/track", label: "Track" },
+  { href: "/account", label: "Account" },
 ];
 
 const pillLink =

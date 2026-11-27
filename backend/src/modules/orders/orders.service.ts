@@ -30,6 +30,12 @@ const orderInclude = {
   },
 } satisfies Prisma.OrderInclude;
 
+/** An order as the public may see it: without the account it belongs to. */
+export function withoutOwner<T extends { userId?: string | null }>(order: T): Omit<T, 'userId'> {
+  const { userId: _userId, ...rest } = order;
+  return rest;
+}
+
 export type StorefrontReason = 'OK' | 'DISABLED' | 'FULL' | 'NO_BATCH';
 
 export type ActiveBatchInfo = {
@@ -205,7 +211,8 @@ export class OrdersService {
     return { unitPrice, selectedOptions, menuId: menu.id };
   }
 
-  async create(dto: CreateOrderDto) {
+  /** `userId` is the signed-in customer, or null for a guest. */
+  async create(dto: CreateOrderDto, userId: string | null = null) {
     const settingsRow = await this.prisma.systemSettings.findFirst({
       orderBy: { id: 'asc' },
     });
@@ -400,6 +407,7 @@ export class OrdersService {
             total,
             paymentChoice,
             paymentReceiptUrl,
+            ...(userId ? { user: { connect: { id: userId } } } : {}),
             batch: { connect: { id: batch.id } },
             orderItems: {
               create: resolved.map((r) => ({
@@ -424,6 +432,26 @@ export class OrdersService {
     this.gateway.broadcastOrderCreated(order);
 
     return order;
+  }
+
+  /**
+   * A signed-in customer's own orders (newest first) and the name and phone from their latest
+   * one, to prefill checkout. Only orders placed while signed in: an order is never matched by
+   * its phone number, which anyone can type.
+   */
+  async mine(user: { id: string; email: string }) {
+    const rows = await this.prisma.order.findMany({
+      where: { userId: user.id },
+      include: orderInclude,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    const last = rows[0];
+    return {
+      email: user.email,
+      details: last ? { name: last.customerName, phone: last.phone } : null,
+      orders: rows.map(withoutOwner),
+    };
   }
 
   async findTrackableByPhone(phoneRaw: string) {

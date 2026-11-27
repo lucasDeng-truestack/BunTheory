@@ -91,14 +91,18 @@ export async function createAuth(prisma: PrismaService, emailService: EmailServi
         expiresIn: 300,
         overrideDefaultEmailVerification: true,
         sendVerificationOnSignUp: true,
-        sendVerificationOTP: async ({ email, otp, type }) => {
+        sendVerificationOTP: async ({ email, otp, type }, ctx) => {
           // Staff never receive a code; the endpoint still answers as for any email.
           if (await isStaffEmail(email)) {
             logger.warn(`Refused to send a ${type} code to a staff account`);
             return;
           }
           // Not awaited (signInCode never rejects): response time must not differ for staff.
-          void emailService.signInCode(email, otp, type);
+          // The code email carries the name of the site the customer is on (by request origin).
+          const origin = ctx?.request?.headers.get('origin') ?? ctx?.headers?.get('origin') ?? '';
+          const bunTheory = (process.env.BUN_THEORY_URL?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
+          const brand = origin.replace(/\/+$/, '') === bunTheory ? 'bun-theory' : 'bakar-roast';
+          void emailService.signInCode(email, otp, type, brand);
         },
       }),
     ],
