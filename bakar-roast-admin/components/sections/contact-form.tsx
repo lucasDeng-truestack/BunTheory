@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { brand, eventTypes, waLink } from "@/lib/content";
 import { Button } from "@/components/ui/button";
 import { Field, SelectField, TextareaField } from "@/components/ui/field";
+import { PhoneField, isValidPhoneNumber, toE164 } from "@/components/ui/phone-field";
 import { Banner } from "@/components/ui/banner";
 
 type Form = { name: string; phone: string; occasion: string; date: string; guests: string; message: string };
@@ -12,7 +13,7 @@ type Errors = Partial<Record<"name" | "phone", string>>;
 function validate(f: Form): Errors {
   const e: Errors = {};
   if (f.name.trim().length < 2) e.name = "Add your name so we know who is asking.";
-  if (f.phone.replace(/\D/g, "").length < 7) e.phone = "Add a phone number we can reach you on.";
+  if (!isValidPhoneNumber(toE164(f.phone) ?? "")) e.phone = "Add a phone number we can reach you on.";
   return e;
 }
 
@@ -33,7 +34,6 @@ export function ContactForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
-  const phoneRef = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof Form) => (e: { target: { value: string } }) => {
     const next = { ...form, [key]: e.target.value };
@@ -46,7 +46,7 @@ export function ContactForm() {
     const found = validate(form);
     setErrors(found);
     if (found.name) return nameRef.current?.focus();
-    if (found.phone) return phoneRef.current?.focus();
+    if (found.phone) return document.getElementById("contact-phone")?.focus();
     const lines = [
       `Hi ${brand.name}, I would like to ask about catering.`,
       "",
@@ -65,14 +65,11 @@ export function ContactForm() {
     <form noValidate onSubmit={onSubmit} className="grid gap-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field ref={nameRef} label="Name" autoComplete="name" value={form.name} onChange={set("name")} error={errors.name} />
-        <Field
-          ref={phoneRef}
+        <PhoneField
+          id="contact-phone"
           label="Phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
           value={form.phone}
-          onChange={set("phone")}
+          onChange={(value) => set("phone")({ target: { value } })}
           error={errors.phone}
         />
       </div>

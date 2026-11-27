@@ -22,7 +22,7 @@ import type { CateringBookingPublic } from "@/lib/api";
 import { CalendarSkeleton } from "@/components/booking/calendar";
 import { StickyBar, SummaryCard } from "@/components/booking/booking-summary";
 import { StatusTimeline } from "@/components/booking/status-timeline";
-import { AccountDemos, AdminCalendarLooksDemo, CalendarDemo, CalendarEmptyDemo, DialogDemo, LoadingButtonDemo, PillDemo, StepperDemo } from "./demos";
+import { AccountDemos, AdminCalendarLooksDemo, CalendarDemo, CalendarEmptyDemo, DialogDemo, LoadingButtonDemo, PhoneFieldDemo, PillDemo, StepperDemo } from "./demos";
 
 export const metadata: Metadata = {
   title: "Components",
@@ -177,13 +177,7 @@ export default function ComponentsPage() {
             <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Your name" placeholder="Full name" autoComplete="name" help="Empty" />
               <Field label="Event address" defaultValue="12 Jalan SS 2/24, Petaling Jaya" help="Filled" />
-              <Field
-                label="Phone"
-                type="tel"
-                inputMode="tel"
-                defaultValue="012 345"
-                error="Enter a full phone number so we can call you."
-              />
+              <PhoneFieldDemo />
               <Field label="Email" type="email" defaultValue="sending@example.com" disabled help="Locked while submitting" />
               <TextareaField label="Dietary notes" optional placeholder="Allergies, no beef, vegetarian guests" />
               <SelectField label="Serving time" defaultValue="19:00">

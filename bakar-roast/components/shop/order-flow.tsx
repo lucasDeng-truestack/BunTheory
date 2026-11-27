@@ -7,6 +7,7 @@ import { ArrowLeft, Minus, Plus, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Field, SelectField, TextareaField } from "@/components/ui/field";
+import { PhoneField, isValidPhoneNumber, toE164 } from "@/components/ui/phone-field";
 import { Banner } from "@/components/ui/banner";
 import { Container } from "@/components/ui/band";
 import { PhotoSlot } from "@/components/ui/photo-slot";
@@ -51,7 +52,6 @@ import {
 const filled = <T extends Record<string, string>>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === "string" && v.trim() !== "")) as Partial<T>;
 
-const PHONE_RE = /^\+?(?:[\s-]*\d){7,15}[\s-]*$/;
 
 /**
  * The page is a menu first, like a takeaway site: delivery or pickup is asked up front in a modal
@@ -373,7 +373,7 @@ export function OrderFlow({
     else if (date && daySlots.length > 0 && !daySlots.includes(slot))
       e.slot = "That time is not available for the date you picked.";
     if (!contact.name.trim()) e.name = "Enter your name.";
-    if (!PHONE_RE.test(contact.phone.trim())) e.phone = "Enter a valid phone number.";
+    if (!isValidPhoneNumber(toE164(contact.phone) ?? "")) e.phone = "Enter a valid phone number.";
     return e;
   }
 
@@ -433,7 +433,7 @@ export function OrderFlow({
         items: cart,
         paymentChoice,
         customerName: contact.name,
-        customerPhone: contact.phone,
+        customerPhone: toE164(contact.phone) ?? contact.phone,
         customerEmail: contact.email || undefined,
         expectedTotal: total,
         idempotencyKey: cartIdempotencyKey(),
@@ -709,18 +709,15 @@ export function OrderFlow({
                     autoComplete="name"
                   />
                   <div className="grid items-start gap-4 sm:grid-cols-2">
-                    <Field
+                    <PhoneField
                       label="Phone"
-                      type="tel"
-                      inputMode="tel"
                       value={contact.phone}
-                      onChange={(e) => {
-                      setContact({ ...contact, phone: e.target.value });
-                      clearError("phone");
-                    }}
+                      onChange={(phone) => {
+                        setContact((c) => ({ ...c, phone }));
+                        clearError("phone");
+                      }}
                       error={errors.phone}
                       help="We reach you on WhatsApp."
-                      autoComplete="tel"
                     />
                     <Field
                       label="Email"

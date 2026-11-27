@@ -9,12 +9,12 @@ import {
 } from "@/lib/shop-api";
 import { imageSrc } from "@/lib/catering-api";
 import { localUploadPath } from "@/lib/bun-theory";
-import { brand } from "@/lib/content";
 import { isSessionGone } from "@/lib/admin-session";
 import { cn } from "@/lib/utils";
 import { Banner, ErrorMark } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { PhoneField, isValidPhoneNumber } from "@/components/ui/phone-field";
 import { useAdmin } from "@/components/admin/admin-context";
 import { describeError } from "@/components/admin/admin-page";
 import { PhotoPicker, useUpload } from "@/components/admin/list-tools";
@@ -30,8 +30,9 @@ type Draft = {
   whatsapp: string;
 };
 
-/** "601175126433" -> "+60 11-7512 6433", as the customer site shows it. */
-function showPhone(digits: string | null): string {
+/** "601175126433" or "+601175126433" -> "+60 11-7512 6433", as the customer site shows it. */
+function showPhone(stored: string | null): string {
+  const digits = (stored ?? "").replace(/\D/g, "");
   if (!digits) return "";
   const m = /^60(\d{2})(\d{3,4})(\d{4})$/.exec(digits);
   return m ? `+60 ${m[1]}-${m[2]} ${m[3]}` : `+${digits}`;
@@ -42,7 +43,7 @@ const toDraft = (s: ShopContactSettings): Draft => ({
   accountName: s.cateringBankAccountName ?? "",
   accountNumber: s.cateringBankAccountNumber ?? "",
   qrUrl: s.cateringPaymentQrUrl ?? "",
-  whatsapp: showPhone(s.shopWhatsappNumber),
+  whatsapp: s.shopWhatsappNumber ? `+${s.shopWhatsappNumber}` : "",
 });
 
 const same = (a: Draft, b: Draft) =>
@@ -102,9 +103,9 @@ export function ShopSettingsForm({
       setNotice({ tone: "error", title: "The QR is still uploading.", help: "Save again when it shows." });
       return;
     }
-    const digits = d.whatsapp.replace(/\D/g, "");
-    if (d.whatsapp.trim() && (digits.length < 9 || digits.length > 15)) {
-      setPhoneError("Enter the number in full, like 011-7512 6433.");
+    // Only a number the owner changed is checked, so an older saved one never blocks other edits.
+    if (d.whatsapp !== base.whatsapp && d.whatsapp.trim() && !isValidPhoneNumber(d.whatsapp)) {
+      setPhoneError("Enter the number in full.");
       onSection("contact");
       // The field is in the Contact section: focus it once that section shows.
       requestAnimationFrame(() => document.getElementById("pay-whatsapp")?.focus());
@@ -231,20 +232,15 @@ export function ShopSettingsForm({
 
         <div className={cn("grid min-w-0 content-start gap-4", section !== "contact" && "hidden")}>
           <Block title="WhatsApp">
-            <Field
+            <PhoneField
               id="pay-whatsapp"
               size="sm"
               label="Business WhatsApp number"
-              optional
-              type="tel"
-              inputMode="tel"
               autoComplete="off"
-              maxLength={30}
-              placeholder={brand.whatsappDisplay}
-              help={`Every "message us" link on the site opens a chat with this number. Leave it empty to use ${brand.whatsappDisplay}.`}
+              help={'Every "message us" link on the site opens a chat with this number.'}
               value={d.whatsapp}
               error={phoneError}
-              onChange={(e) => set({ whatsapp: e.target.value })}
+              onChange={(whatsapp) => set({ whatsapp })}
               className="max-w-[320px]"
             />
           </Block>
@@ -257,7 +253,7 @@ export function ShopSettingsForm({
             railRow("Account name", base.accountName, "Not set"),
             railRow("Account number", base.accountNumber, "Not set"),
             railRow("QR", base.qrUrl.trim() ? "Uploaded" : "", "None"),
-            railRow("WhatsApp", base.whatsapp, brand.whatsappDisplay),
+            railRow("WhatsApp", showPhone(base.whatsapp), "Built-in number"),
           ]}
           note="What customers see now. It updates after you save."
         />

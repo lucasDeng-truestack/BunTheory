@@ -389,3 +389,30 @@ html[data-theme="light"] [data-theme="dark"] .brand-logo-light {
 html[data-theme="light"] [data-theme="dark"] .brand-logo-dark {
   display: block;
 }
+
+/* PhoneField (react-phone-number-input): the flag picker and number sit inside our field box. */
+.phone-field {
+  --PhoneInputCountrySelectArrow-color: currentColor;
+  --PhoneInputCountrySelectArrow-opacity: 0.6;
+  --PhoneInputCountryFlag-borderColor: transparent;
+  --PhoneInputCountryFlag-height: 1.1em;
+  --PhoneInput-color--focus: currentColor;
+}
+.phone-field .PhoneInputInput {
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.phone-field .PhoneInputInput:disabled {
+  cursor: not-allowed;
+}
+.phone-field .PhoneInputCountrySelect {
+  color-scheme: dark;
+}
+html[data-theme="light"] .phone-field .PhoneInputCountrySelect {
+  color-scheme: light;
+}

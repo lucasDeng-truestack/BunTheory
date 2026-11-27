@@ -18,6 +18,7 @@ import {
 } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 import { Field, SelectField, TextareaField } from "@/components/ui/field";
+import { PhoneField } from "@/components/ui/phone-field";
 import { Pill } from "@/components/ui/pill";
 import { GuestStepper } from "@/components/ui/guest-stepper";
 import { Banner, ErrorMark } from "@/components/ui/banner";
@@ -286,7 +287,14 @@ export function StepDetails({
         </div>
         <div className="grid items-start gap-5 sm:grid-cols-3">
           <Field {...text("customerName")} label="Your name" placeholder="Full name" autoComplete="name" maxLength={LIMITS.customerName} />
-          <Field {...text("customerPhone")} label="Phone" type="tel" inputMode="tel" placeholder="012 345 6789" autoComplete="tel" />
+          <PhoneField
+            id={fieldId("customerPhone")}
+            label="Phone"
+            value={answers.customerPhone}
+            onChange={(v) => onChange("customerPhone", v)}
+            onBlur={() => onBlur("customerPhone")}
+            error={errors.customerPhone}
+          />
           <Field
             {...text("customerEmail")}
             label="Email"

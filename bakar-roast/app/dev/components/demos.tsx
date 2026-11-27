@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { PhoneField } from "@/components/ui/phone-field";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
@@ -255,5 +256,17 @@ export function AccountDemos() {
         </div>
       ))}
     </div>
+  );
+}
+
+/** The phone field, live: one empty, one with an error. */
+export function PhoneFieldDemo() {
+  const [a, setA] = useState("");
+  const [b, setB] = useState("+60123");
+  return (
+    <>
+      <PhoneField label="Phone" value={a} onChange={setA} help="Empty" />
+      <PhoneField label="Phone" value={b} onChange={setB} error="Enter a full phone number so we can call you." />
+    </>
   );
 }
