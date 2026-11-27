@@ -420,6 +420,24 @@ export class ShopService {
     return { whatsappNumber, whatsappDisplay: displayPhone(whatsappNumber) };
   }
 
+  /**
+   * The customer says they have paid (by transfer, or with the receipt sent on WhatsApp). Recorded
+   * once; tapping again changes nothing. It never marks the order paid: the owner confirms that.
+   */
+  async markCustomerPaid(accessToken: string): Promise<ShopOrderPage> {
+    const order = await this.findByToken(accessToken);
+    if (order.status === 'CANCELLED') {
+      throw new ConflictException('This order was cancelled.');
+    }
+    if (!order.customerPaidAt && order.status === 'AWAITING_PAYMENT') {
+      await this.prisma.shopOrder.updateMany({
+        where: { id: order.id, customerPaidAt: null },
+        data: { customerPaidAt: new Date() },
+      });
+    }
+    return this.getPublicOrder(accessToken);
+  }
+
   async assertCanAddReceipt(accessToken: string): Promise<void> {
     const order = await this.findByToken(accessToken);
     if (order.status === 'CANCELLED') {

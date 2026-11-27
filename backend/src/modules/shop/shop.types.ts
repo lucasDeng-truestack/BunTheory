@@ -143,6 +143,8 @@ export type ShopOrderPublic = {
   amountDue: string;
   depositPaidAt: string | null;
   fullyPaidAt: string | null;
+  /** When the customer said they have paid. The owner still confirms it. */
+  customerPaidAt: string | null;
   receipts: ShopReceiptView[];
   createdAt: string;
 };

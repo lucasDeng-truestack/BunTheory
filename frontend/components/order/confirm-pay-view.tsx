@@ -6,7 +6,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-import { Loader2, QrCode, Wallet, Upload, X, Lock } from "lucide-react";
+import { Download, Expand, Loader2, QrCode, Wallet, Upload, X, Lock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -390,14 +398,45 @@ export function ConfirmPayView({
                     Scan to pay <span className="font-bold text-bun-ink">{formatRM(totals.total)}</span>, then
                     upload your receipt.
                   </p>
-                  <div className="mx-auto h-44 w-44 overflow-hidden rounded-xl border-2 border-bun-ink bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={qrSrc}
-                      alt="Payment QR"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Show the payment QR full size"
+                        className="relative mx-auto block h-44 w-44 overflow-hidden rounded-xl border-2 border-bun-ink bg-white transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bun-red/40 focus-visible:ring-offset-2"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={qrSrc} alt="Payment QR" className="h-full w-full object-contain" />
+                        <span className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full border-2 border-bun-ink bg-bun-yellow text-bun-ink">
+                          <Expand className="h-4 w-4" aria-hidden />
+                        </span>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="font-display text-2xl font-bold text-bun-ink">Scan to pay</DialogTitle>
+                        <DialogDescription>
+                          Pay <span className="font-bold text-bun-ink">{formatRM(totals.total)}</span>. Paying on this
+                          phone? Save the QR, then choose it with &ldquo;scan from gallery&rdquo; in your banking app.
+                        </DialogDescription>
+                      </DialogHeader>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={qrSrc}
+                        alt="Payment QR, full size"
+                        className="mx-auto w-full max-w-[380px] rounded-xl border-2 border-bun-ink bg-white object-contain p-2"
+                      />
+                      <a
+                        href={qrSrc}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-h-11 items-center gap-2 font-display text-sm font-semibold text-bun-ink underline underline-offset-4"
+                      >
+                        <Download className="h-4 w-4" aria-hidden /> Open the image to save it
+                      </a>
+                    </DialogContent>
+                  </Dialog>
+                  <p className="text-center text-caption">Tap the QR to enlarge it</p>
 
                   <ReceiptUpload
                     file={receiptFile}

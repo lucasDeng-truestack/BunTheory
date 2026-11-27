@@ -79,6 +79,12 @@ function OrderCard({ order, onChanged }: { order: ShopOrderAdmin; onChanged: () 
         </span>
       </div>
 
+      {order.status === "AWAITING_PAYMENT" && order.customerPaidAt && (
+        <p className="m-0 text-[13px] font-semibold text-ember">
+          Customer says they have paid ({new Date(order.customerPaidAt).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}). Check your bank, then confirm below.
+        </p>
+      )}
+
       {order.receipts.length > 0 && (
         <div className="flex flex-wrap gap-2 text-[13px]">
           <span className="text-cream-faint">Receipts:</span>

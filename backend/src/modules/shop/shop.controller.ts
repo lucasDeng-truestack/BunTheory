@@ -72,6 +72,16 @@ export class ShopController {
     return this.shop.getPublicOrder(accessToken);
   }
 
+  /** "I've made the payment": the customer's word, for the owner to check. */
+  @Post('orders/:accessToken/paid')
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 3600000 } })
+  @SkipThrottle({ day: true })
+  markPaid(@Param('accessToken') accessToken: string) {
+    return this.shop.markCustomerPaid(accessToken);
+  }
+
   /**
    * Payment receipt from the order page, on phone or desktop. The unguessable accessToken is the
    * only key, as for the order page itself, so returning from a banking app never loses the order.

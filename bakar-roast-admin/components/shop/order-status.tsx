@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Check, Copy, Download, MessageCircle, Upload } from "lucide-react";
+import { BadgeCheck, Check, Copy, Download, Expand, MessageCircle, Upload } from "lucide-react";
 import { Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/headline";
 import { Banner } from "@/components/ui/banner";
 import { waLink } from "@/lib/content";
 import { cn } from "@/lib/utils";
-import { uploadShopReceipt, type ShopOrderPage, type ShopOrderPublic } from "@/lib/shop-api";
+import { markShopOrderPaid, uploadShopReceipt, type ShopOrderPage, type ShopOrderPublic } from "@/lib/shop-api";
 import { imageSrc } from "@/lib/catering-api";
 import { formatDateLabel, formatRm, slotLabel } from "@/lib/shop";
+import { Modal } from "@/components/shop/modal";
 import { OrderSteps } from "@/components/shop/order-steps";
 
 const STATUS: Record<ShopOrderPublic["status"], { label: string; tone: "wait" | "ok" | "done" | "off" }> = {
@@ -97,9 +98,25 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   const pay = order.payment;
   const qrSrc = imageSrc(pay.qrUrl);
   const hasPayDetails = !!(pay.accountNumber || qrSrc);
+  const [qrOpen, setQrOpen] = useState(false);
   const receiptIn = order.receipts.length > 0;
-  const toPay = order.status === "AWAITING_PAYMENT" && !receiptIn;
-  const checking = order.status === "AWAITING_PAYMENT" && receiptIn;
+  // "I've made the payment" counts like a receipt: the order is placed, and we check the money.
+  const claimed = !!order.customerPaidAt;
+  const toPay = order.status === "AWAITING_PAYMENT" && !receiptIn && !claimed;
+  const checking = order.status === "AWAITING_PAYMENT" && (receiptIn || claimed);
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState<string | null>(null);
+  async function markPaid() {
+    setMarking(true);
+    setMarkError(null);
+    try {
+      setOrder(await markShopOrderPaid(order.accessToken));
+    } catch (err) {
+      setMarkError(err instanceof Error ? err.message : "Could not save that. Please try again.");
+    } finally {
+      setMarking(false);
+    }
+  }
   const firstName = order.customerName.split(" ")[0];
   const status = checking ? { label: "Checking payment", tone: "ok" as const } : STATUS[order.status];
   const paid = order.status === "DEPOSIT_PAID" || order.status === "PAID";
@@ -168,8 +185,11 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   );
 
   return (
-    <Container className="grid max-w-[640px] gap-8 pb-24 [&>*]:min-w-0">
+    <Container className={cn("grid max-w-[1200px] gap-8 [&>*]:min-w-0", toPay ? "pb-36 lg:pb-24" : "pb-24")}>
       {toPay && <OrderSteps current={3} />}
+
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10 [&>*]:min-w-0">
+      <div className="grid content-start gap-8 [&>*]:min-w-0">
 
       {/* Header */}
       <div className="grid gap-2">
@@ -192,9 +212,11 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
         </div>
         <p className="m-0 text-cream-muted">
           {toPay
-            ? `Almost there, ${firstName}. We are holding your order, and it is placed once you pay and upload your receipt below.`
+            ? `Almost there, ${firstName}. We are holding your order. Pay, then send your receipt or tap "I've made the payment".`
             : checking
-              ? "We have your receipt. We will check the payment and confirm on WhatsApp."
+              ? receiptIn
+                ? "We have your receipt. We will check the payment and confirm on WhatsApp."
+                : "Thanks for letting us know you have paid. We will check the payment and confirm on WhatsApp."
               : "Save this page. The link is your order."}
         </p>
         {toPay && (
@@ -211,8 +233,6 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
           </Button>
         </div>
       </div>
-
-      {!toPay && summary}
 
       {/* Payment */}
       {cancelled ? (
@@ -249,15 +269,25 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
             </div>
             {qrSrc && (
               <div className="grid justify-items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element -- an owner upload, from any storage host */}
-                <img
-                  src={qrSrc}
-                  alt="QR code to pay Bakar & Roast"
-                  width={160}
-                  height={160}
-                  className="h-40 w-40 rounded-card-sm bg-cream object-contain p-2"
-                />
-                <span className="text-[13px] text-cream-muted">Scan to pay</span>
+                <button
+                  type="button"
+                  onClick={() => setQrOpen(true)}
+                  aria-label="Show the payment QR full size"
+                  className="group relative rounded-card-sm transition-transform hover:scale-[1.02]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- an owner upload, from any storage host */}
+                  <img
+                    src={qrSrc}
+                    alt="QR code to pay Bakar & Roast"
+                    width={160}
+                    height={160}
+                    className="h-40 w-40 rounded-card-sm bg-cream object-contain p-2"
+                  />
+                  <span className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full bg-ink text-cream shadow">
+                    <Expand aria-hidden size={15} />
+                  </span>
+                </button>
+                <span className="text-[13px] text-cream-muted">Scan to pay, or tap to enlarge</span>
                 <a
                   href={qrSrc}
                   target="_blank"
@@ -368,13 +398,98 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
             <p className="m-0 text-[13px] text-cream-muted">
               {receiptIn
                 ? "Got it. Your order is placed. We will confirm your payment and be in touch on WhatsApp."
-                : "Sent it on WhatsApp? This page changes to paid once we have confirmed it."}
+                : 'Sent it on WhatsApp, or paid without a receipt? Tap "I\'ve made the payment" so we know to check.'}
             </p>
           </div>
         </section>
       )}
+      </div>
 
-      {toPay && summary}
+      {/* Side panel: the order and the one thing to do next, always in view on a wide screen. */}
+      <aside className="grid content-start gap-4 lg:sticky lg:top-28">
+        {(toPay || checking) && (
+          <section className="grid gap-4 rounded-card-sm border border-ember p-5">
+            <div className="grid gap-1">
+              <span className="type-eyebrow text-cream-faint">{checking ? "Payment sent" : "To pay now"}</span>
+              <b className="display-sm text-cream">{formatRm(order.amountDue)}</b>
+              <span className="text-[13px] text-cream-muted">Reference {order.reference}</span>
+            </div>
+            {toPay ? (
+              <>
+                <Button onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" block>
+                  I&apos;ve made the payment
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  loading={uploading}
+                  loadingLabel="Uploading"
+                  block
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Upload aria-hidden size={16} />
+                    Upload receipt instead
+                  </span>
+                </Button>
+                <p className="m-0 text-[13px] text-cream-muted">
+                  Paid by transfer or sent the receipt on WhatsApp? Tap the button and we will check it. A receipt helps us
+                  confirm faster.
+                </p>
+                {markError && <Banner tone="error" title={markError} />}
+              </>
+            ) : (
+              <p className="m-0 flex gap-2 text-[14px] text-cream">
+                <BadgeCheck aria-hidden size={18} className="mt-0.5 flex-none text-ember" />
+                <span>
+                  {receiptIn ? "Receipt received." : "You told us you have paid."} We are checking it and will confirm on
+                  WhatsApp.
+                </span>
+              </p>
+            )}
+          </section>
+        )}
+        {summary}
+      </aside>
+      </div>
+
+      {/* Phone: the main action stays in reach without scrolling. */}
+      {toPay && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-line bg-ink/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-[640px] items-center gap-3">
+            <div className="grid min-w-0">
+              <span className="text-[12px] text-cream-muted">To pay</span>
+              <b className="text-cream">{formatRm(order.amountDue)}</b>
+            </div>
+            <Button onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" className="ml-auto">
+              I&apos;ve made the payment
+            </Button>
+          </div>
+        </div>
+      )}
+      {qrSrc && (
+        <Modal open={qrOpen} onClose={() => setQrOpen(false)} eyebrow={`Pay ${formatRm(order.amountDue)}`} title="Scan to pay">
+          {/* eslint-disable-next-line @next/next/no-img-element -- an owner upload, from any storage host */}
+          <img
+            src={qrSrc}
+            alt="QR code to pay Bakar & Roast, full size"
+            className="mx-auto w-full max-w-[420px] rounded-card-sm bg-cream object-contain p-3"
+          />
+          <p className="m-0 text-[14px] text-cream-muted">
+            Paying on this phone? Save the QR, then choose it with &ldquo;scan from gallery&rdquo; in your banking app. Put{" "}
+            <b className="text-cream">{order.reference}</b> as the reference.
+          </p>
+          <a
+            href={qrSrc}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 w-fit items-center gap-2 font-semibold text-cream underline hover:text-ember"
+          >
+            <Download aria-hidden size={16} /> Open the image to save it
+          </a>
+        </Modal>
+      )}
     </Container>
   );
 }

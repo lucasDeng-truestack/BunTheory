@@ -89,6 +89,8 @@ export interface ShopOrderPublic {
   amountDue: string;
   depositPaidAt: string | null;
   fullyPaidAt: string | null;
+  /** When the customer tapped "I've made the payment". The owner still confirms it. */
+  customerPaidAt: string | null;
   receipts: ShopReceiptView[];
   createdAt: string;
 }
@@ -391,6 +393,10 @@ export const shopAdminReorderPackages = (token: string, ids: string[]) =>
     method: "POST",
     body: JSON.stringify({ ids }),
   });
+
+/** "I've made the payment": records the customer's word on the order, for the owner to check. */
+export const markShopOrderPaid = (accessToken: string) =>
+  api<ShopOrderPage>(`/shop/orders/${encodeURIComponent(accessToken)}/paid`, { method: "POST" });
 
 export async function uploadShopReceipt(accessToken: string, file: File): Promise<ShopOrderPage> {
   const form = new FormData();
