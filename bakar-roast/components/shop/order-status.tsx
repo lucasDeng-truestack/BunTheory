@@ -99,6 +99,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   const qrSrc = imageSrc(pay.qrUrl);
   const hasPayDetails = !!(pay.accountNumber || qrSrc);
   const [qrOpen, setQrOpen] = useState(false);
+  const [phoneQrOpen, setPhoneQrOpen] = useState(false);
   const receiptIn = order.receipts.length > 0;
   // "I've made the payment" counts like a receipt: the order is placed, and we check the money.
   const claimed = !!order.customerPaidAt;
@@ -185,7 +186,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   );
 
   return (
-    <Container className={cn("grid max-w-[1200px] gap-8 [&>*]:min-w-0", toPay ? "pb-36 lg:pb-24" : "pb-24")}>
+    <Container className={cn("grid max-w-[1200px] gap-6 sm:gap-8 [&>*]:min-w-0", toPay ? "pb-44 lg:pb-24" : "pb-24")}>
       {toPay && <OrderSteps current={3} />}
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10 [&>*]:min-w-0">
@@ -212,7 +213,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
         </div>
         <p className="m-0 text-cream-muted">
           {toPay
-            ? `Almost there, ${firstName}. We are holding your order. Pay, then send your receipt or tap "I've made the payment".`
+            ? `Almost there, ${firstName}. We are holding your order. Pay, then upload your receipt to place it.`
             : checking
               ? receiptIn
                 ? "We have your receipt. We will check the payment and confirm on WhatsApp."
@@ -221,16 +222,18 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
         </p>
         {toPay && (
           <p className="m-0 text-[13px] text-cream-muted">
-            Switching to your banking app is fine. This page is saved to its link, so come back to it any time.
+            Switching to your banking app is fine. This page stays saved to its link.
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" size="sm" onClick={copyLink}>
-            {linkCopied ? "Link copied" : "Copy my order link"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={messageUs}>
-            Message us about this order
-          </Button>
+        <div className="flex flex-wrap items-center gap-x-5 text-[14px]">
+          <button type="button" onClick={copyLink} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-cream underline underline-offset-4 hover:text-ember">
+            <Copy aria-hidden size={14} />
+            {linkCopied ? "Link copied" : "Copy order link"}
+          </button>
+          <button type="button" onClick={messageUs} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-cream underline underline-offset-4 hover:text-ember">
+            <MessageCircle aria-hidden size={14} />
+            Message us
+          </button>
         </div>
       </div>
 
@@ -249,14 +252,14 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
             <h2 className="display-sm m-0 text-cream">
               {checking ? `Payment of ${formatRm(order.amountDue)}` : `Pay ${formatRm(order.amountDue)}`}
             </h2>
-            <p className="m-0 text-cream-muted">
+            <p className="m-0 text-[15px] text-cream-muted">
               {order.paymentChoice === "FULL" ? "The full total." : "Half now, the rest later."}{" "}
-              {qrSrc ? "Transfer by bank or scan the QR" : "Transfer by bank"}, then send your receipt below{toPay ? " to place the order" : ""}.
+              {qrSrc ? "Transfer by bank or scan the QR" : "Transfer by bank"}, then let us know{toPay ? " to place the order" : ""}.
             </p>
           </div>
 
-          <div className="grid gap-5 rounded-card-sm border border-cream-faint p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div className="grid">
+          <div className="grid gap-5 rounded-card-sm border border-cream-faint p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+            <div className="grid max-sm:order-2">
               <CopyRow label="Amount" value={formatRm(order.amountDue)} />
               {pay.bankName && <CopyRow label="Bank" value={pay.bankName} />}
               {pay.accountName && <CopyRow label="Account name" value={pay.accountName} />}
@@ -268,7 +271,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
               </p>
             </div>
             {qrSrc && (
-              <div className="grid justify-items-center gap-2">
+              <div className="flex items-center gap-4 max-sm:order-1 max-sm:border-b max-sm:border-ink-line max-sm:pb-4 sm:grid sm:justify-items-center sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setQrOpen(true)}
@@ -281,12 +284,13 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
                     alt="QR code to pay Bakar & Roast"
                     width={160}
                     height={160}
-                    className="h-40 w-40 rounded-card-sm bg-cream object-contain p-2"
+                    className="h-28 w-28 rounded-card-sm bg-cream object-contain p-1.5 sm:h-40 sm:w-40 sm:p-2"
                   />
                   <span className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full bg-ink text-cream shadow">
                     <Expand aria-hidden size={15} />
                   </span>
                 </button>
+                <div className="grid gap-1 sm:justify-items-center">
                 <span className="text-[13px] text-cream-muted">Scan to pay, or tap to enlarge</span>
                 <a
                   href={qrSrc}
@@ -296,6 +300,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
                 >
                   <Download aria-hidden size={14} /> Open QR to save it
                 </a>
+                </div>
               </div>
             )}
           </div>
@@ -309,98 +314,6 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
               </span>
             </Banner>
           )}
-
-          {/* Receipt: three ways to send it */}
-          <div className="grid gap-4 rounded-card-sm border border-cream-faint p-5">
-            <div className="grid gap-1">
-              <h3 className="type-eyebrow m-0 text-cream-faint">Send us your receipt</h3>
-              <p className="m-0 text-[13px] text-cream-muted">
-                A photo or PDF of your transfer. {toPay ? "Sending it places your order. " : ""}We confirm once we have
-                checked it. Pick whichever is easiest.
-              </p>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              className="hidden"
-              onChange={(e) => onFile(e.target.files?.[0])}
-            />
-            <ol className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3">
-              <li className="grid content-start gap-3 rounded-card-sm border border-ink-line p-4">
-                <div className="grid gap-1">
-                  <b className="text-cream">Upload it here</b>
-                  <span className="text-[13px] text-cream-muted">From this phone or computer.</span>
-                </div>
-                <Button
-                  variant="cream"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  loading={uploading}
-                  loadingLabel="Uploading"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Upload aria-hidden size={16} />
-                    {receiptIn ? "Upload another" : "Upload receipt"}
-                  </span>
-                </Button>
-              </li>
-              <li className="grid content-start gap-3 rounded-card-sm border border-ink-line p-4">
-                <div className="grid gap-1">
-                  <b className="text-cream">Send it on WhatsApp</b>
-                  <span className="text-[13px] text-cream-muted">
-                    We open a chat with your order number filled in. Attach the receipt and send.
-                  </span>
-                </div>
-                <Button variant="ghost" size="sm" onClick={sendReceiptOnWhatsApp}>
-                  <span className="inline-flex items-center gap-2">
-                    <MessageCircle aria-hidden size={16} />
-                    Open WhatsApp
-                  </span>
-                </Button>
-              </li>
-              {/* Scanning your own screen is no use on a phone, so this one is for wider screens. */}
-              <li className="hidden content-start gap-3 rounded-card-sm border border-ink-line p-4 sm:grid">
-                <div className="grid gap-1">
-                  <b className="text-cream">Receipt is on your phone?</b>
-                  <span className="text-[13px] text-cream-muted">
-                    Scan this to open your order on the phone, then upload from there.
-                  </span>
-                </div>
-                {pageQr ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- a data URL made in the browser
-                  <img
-                    src={pageQr}
-                    alt={`QR code that opens order ${order.reference} on your phone`}
-                    width={120}
-                    height={120}
-                    className="rounded-card-sm bg-cream p-1.5"
-                  />
-                ) : (
-                  <div aria-hidden className="h-[120px] w-[120px] rounded-card-sm bg-ink-line" />
-                )}
-              </li>
-            </ol>
-            {uploadError && <Banner tone="error" title={uploadError} />}
-            {receiptIn && (
-              <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
-                {order.receipts.map((r) => (
-                  <li key={r.id} className="flex items-center gap-2 text-cream-muted">
-                    <Check size={14} className="text-ember" />
-                    <a href={r.fileUrl} target="_blank" rel="noreferrer" className="text-cream hover:text-ember">
-                      {r.fileName ?? "Receipt"}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="m-0 text-[13px] text-cream-muted">
-              {receiptIn
-                ? "Got it. Your order is placed. We will confirm your payment and be in touch on WhatsApp."
-                : 'Sent it on WhatsApp, or paid without a receipt? Tap "I\'ve made the payment" so we know to check.'}
-            </p>
-          </div>
         </section>
       )}
       </div>
@@ -409,6 +322,13 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
       <aside className="grid content-start gap-4 lg:sticky lg:top-28">
         {(toPay || checking) && (
           <section className="grid gap-4 rounded-card-sm border border-ember p-5">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="hidden"
+              onChange={(e) => onFile(e.target.files?.[0])}
+            />
             <div className="grid gap-1">
               <span className="type-eyebrow text-cream-faint">{checking ? "Payment sent" : "To pay now"}</span>
               <b className="display-sm text-cream">{formatRm(order.amountDue)}</b>
@@ -416,38 +336,70 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
             </div>
             {toPay ? (
               <>
-                <Button onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" block>
-                  I&apos;ve made the payment
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  loading={uploading}
-                  loadingLabel="Uploading"
-                  block
-                >
+                <p className="m-0 text-[14px] text-cream-muted">
+                  After you pay, tell us one of these ways<span className="lg:hidden"> (buttons at the bottom of the screen)</span>:
+                </p>
+                {/* On a phone these two live in the bar fixed to the bottom of the screen, so they show once. */}
+                <div className="grid gap-4 max-lg:hidden">
+                <Button onClick={() => fileRef.current?.click()} loading={uploading} loadingLabel="Uploading" block>
                   <span className="inline-flex items-center gap-2">
                     <Upload aria-hidden size={16} />
-                    Upload receipt instead
+                    Upload my receipt
                   </span>
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" block>
+                  I&apos;ve paid, no receipt to upload
+                </Button>
+                </div>
                 <p className="m-0 text-[13px] text-cream-muted">
-                  Paid by transfer or sent the receipt on WhatsApp? Tap the button and we will check it. A receipt helps us
-                  confirm faster.
+                  Rather send it on WhatsApp?{" "}
+                  <button type="button" onClick={sendReceiptOnWhatsApp} className="font-semibold text-cream underline hover:text-ember">
+                    Open WhatsApp
+                  </button>
+                  , then tap &ldquo;I&apos;ve paid&rdquo; above.
                 </p>
+                {pageQr && (
+                  <p className="m-0 hidden text-[13px] text-cream-muted lg:block">
+                    Receipt on your phone?{" "}
+                    <button type="button" onClick={() => setPhoneQrOpen(true)} className="font-semibold text-cream underline hover:text-ember">
+                      Open this page on your phone
+                    </button>
+                  </p>
+                )}
                 {markError && <Banner tone="error" title={markError} />}
               </>
             ) : (
-              <p className="m-0 flex gap-2 text-[14px] text-cream">
-                <BadgeCheck aria-hidden size={18} className="mt-0.5 flex-none text-ember" />
-                <span>
-                  {receiptIn ? "Receipt received." : "You told us you have paid."} We are checking it and will confirm on
-                  WhatsApp.
-                </span>
-              </p>
+              <>
+                <p className="m-0 flex gap-2 text-[14px] text-cream">
+                  <BadgeCheck aria-hidden size={18} className="mt-0.5 flex-none text-ember" />
+                  <span>
+                    {receiptIn ? "Receipt received." : "You told us you have paid."} We are checking it and will confirm on
+                    WhatsApp.
+                  </span>
+                </p>
+                {receiptIn && (
+                  <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
+                    {order.receipts.map((r) => (
+                      <li key={r.id} className="flex items-center gap-2 text-cream-muted">
+                        <Check size={14} className="flex-none text-ember" />
+                        <a href={r.fileUrl} target="_blank" rel="noreferrer" className="truncate text-cream hover:text-ember">
+                          {r.fileName ?? "Receipt"}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="w-fit text-[13px] font-semibold text-cream-muted underline hover:text-cream disabled:no-underline"
+                >
+                  {uploading ? "Uploading" : receiptIn ? "Upload another receipt" : "Add a receipt"}
+                </button>
+              </>
             )}
+            {uploadError && <Banner tone="error" title={uploadError} />}
           </section>
         )}
         {summary}
@@ -457,14 +409,21 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
       {/* Phone: the main action stays in reach without scrolling. */}
       {toPay && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-line bg-ink/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-[640px] items-center gap-3">
-            <div className="grid min-w-0">
-              <span className="text-[12px] text-cream-muted">To pay</span>
-              <b className="text-cream">{formatRm(order.amountDue)}</b>
+          <div className="mx-auto grid max-w-[640px] gap-2">
+            <p className="m-0 text-center text-[13px] text-cream-muted">
+              Pay <b className="text-cream">{formatRm(order.amountDue)}</b>, then:
+            </p>
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <Button onClick={() => fileRef.current?.click()} loading={uploading} loadingLabel="Uploading" chip={false} block>
+                <span className="inline-flex items-center gap-2">
+                  <Upload aria-hidden size={16} />
+                  Upload receipt
+                </span>
+              </Button>
+              <Button variant="ghost" onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" chip={false}>
+                I&apos;ve paid
+              </Button>
             </div>
-            <Button onClick={() => void markPaid()} loading={marking} loadingLabel="Saving" className="ml-auto">
-              I&apos;ve made the payment
-            </Button>
           </div>
         </div>
       )}
@@ -488,6 +447,13 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
           >
             <Download aria-hidden size={16} /> Open the image to save it
           </a>
+        </Modal>
+      )}
+      {pageQr && (
+        <Modal open={phoneQrOpen} onClose={() => setPhoneQrOpen(false)} eyebrow={`Order ${order.reference}`} title="Open on your phone">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a data URL made in the browser */}
+          <img src={pageQr} alt={`QR code that opens order ${order.reference} on your phone`} className="mx-auto w-full max-w-[280px] rounded-card-sm bg-cream p-2" />
+          <p className="m-0 text-[14px] text-cream-muted">Scan with your phone camera. This order opens there, and you can upload the receipt from your gallery.</p>
         </Modal>
       )}
     </Container>
