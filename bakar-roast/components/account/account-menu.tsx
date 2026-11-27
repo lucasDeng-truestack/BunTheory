@@ -44,16 +44,15 @@ export function AccountMenu({ className }: { className?: string }) {
 
   if (customer.status === "guest") {
     return (
-      <Link
-        href="/account"
-        className={cn(
-          "inline-flex h-12 items-center gap-2 rounded-full border border-cream-faint px-4 text-[15px] font-semibold text-cream no-underline transition-colors hover:border-cream",
-          className,
-        )}
-      >
-        <UserRound aria-hidden size={18} strokeWidth={1.75} />
-        Sign in
-      </Link>
+      <div className={className}>
+        <Link
+          href="/account"
+          className="inline-flex h-12 items-center gap-2 whitespace-nowrap rounded-full border border-cream-faint pl-4 pr-5 text-[15px] font-semibold leading-none text-cream no-underline transition-colors hover:border-cream hover:bg-cream/5"
+        >
+          <UserRound aria-hidden size={18} strokeWidth={1.75} className="flex-none" />
+          Sign in
+        </Link>
+      </div>
     );
   }
 

@@ -46,10 +46,12 @@ export function AccountMenu({ className }: { className?: string }) {
 
   if (customer.status === "guest") {
     return (
-      <Link href="/account" className={cn(pill, "px-4", className)}>
-        <UserRound className="h-4 w-4" aria-hidden />
-        Sign in
-      </Link>
+      <div className={className}>
+        <Link href="/account" className={cn(pill, "whitespace-nowrap pl-3.5 pr-4 leading-none")}>
+          <UserRound className="h-4 w-4 flex-none" aria-hidden />
+          Sign in
+        </Link>
+      </div>
     );
   }
 
