@@ -16,9 +16,13 @@ export const brand = {
   bunTheoryUrl: process.env.NEXT_PUBLIC_BUN_THEORY_URL || "http://localhost:3000",
 };
 
+/**
+ * A "message us on WhatsApp" link. It points at this site's /wa page, which sends the visitor on
+ * to the business number the owner has saved in the admin (app/wa/route.ts), so changing the
+ * number never needs a code change. `brand.whatsappNumber` is only the fallback.
+ */
 export function waLink(message?: string) {
-  const base = `https://wa.me/${brand.whatsappNumber}`;
-  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+  return message ? `/wa?text=${encodeURIComponent(message)}` : "/wa";
 }
 
 // Header and phone menu, in this order. The wordmark links home.
@@ -46,7 +50,8 @@ export const bookCta = { label: "Order Now", href: "/order" };
 
 export const footerColumns: {
   title: string;
-  links: { label: string; href: string; external?: boolean }[];
+  /** `whatsapp`: the footer shows the business number after the label. */
+  links: { label: string; href: string; external?: boolean; whatsapp?: boolean }[];
 }[] = [
   {
     title: "Order",
@@ -60,7 +65,9 @@ export const footerColumns: {
     links: [
       // Non-breaking so the number never splits across lines in a narrow column.
       {
-        label: `WhatsApp ${brand.whatsappDisplay.replace(/-/g, "\u2011").replace(/ /g, "\u00a0")}`,
+        // The footer adds the saved number after this label (see ui/footer.tsx).
+        label: "WhatsApp",
+        whatsapp: true,
         href: waLink("Hi Bakar & Roast, I've got a question."),
         external: true,
       },

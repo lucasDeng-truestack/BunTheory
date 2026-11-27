@@ -12,6 +12,9 @@ export const SHOP_PACKAGE_MAX_INCLUDES = 20;
 /** Packages the owner can keep, shown or hidden. Keeps the menu payload bounded. */
 export const SHOP_PACKAGES_MAX = 50;
 
+/** The business WhatsApp number used until the owner sets one in the admin. Digits, with country code. */
+export const SHOP_WHATSAPP_DEFAULT = '601175126433';
+
 /** How the customer collects a pickup order. Exact address shared over WhatsApp. */
 export const SHOP_PICKUP_AREA = 'Taman SEA, Petaling Jaya';
 

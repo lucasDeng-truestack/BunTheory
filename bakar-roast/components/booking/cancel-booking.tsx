@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, type CateringBookingStatus } from "@/lib/api";
 import { cancelBooking } from "@/lib/catering-api";
-import { brand, statusCopy, waLink } from "@/lib/content";
+import { statusCopy, waLink } from "@/lib/content";
 import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
 import { Dialog } from "@/components/ui/dialog";
@@ -34,7 +34,7 @@ export function DeadlinePassed() {
       <b className="font-semibold">{statusCopy.deadlinePassed}</b>
       <p className="type-small m-0 flex flex-wrap items-center gap-x-4 text-cream-muted">
         <span>
-          WhatsApp <span className="select-all">{brand.whatsappDisplay}</span>
+          Message us on WhatsApp
         </span>
         <a href={waLink()} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex min-h-11 items-center`}>
           {statusCopy.openWhatsapp}

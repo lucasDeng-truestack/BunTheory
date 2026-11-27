@@ -1,4 +1,5 @@
 import { CateringBooking } from '@prisma/client';
+import { SHOP_WHATSAPP_DEFAULT } from '../shop/shop.config';
 
 export interface EmailContent {
   subject: string;
@@ -165,9 +166,17 @@ function hi(b: CateringBooking): Part {
  * /order). Customer emails point to WhatsApp, quoting the reference, and to /order; owner emails
  * point to the admin home.
  */
-const WHATSAPP = 'https://wa.me/601175126433';
+/**
+ * WhatsApp links go through the site's /wa page, which sends the reader on to whatever business
+ * number the owner has saved in the admin. Without a real site URL, the built-in number is used.
+ */
+// Read when an email is built, not when this file loads: the .env file is not loaded that early.
+const whatsappBase = () => {
+  const site = (process.env.PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
+  return /^https:\/\//i.test(site) ? `${site}/wa` : `https://wa.me/${SHOP_WHATSAPP_DEFAULT}`;
+};
 const whatsappLink = (b: CateringBooking) =>
-  `${WHATSAPP}?text=${encodeURIComponent(`Hi Bakar & Roast, about my catering booking ${b.reference}.`)}`;
+  `${whatsappBase()}?text=${encodeURIComponent(`Hi Bakar & Roast, about my catering booking ${b.reference}.`)}`;
 const orderLink = (site: string) => `${site}/order`;
 const adminLink = (_site: string, _b: CateringBooking) =>
   `${(process.env.ADMIN_URL?.trim() || 'http://localhost:3300').replace(/\/+$/, '')}/admin`;

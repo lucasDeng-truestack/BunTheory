@@ -1,4 +1,4 @@
-import { brand, chatCopy, waLink } from "@/lib/content";
+import { chatCopy, waLink } from "@/lib/content";
 import { Band, Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/headline";
@@ -16,9 +16,6 @@ export function ChatBlock() {
           <p className="m-0 max-w-[40ch] text-cream-muted">{chatCopy.body}</p>
         </Reveal>
         <Reveal index={1} className="grid justify-items-start gap-4">
-          <span className="select-all whitespace-nowrap font-display text-[length:clamp(36px,5vw,64px)] font-extrabold leading-none [font-stretch:80%]">
-            {brand.whatsappDisplay}
-          </span>
           <Button href={waLink()} variant="cream" target="_blank" rel="noopener noreferrer">
             {chatCopy.action}
           </Button>

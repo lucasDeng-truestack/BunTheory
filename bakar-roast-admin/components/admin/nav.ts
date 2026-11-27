@@ -1,6 +1,7 @@
 import {
   CalendarClock,
   ChefHat,
+  Landmark,
   LayoutDashboard,
   MessageSquareQuote,
   Package,
@@ -38,6 +39,7 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Orders", href: "/admin/shop-orders", icon: ShoppingBag, title: "Shop orders" },
       { label: "Schedule", href: "/admin/shop-schedule", icon: CalendarClock, title: "Shop schedule" },
       { label: "Packages", href: "/admin/shop-packages", icon: Package, title: "Shop packages" },
+      { label: "Payment", href: "/admin/shop-payment", icon: Landmark, title: "Payment and contact" },
     ],
   },
   {

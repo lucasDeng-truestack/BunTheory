@@ -55,7 +55,9 @@ function SlideOut({ rootRef, children }: { rootRef: RefObject<HTMLElement>; chil
  * (it rises into place when it enters view).
  * Not rendered on /admin or in the booking flow (/catering/book).
  */
-export function Footer() {
+export function Footer({ whatsappDisplay }: { whatsappDisplay: string }) {
+  // Non-breaking, so the number never splits across lines in a narrow column.
+  const number = whatsappDisplay.replace(/-/g, "\u2011").replace(/ /g, "\u00a0");
   const pathname = usePathname() ?? "/";
   const reduce = usePrefersReducedMotion();
   const footerRef = useRef<HTMLElement>(null);
@@ -83,7 +85,7 @@ export function Footer() {
                         rel="noreferrer"
                         className="inline-flex min-h-11 items-center text-cream no-underline hover:text-ember"
                       >
-                        {link.label}
+                        {link.whatsapp ? `${link.label} ${number}` : link.label}
                       </a>
                     ) : (
                       <Link href={link.href} className="inline-flex min-h-11 items-center text-cream no-underline hover:text-ember">

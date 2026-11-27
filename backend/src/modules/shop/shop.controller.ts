@@ -34,6 +34,12 @@ export class ShopController {
     return this.shop.config();
   }
 
+  /** The business WhatsApp number, for the site's "message us" links. */
+  @Get('contact')
+  contact() {
+    return this.shop.contact();
+  }
+
   /** Live open dates and the slots on each. Not cached: it must reflect owner changes at once. */
   @Get('availability')
   availability() {

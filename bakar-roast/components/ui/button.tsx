@@ -83,7 +83,8 @@ function Spinner() {
   );
 }
 
-const isExternal = (href: string) => /^(https?:|mailto:|tel:|\/\/)/.test(href);
+// /wa is this site's WhatsApp redirect: it leaves the site, so it must not be a prefetched Link.
+const isExternal = (href: string) => /^(https?:|mailto:|tel:|\/\/|\/wa(\?|$))/.test(href);
 
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(function Button(
   props,

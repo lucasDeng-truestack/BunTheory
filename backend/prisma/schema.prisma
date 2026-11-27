@@ -576,6 +576,10 @@ model SystemSettings {
   /// Length of one time slot in minutes (30, 60, 90 or 120). Slots run back to back from the
   /// serving start; a last piece shorter than a slot is not offered.
   shopSlotMinutes             Int      @default(60)
+  /// Business WhatsApp number for the Bakar & Roast site, digits with country code
+  /// ("601175126433"). Null = the built-in default. Bank and QR for /order payments reuse the
+  /// cateringBank* and cateringPaymentQrUrl columns above (one set of details for the brand).
+  shopWhatsappNumber          String?
   updatedAt                   DateTime @updatedAt
 }
 

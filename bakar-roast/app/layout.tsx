@@ -4,6 +4,9 @@ import "./globals.css";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
+import { brand } from "@/lib/content";
+import { safe } from "@/lib/safe";
+import { getShopContact } from "@/lib/shop-api";
 import { GrainOverlay } from "@/components/grain-overlay";
 import { Preloader } from "@/components/preloader";
 import { Cursor } from "@/components/cursor";
@@ -35,11 +38,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // The business number the owner saved in the admin, for the footer. Falls back to the built-in one.
+  const contact = await safe(getShopContact(), null);
+
   return (
     // suppressHydrationWarning: the theme and preloader inline scripts set data-theme and
     // data-preload on <html> before hydration.
@@ -51,7 +57,7 @@ export default function RootLayout({
           <GrainOverlay />
           <Header />
           <main>{children}</main>
-          <Footer />
+          <Footer whatsappDisplay={contact?.whatsappDisplay ?? brand.whatsappDisplay} />
           <Cursor />
         </SmoothScroll>
       </body>

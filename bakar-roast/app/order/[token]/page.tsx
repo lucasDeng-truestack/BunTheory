@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ApiError } from "@/lib/api";
-import { getShopOrder, type ShopOrderPublic } from "@/lib/shop-api";
+import { getShopOrder, type ShopOrderPage } from "@/lib/shop-api";
 import { waLink } from "@/lib/content";
 import { Band, Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default async function OrderTokenPage({
 }) {
   const { token } = await params;
 
-  let order: ShopOrderPublic | null = null;
+  let order: ShopOrderPage | null = null;
   let notFound = false;
   try {
     order = await getShopOrder(token);

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import Image from "next/image";
 import { Check, Copy, Download, MessageCircle, Upload } from "lucide-react";
 import { Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,9 @@ import { Eyebrow } from "@/components/ui/headline";
 import { Banner } from "@/components/ui/banner";
 import { waLink } from "@/lib/content";
 import { cn } from "@/lib/utils";
-import { uploadShopReceipt, type ShopOrderPublic } from "@/lib/shop-api";
-import { formatDateLabel, formatRm, slotLabel, SHOP_PAYMENT } from "@/lib/shop";
+import { uploadShopReceipt, type ShopOrderPage, type ShopOrderPublic } from "@/lib/shop-api";
+import { imageSrc } from "@/lib/catering-api";
+import { formatDateLabel, formatRm, slotLabel } from "@/lib/shop";
 import { OrderSteps } from "@/components/shop/order-steps";
 
 const STATUS: Record<ShopOrderPublic["status"], { label: string; tone: "wait" | "ok" | "done" | "off" }> = {
@@ -49,7 +49,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic }) {
+export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPage }) {
   const [order, setOrder] = useState(initialOrder);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -93,6 +93,10 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
   }
 
   // Payment is the last step of ordering: until a receipt is in, the order is saved but not placed.
+  // Where to pay: whatever the owner saved in the admin. Any part of it can be missing.
+  const pay = order.payment;
+  const qrSrc = imageSrc(pay.qrUrl);
+  const hasPayDetails = !!(pay.accountNumber || qrSrc);
   const receiptIn = order.receipts.length > 0;
   const toPay = order.status === "AWAITING_PAYMENT" && !receiptIn;
   const checking = order.status === "AWAITING_PAYMENT" && receiptIn;
@@ -226,41 +230,55 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
               {checking ? `Payment of ${formatRm(order.amountDue)}` : `Pay ${formatRm(order.amountDue)}`}
             </h2>
             <p className="m-0 text-cream-muted">
-              {order.paymentChoice === "FULL" ? "The full total." : "Half now, the rest later."} Transfer
-              by bank or scan the QR, then upload your receipt below{toPay ? " to place the order" : ""}.
+              {order.paymentChoice === "FULL" ? "The full total." : "Half now, the rest later."}{" "}
+              {qrSrc ? "Transfer by bank or scan the QR" : "Transfer by bank"}, then send your receipt below{toPay ? " to place the order" : ""}.
             </p>
           </div>
 
           <div className="grid gap-5 rounded-card-sm border border-cream-faint p-5 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="grid">
               <CopyRow label="Amount" value={formatRm(order.amountDue)} />
-              <CopyRow label="Bank" value={SHOP_PAYMENT.bankName} />
-              <CopyRow label="Account name" value={SHOP_PAYMENT.accountName} />
-              <CopyRow label="Account number" value={SHOP_PAYMENT.accountNumber} />
+              {pay.bankName && <CopyRow label="Bank" value={pay.bankName} />}
+              {pay.accountName && <CopyRow label="Account name" value={pay.accountName} />}
+              {pay.accountNumber && <CopyRow label="Account number" value={pay.accountNumber} />}
               <CopyRow label="Transfer reference" value={order.reference} />
               <p className="m-0 pt-2 text-[13px] text-cream-muted">
                 Put the reference in your bank&apos;s reference or recipient note, so we can match the payment to
                 your order.
               </p>
             </div>
-            <div className="grid justify-items-center gap-2">
-              <Image
-                src={SHOP_PAYMENT.qrUrl}
-                alt="DuitNow QR to pay Bakar & Roast"
-                width={160}
-                height={160}
-                className="rounded-card-sm bg-cream p-2"
-              />
-              <a
-                href={SHOP_PAYMENT.qrUrl}
-                download
-                className="inline-flex items-center gap-1.5 text-[13px] text-cream hover:text-ember"
-              >
-                <Download size={14} /> Save QR
-              </a>
-              <span className="text-[13px] text-cream-muted">Scan to pay</span>
-            </div>
+            {qrSrc && (
+              <div className="grid justify-items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element -- an owner upload, from any storage host */}
+                <img
+                  src={qrSrc}
+                  alt="QR code to pay Bakar & Roast"
+                  width={160}
+                  height={160}
+                  className="h-40 w-40 rounded-card-sm bg-cream object-contain p-2"
+                />
+                <span className="text-[13px] text-cream-muted">Scan to pay</span>
+                <a
+                  href={qrSrc}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-1.5 text-[13px] text-cream hover:text-ember"
+                >
+                  <Download aria-hidden size={14} /> Open QR to save it
+                </a>
+              </div>
+            )}
           </div>
+          {!hasPayDetails && (
+            <Banner tone="error" title="Payment details are not on this page yet">
+              <span className="flex flex-wrap items-center gap-x-4">
+                <span>Message us and we will send you where to pay.</span>
+                <button type="button" onClick={messageUs} className="font-semibold text-cream underline">
+                  Message us on WhatsApp
+                </button>
+              </span>
+            </Banner>
+          )}
 
           {/* Receipt: three ways to send it */}
           <div className="grid gap-4 rounded-card-sm border border-cream-faint p-5">

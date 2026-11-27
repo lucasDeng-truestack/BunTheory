@@ -260,9 +260,23 @@ export class SettingsService {
     shopServeStart?: string;
     shopServeEnd?: string;
     shopSlotMinutes?: number;
+    shopWhatsappNumber?: string;
+    shopBankName?: string;
+    shopBankAccountName?: string;
+    shopBankAccountNumber?: string;
+    shopPaymentQrUrl?: string;
   }) {
     const data: Prisma.SystemSettingsUpdateInput &
       Prisma.SystemSettingsCreateInput = {};
+    // Contact and payment details. An empty string clears the field.
+    const text = (v: string) => v.trim() || null;
+    if (dto.shopWhatsappNumber != null) {
+      data.shopWhatsappNumber = whatsappDigits(dto.shopWhatsappNumber);
+    }
+    if (dto.shopBankName != null) data.cateringBankName = text(dto.shopBankName);
+    if (dto.shopBankAccountName != null) data.cateringBankAccountName = text(dto.shopBankAccountName);
+    if (dto.shopBankAccountNumber != null) data.cateringBankAccountNumber = text(dto.shopBankAccountNumber);
+    if (dto.shopPaymentQrUrl != null) data.cateringPaymentQrUrl = text(dto.shopPaymentQrUrl);
     if (dto.shopEarliestDate != null) data.shopEarliestDate = dto.shopEarliestDate;
     if (dto.shopOrdersOpenDate !== undefined) {
       const v = (dto.shopOrdersOpenDate ?? '').trim();
@@ -367,4 +381,25 @@ export class SettingsService {
     }
     return settings;
   }
+}
+
+/**
+ * A WhatsApp number as the owner typed it -> digits with the country code, or null when empty.
+ * A Malaysian number typed locally ("011-7512 6433") gets its leading 0 swapped for 60.
+ */
+function whatsappDigits(raw: string): string | null {
+  if (raw.trim() === '') return null;
+  const international = raw.trim().startsWith('+');
+  let digits = raw.replace(/\D/g, '');
+  if (!international && /^0[1-9]/.test(digits)) digits = `60${digits.slice(1)}`;
+  // Without a +, only a Malaysian number is accepted (typed with its 0 or with 60). Anything
+  // else, like a number missing its leading 0, would silently become another country's.
+  const ok = international ? true : digits.startsWith('60');
+  if (!ok || digits.length < 9 || digits.length > 15) {
+    throw new BadRequestException({
+      code: 'INVALID_PHONE',
+      message: 'Enter the WhatsApp number in full, like 011-7512 6433.',
+    });
+  }
+  return digits;
 }

@@ -134,6 +134,30 @@ export const createShopOrder = (input: CreateShopOrderInput, customerToken?: str
     ...(customerToken ? { token: customerToken } : {}),
   });
 
+/** Where the customer pays, set by the owner in the admin. Every field can be empty. */
+export interface ShopPaymentDetails {
+  bankName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  qrUrl: string | null;
+}
+
+/** The saved order page: the order plus where to pay. */
+export type ShopOrderPage = ShopOrderPublic & { payment: ShopPaymentDetails };
+
+/** The business WhatsApp number the owner saved in the admin. */
+export interface ShopContact {
+  /** Digits with country code, for wa.me links. */
+  whatsappNumber: string;
+  /** For reading: "+60 11-7512 6433". */
+  whatsappDisplay: string;
+}
+
+/** Cached for a minute: it is on every page, and a number change can wait that long. */
+export const getShopContact = () =>
+  // Short timeout: this runs on every page, and a slow API must not hold the page or the link.
+  api<ShopContact>("/shop/contact", { next: { revalidate: 60 }, signal: AbortSignal.timeout(3000) });
+
 // ─── Customer account ────────────────────────────────────────────────────────
 
 /** One of a signed-in customer's orders. Opens at /order/<accessToken>. */
@@ -166,7 +190,7 @@ export const getShopMe = (customerToken: string) =>
   api<ShopMe>("/shop/me", { token: customerToken });
 
 export const getShopOrder = (accessToken: string) =>
-  api<ShopOrderPublic>(`/shop/orders/${encodeURIComponent(accessToken)}`);
+  api<ShopOrderPage>(`/shop/orders/${encodeURIComponent(accessToken)}`);
 
 // ─── Owner admin ─────────────────────────────────────────────────────────────
 
@@ -236,7 +260,27 @@ export interface ShopSettingsInput {
   shopServeEnd?: string;
   /** 30, 60, 90 or 120. */
   shopSlotMinutes?: number;
+  /** Business WhatsApp number as typed. Empty string goes back to the built-in number. */
+  shopWhatsappNumber?: string;
+  /** Where customers pay. Empty string clears a field. */
+  shopBankName?: string;
+  shopBankAccountName?: string;
+  shopBankAccountNumber?: string;
+  shopPaymentQrUrl?: string;
 }
+
+/** The contact and payment details as saved, from GET /settings/admin. */
+export interface ShopContactSettings {
+  /** Digits with country code, or null when the built-in number is in use. */
+  shopWhatsappNumber: string | null;
+  cateringBankName: string | null;
+  cateringBankAccountName: string | null;
+  cateringBankAccountNumber: string | null;
+  cateringPaymentQrUrl: string | null;
+}
+
+export const shopAdminGetContactSettings = (token: string) =>
+  api<ShopContactSettings>("/settings/admin", { token });
 
 export const shopAdminGetSchedule = (token: string) =>
   api<ShopSchedule>("/shop/admin/schedule", { token });
@@ -348,7 +392,7 @@ export const shopAdminReorderPackages = (token: string, ids: string[]) =>
     body: JSON.stringify({ ids }),
   });
 
-export async function uploadShopReceipt(accessToken: string, file: File): Promise<ShopOrderPublic> {
+export async function uploadShopReceipt(accessToken: string, file: File): Promise<ShopOrderPage> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch(`${API_BASE}/shop/orders/${encodeURIComponent(accessToken)}/receipts`, {

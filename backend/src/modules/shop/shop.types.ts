@@ -39,6 +39,26 @@ export type ShopPackageAdmin = {
   updatedAt: string;
 };
 
+/** Where the customer pays, set by the owner in the admin. Every field can be empty. */
+export type ShopPaymentDetails = {
+  bankName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  /** DuitNow / bank QR image URL. */
+  qrUrl: string | null;
+};
+
+/** GET /shop/contact — the business WhatsApp number the site links to. */
+export type ShopContact = {
+  /** Digits with country code, for wa.me links: "601175126433". */
+  whatsappNumber: string;
+  /** For reading: "+60 11-7512 6433". */
+  whatsappDisplay: string;
+};
+
+/** The saved order page: the order plus where to pay. */
+export type ShopOrderPage = ShopOrderPublic & { payment: ShopPaymentDetails };
+
 /** One open fulfilment date with the exact time slots offered on it. */
 export type ShopAvailabilityDay = {
   date: string;

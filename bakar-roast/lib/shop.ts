@@ -143,17 +143,6 @@ export function orderPath(accessToken: string): string {
   return `/order/${encodeURIComponent(accessToken)}`;
 }
 
-/**
- * Payment details shown on the order page. Placeholders: the owner replaces these, and the QR
- * image lives at /images/payment-qr.svg in public/. Amounts always come from the saved order.
- */
-export const SHOP_PAYMENT = {
-  bankName: "Maybank",
-  accountName: "Bakar & Roast",
-  accountNumber: "1234 5678 9012",
-  qrUrl: "/images/payment-qr.svg",
-};
-
 /** Packages keyed for quick lookup by the cart. */
 export const packageMap = (packages: ShopPackagePublic[]) =>
   new Map(packages.map((p) => [p.key, p]));

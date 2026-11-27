@@ -94,7 +94,7 @@ export function ContactForm() {
         </Button>
         {sent && (
           <Banner tone="ok" title="WhatsApp is opening with your message." className="w-full">
-            If nothing happened, message us on {brand.whatsappDisplay}.
+            If nothing happened, tap the button again or use the WhatsApp link in the footer.
           </Banner>
         )}
       </div>

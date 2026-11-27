@@ -13,6 +13,7 @@ import {
   SHOP_MAX_RECEIPTS,
   SHOP_PACKAGES_MAX,
   SHOP_PICKUP_AREA,
+  SHOP_WHATSAPP_DEFAULT,
   SHOP_RULES_DEFAULT,
   SHOP_WINDOW_DAYS_MAX,
 } from './shop.config';
@@ -39,10 +40,13 @@ import {
   ShopAvailabilityDay,
   ShopAvailabilityPublic,
   ShopConfigPublic,
+  ShopContact,
   ShopMe,
   ShopOrderAdmin,
   ShopOrderCreated,
+  ShopOrderPage,
   ShopOrderPublic,
+  ShopPaymentDetails,
   ShopPackageAdmin,
   ShopSchedule,
   ShopScheduleDay,
@@ -98,6 +102,12 @@ function dueFor(total: Prisma.Decimal, choice: 'DEPOSIT' | 'FULL'): Prisma.Decim
 function normalisePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '');
   return raw.trim().startsWith('+') ? `+${digits}` : digits;
+}
+
+/** "601175126433" -> "+60 11-7512 6433". Numbers of another shape are shown as "+digits". */
+function displayPhone(digits: string): string {
+  const m = /^60(\d{2})(\d{3,4})(\d{4})$/.exec(digits);
+  return m ? `+60 ${m[1]}-${m[2]} ${m[3]}` : `+${digits}`;
 }
 
 const include = { items: true, receipts: true } as const;
@@ -376,8 +386,38 @@ export class ShopService {
     return order;
   }
 
-  async getPublicOrder(accessToken: string): Promise<ShopOrderPublic> {
-    return toShopOrderPublic(await this.findByToken(accessToken));
+  async getPublicOrder(accessToken: string): Promise<ShopOrderPage> {
+    const [order, payment] = await Promise.all([this.findByToken(accessToken), this.payment()]);
+    return { ...toShopOrderPublic(order), payment };
+  }
+
+  /** Where customers pay: the bank details and QR the owner saved in the admin. */
+  private async payment(): Promise<ShopPaymentDetails> {
+    const row = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+      select: {
+        cateringBankName: true,
+        cateringBankAccountName: true,
+        cateringBankAccountNumber: true,
+        cateringPaymentQrUrl: true,
+      },
+    });
+    return {
+      bankName: row?.cateringBankName ?? null,
+      accountName: row?.cateringBankAccountName ?? null,
+      accountNumber: row?.cateringBankAccountNumber ?? null,
+      qrUrl: row?.cateringPaymentQrUrl ?? null,
+    };
+  }
+
+  /** The business WhatsApp number the site links to. */
+  async contact(): Promise<ShopContact> {
+    const row = await this.prisma.systemSettings.findFirst({
+      orderBy: { id: 'asc' },
+      select: { shopWhatsappNumber: true },
+    });
+    const whatsappNumber = row?.shopWhatsappNumber || SHOP_WHATSAPP_DEFAULT;
+    return { whatsappNumber, whatsappDisplay: displayPhone(whatsappNumber) };
   }
 
   async assertCanAddReceipt(accessToken: string): Promise<void> {
@@ -395,12 +435,12 @@ export class ShopService {
   async addReceipt(
     accessToken: string,
     file: { url: string; originalName?: string },
-  ): Promise<ShopOrderPublic> {
+  ): Promise<ShopOrderPage> {
     const order = await this.findByToken(accessToken);
     await this.prisma.shopReceipt.create({
       data: { orderId: order.id, fileUrl: file.url, fileName: file.originalName ?? null },
     });
-    return toShopOrderPublic(await this.findByToken(accessToken));
+    return this.getPublicOrder(accessToken);
   }
 
   // ─── Admin ──────────────────────────────────────────────────────────────────

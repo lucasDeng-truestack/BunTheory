@@ -2,8 +2,10 @@ import {
   IsIn,
   IsInt,
   IsOptional,
+  IsString,
   Matches,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
@@ -52,4 +54,37 @@ export class UpdateShopSettingsDto {
   @IsOptional()
   @IsIn([30, 60, 90, 120])
   shopSlotMinutes?: number;
+
+  /**
+   * Business WhatsApp number, as typed ("011-7512 6433" or "+60 11-7512 6433"); stored as digits
+   * with the country code. Empty string goes back to the built-in default.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  shopWhatsappNumber?: string;
+
+  // Where customers pay for /order. Empty string clears a field.
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  shopBankName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  shopBankAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  shopBankAccountNumber?: string;
+
+  /** QR image from POST /uploads/image (a full https URL, or a local /uploads path). */
+  @IsOptional()
+  @ValidateIf((o: UpdateShopSettingsDto) => o.shopPaymentQrUrl !== '')
+  @IsString()
+  @MaxLength(2048)
+  @Matches(/^(https?:\/\/|\/(?!\/))\S+$/, { message: 'The QR image link is not valid.' })
+  shopPaymentQrUrl?: string;
 }
