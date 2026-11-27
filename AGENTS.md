@@ -57,7 +57,7 @@ Resend email (Bakar & Roast catering) is optional: set `RESEND_API_KEY`, `EMAIL_
 ### Auth (Better Auth)
 
 - Login for staff and customers is Better Auth inside the backend (`/api/auth/*`). `backend/.env` must have `BETTER_AUTH_SECRET` (`openssl rand -base64 32`) and `BETTER_AUTH_URL=http://localhost:3101`, or the API will not start.
-- Staff still log in through `POST /auth/login`; the returned `accessToken` is a session token, not a JWT. Protect admin routes with `AdminAuthGuard`; customer routes with `CustomerAuthGuard`.
+- Staff log in through `POST /auth/login` (password) or with an emailed code: `POST /auth/login/code` `{email}` (answers `{sent:true}` for any email, sends only to staff, never creates an account), then `POST /auth/login/code/verify` `{email, code}` (same response as `/auth/login`; 401 for a wrong or expired code or a non-staff email). The admin login page offers both. Codes are capped per email (5 sends and 10 tries an hour, in memory, `backend/src/modules/auth/email-code-limit.ts`, via Better Auth's before-hook, which also runs for server-side `auth.api` calls); staff are never emailed a password-reset code. Staff emails also get codes on the public sites, where a staff member signs in like a customer and keeps their orders; the returned `accessToken` is a session token, not a JWT. Protect admin routes with `AdminAuthGuard`; customer routes with `CustomerAuthGuard`.
 - Locally there is no email provider, so customer sign-in codes are printed in the backend log.
 
 ### Bakar & Roast site

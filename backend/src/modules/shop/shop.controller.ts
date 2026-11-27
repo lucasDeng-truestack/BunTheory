@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Body,
   Controller,
   Get,
@@ -56,8 +55,8 @@ export class ShopController {
     day: { limit: 20, ttl: 86400000 },
   })
   create(@Body() dto: CreateShopOrderDto, @Req() req: Request) {
-    // Staff sessions are not customers: their test orders stay guest orders.
-    const userId = req.user?.role === 'CUSTOMER' ? req.user.id : null;
+    // Anyone signed in on the site (a customer, or staff using the site) keeps the order.
+    const userId = req.user?.id ?? null;
     return this.shop.createOrder(dto, userId);
   }
 
@@ -73,16 +72,13 @@ export class ShopController {
     return this.shop.getPublicOrder(accessToken);
   }
 
-  /** Save this order to the signed-in customer's account (customers only, not staff). */
+  /** Save this order to the signed-in account (a customer, or staff using the site). */
   @Post('orders/:accessToken/claim')
   @HttpCode(200)
   @UseGuards(ThrottlerGuard, CustomerAuthGuard)
   @Throttle({ default: { limit: 30, ttl: 3600000 } })
   @SkipThrottle({ day: true })
   claim(@Param('accessToken') accessToken: string, @Req() req: Request) {
-    if (req.user!.role !== 'CUSTOMER') {
-      throw new ForbiddenException('Staff accounts do not keep orders. Sign in with a customer email.');
-    }
     return this.shop.claim(accessToken, req.user!);
   }
 

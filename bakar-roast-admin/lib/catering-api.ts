@@ -150,6 +150,14 @@ export const getMyBookings = (customerToken: string) =>
 export const adminLogin = (email: string, password: string) =>
   api<{ accessToken: string; admin: AdminUser }>("/auth/login", json("POST", { email, password }));
 
+/** Email a sign-in code. Answers the same for any email; only staff emails get one. */
+export const adminSendLoginCode = (email: string) =>
+  api<{ sent: true }>("/auth/login/code", json("POST", { email }));
+
+/** The emailed code for a session, the same result as adminLogin. 401 when wrong or expired. */
+export const adminLoginWithCode = (email: string, code: string) =>
+  api<{ accessToken: string; admin: AdminUser }>("/auth/login/code/verify", json("POST", { email, code }));
+
 export const adminListBookings = (
   token: string,
   params: { status?: CateringBookingStatus; from?: string; to?: string; take?: number } = {},

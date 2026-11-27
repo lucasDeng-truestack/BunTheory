@@ -1,8 +1,8 @@
-import { Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { getAllowedOrigins } from '../../common/allowed-origins';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { takeCodeSend, takeCodeTry } from './email-code-limit';
 
 /** Nest injection token for the Better Auth instance. */
 export const BETTER_AUTH = 'BETTER_AUTH';
@@ -12,15 +12,18 @@ export const STAFF_ROLES = ['OWNER', 'MANAGER', 'KITCHEN', 'CASHIER'];
 /** Private header main.ts sets from `req.ip`; Better Auth keys rate limits on it. */
 export const CLIENT_IP_HEADER = 'x-br-client-ip';
 
-/** Email-OTP endpoints that redeem a code. Staff codes are made unredeemable here. */
+/** Email-OTP endpoints that make a new code, and those that redeem one (capped per email). */
+const CODE_SENDING_PATHS = new Set([
+  '/email-otp/send-verification-otp',
+  '/email-otp/request-password-reset',
+  '/forget-password/email-otp',
+]);
 const CODE_CONSUMING_PATHS = new Set([
   '/sign-in/email-otp',
   '/email-otp/verify-email',
   '/email-otp/reset-password',
   '/email-otp/check-verification-otp',
 ]);
-/** Never equal to a generated code (those are digits only), so redemption fails as a wrong code. */
-const UNMATCHABLE_OTP = 'staff-no-otp';
 
 /**
  * better-auth is ESM-only and this app compiles to CommonJS. `new Function` keeps a real
@@ -42,8 +45,7 @@ export function resolveSecret(): string {
 }
 
 export async function createAuth(prisma: PrismaService, emailService: EmailService) {
-  const logger = new Logger('BetterAuth');
-  const [{ betterAuth }, { prismaAdapter }, { bearer, emailOTP }, { createAuthMiddleware }] =
+  const [{ betterAuth }, { prismaAdapter }, { bearer, emailOTP }, { createAuthMiddleware, APIError }] =
     await Promise.all([
       dynamicImport<typeof import('better-auth')>('better-auth'),
       dynamicImport<typeof import('better-auth/adapters/prisma')>('better-auth/adapters/prisma'),
@@ -51,8 +53,7 @@ export async function createAuth(prisma: PrismaService, emailService: EmailServi
       dynamicImport<typeof import('better-auth/api')>('better-auth/api'),
     ]);
 
-  const isStaffEmail = async (email: unknown): Promise<boolean> => {
-    if (typeof email !== 'string' || !email.trim()) return false;
+  const isStaffEmail = async (email: string): Promise<boolean> => {
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
       select: { role: true },
@@ -92,12 +93,11 @@ export async function createAuth(prisma: PrismaService, emailService: EmailServi
         overrideDefaultEmailVerification: true,
         sendVerificationOnSignUp: true,
         sendVerificationOTP: async ({ email, otp, type }, ctx) => {
-          // Staff never receive a code; the endpoint still answers as for any email.
-          if (await isStaffEmail(email)) {
-            logger.warn(`Refused to send a ${type} code to a staff account`);
-            return;
-          }
-          // Not awaited (signInCode never rejects): response time must not differ for staff.
+          // A staff password is only changed in the admin (Team), never by an emailed code.
+          if (type === 'forget-password' && (await isStaffEmail(email))) return;
+          // Staff get codes too: they can sign in to the public sites, and to the admin with a
+          // code instead of their password (POST /auth/login/code). Not awaited (signInCode
+          // never rejects), so the response time does not depend on the email.
           // The code email carries the name of the site the customer is on (by request origin).
           const origin = ctx?.request?.headers.get('origin') ?? ctx?.headers?.get('origin') ?? '';
           const bunTheory = (process.env.BUN_THEORY_URL?.trim() || 'http://localhost:3000').replace(/\/+$/, '');
@@ -115,22 +115,26 @@ export async function createAuth(prisma: PrismaService, emailService: EmailServi
         '/sign-up/email': { window: 60, max: 5 },
       },
     },
+    hooks: {
+      // Per-email caps on making and redeeming codes (see email-code-limit.ts). Hooks run for
+      // the HTTP routes and for AuthService's server-side auth.api calls alike. The cap is the
+      // same for every email, so hitting it says nothing about whether the email is staff.
+      before: createAuthMiddleware(async (ctx) => {
+        const sending = CODE_SENDING_PATHS.has(ctx.path);
+        if (!sending && !CODE_CONSUMING_PATHS.has(ctx.path)) return;
+        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        if (typeof email !== 'string' || !email.trim()) return;
+        if (!(sending ? takeCodeSend(email) : takeCodeTry(email))) {
+          throw new APIError('TOO_MANY_REQUESTS', {
+            message: 'Too many codes for this email. Wait an hour and try again.',
+          });
+        }
+      }),
+    },
     advanced: {
       // main.ts overwrites this header with Express `req.ip` (honours TRUST_PROXY); never trust
       // raw x-forwarded-for, which any client can spoof.
       ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
-    },
-    hooks: {
-      // STAFF RULE: staff sign in with their password only, never with an emailed code.
-      // Send paths run normally (sendVerificationOTP sends nothing to staff). On redeem paths a
-      // staff email gets an unmatchable code, so it fails exactly like a wrong code would
-      // (same status, body and attempt counting) and staff stay indistinguishable from customers.
-      before: createAuthMiddleware(async (ctx) => {
-        if (!CODE_CONSUMING_PATHS.has(ctx.path)) return;
-        const body = ctx.body as Record<string, unknown> | undefined;
-        if (!body || !(await isStaffEmail(body.email))) return;
-        return { context: { body: { ...body, otp: UNMATCHABLE_OTP } } };
-      }),
     },
   });
 }

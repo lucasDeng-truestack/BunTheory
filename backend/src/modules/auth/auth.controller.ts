@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -12,6 +13,7 @@ import { Request } from 'express';
 import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginCodeRequestDto, LoginCodeVerifyDto } from './dto/login-code.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
 import { UpdateAdminDisplayNameDto } from './dto/update-admin-display-name.dto';
@@ -29,6 +31,26 @@ export class AuthController {
   @SkipThrottle({ day: true })
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  /** Admin sign-in by emailed code, step 1: send the code (only staff emails get one). */
+  @Post('login/code')
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @SkipThrottle({ day: true })
+  sendLoginCode(@Body() dto: LoginCodeRequestDto) {
+    return this.authService.sendLoginCode(dto);
+  }
+
+  /** Admin sign-in by emailed code, step 2: the code for a session, like POST /auth/login. */
+  @Post('login/code/verify')
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @SkipThrottle({ day: true })
+  loginWithCode(@Body() dto: LoginCodeVerifyDto) {
+    return this.authService.loginWithCode(dto);
   }
 
   @Get('admins')

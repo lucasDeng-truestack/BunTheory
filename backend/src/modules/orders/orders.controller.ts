@@ -36,8 +36,8 @@ export class OrdersController {
   @Post()
   @UseGuards(OptionalAuthGuard)
   async create(@Body() createOrderDto: CreateOrderDto, @Req() req: Request) {
-    // Staff sessions are not customers: their test orders stay guest orders.
-    const userId = req.user?.role === 'CUSTOMER' ? req.user.id : null;
+    // Anyone signed in on the site (a customer, or staff using the site) keeps the order.
+    const userId = req.user?.id ?? null;
     return withoutOwner(await this.ordersService.create(createOrderDto, userId));
   }
 

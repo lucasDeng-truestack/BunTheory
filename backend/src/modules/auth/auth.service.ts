@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -11,6 +13,7 @@ import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginCodeRequestDto, LoginCodeVerifyDto } from './dto/login-code.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminPasswordDto } from './dto/update-admin-password.dto';
 import { UpdateAdminDisplayNameDto } from './dto/update-admin-display-name.dto';
@@ -60,12 +63,68 @@ export class AuthService {
       throw err;
     }
 
-    const { headers, response } = result;
+    return this.staffSession(result, 'Invalid credentials');
+  }
+
+  /**
+   * Email a staff member a sign-in code for the admin. Answers the same for any email, so the
+   * admin login does not reveal who is staff; only a staff email is actually sent a code (a
+   * customer email here never gets one, nor an account).
+   */
+  async sendLoginCode(dto: LoginCodeRequestDto) {
+    const email = dto.email.trim().toLowerCase();
+    // The per-email cap is taken in Better Auth's before-hook (better-auth.ts), which also runs
+    // for these server-side calls. Over it, the send fails quietly and the answer is unchanged.
+    if (await this.isStaff(email)) {
+      // Not awaited, so a staff email answers as fast as any other. A capped email (429) or a
+      // failed send is dropped quietly for the same reason.
+      void this.auth.api
+        .sendVerificationOTP({ body: { email, type: 'sign-in' } })
+        .catch(() => undefined);
+    }
+    return { sent: true };
+  }
+
+  /** Trade the emailed code for a staff session, the same result as a password login. */
+  async loginWithCode(dto: LoginCodeVerifyDto) {
+    const email = dto.email.trim().toLowerCase();
+    const wrong = 'That code is wrong or has expired';
+    // Never let the admin login create or sign in a customer account.
+    if (!(await this.isStaff(email))) throw new UnauthorizedException(wrong);
+    let result: Awaited<ReturnType<typeof this.signInCode>>;
+    try {
+      result = await this.signInCode(email, dto.code);
+    } catch (err) {
+      // 429 from the per-email cap in Better Auth's before-hook.
+      if ((err as { statusCode?: unknown })?.statusCode === 429) {
+        throw new HttpException('Too many tries for this email. Wait an hour and try again.', HttpStatus.TOO_MANY_REQUESTS);
+      }
+      if (isAuthClientError(err)) throw new UnauthorizedException(wrong);
+      throw err;
+    }
+    return this.staffSession(result, wrong);
+  }
+
+  private async isStaff(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email }, select: { role: true } });
+    return !!user && STAFF_ROLES.includes(user.role);
+  }
+
+  private signInCode(email: string, otp: string) {
+    return this.auth.api.signInEmailOTP({ body: { email, otp }, returnHeaders: true });
+  }
+
+  /** The admin's login response; a non-staff session is deleted and refused. */
+  private async staffSession(
+    { headers, response }: { headers: Headers; response: { token: string; user: { id: string; email: string; name: string; role?: unknown } } },
+    refusal: string,
+  ) {
     const user = response.user;
-    if (!STAFF_ROLES.includes(user.role)) {
-      // A customer's password is right but /auth/login is staff only: kill the session we just made.
+    const role = typeof user.role === 'string' ? user.role : '';
+    if (!STAFF_ROLES.includes(role)) {
+      // Right credentials but the admin is staff only: kill the session we just made.
       await this.prisma.session.deleteMany({ where: { token: response.token } });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(refusal);
     }
 
     // The bearer plugin's signed token, the same value a browser client gets in `set-auth-token`.
@@ -77,7 +136,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         displayName: user.name || null,
-        role: user.role,
+        role,
       },
     };
   }
