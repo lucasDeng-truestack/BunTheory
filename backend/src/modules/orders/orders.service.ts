@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { nameCustomerFromOrder } from '../../common/customer-name';
 import { CreateOrderDto, OrderItemDto } from './dto/create-order.dto';
 import { OrderStatus, OrderBatchStatus, PaymentChoice } from '@prisma/client';
 import { BatchesService } from '../batches/batches.service';
@@ -427,6 +428,7 @@ export class OrdersService {
       },
     );
 
+    if (userId) await nameCustomerFromOrder(this.prisma, userId, created.customerName);
     const order = await this.findOne(created.id);
 
     this.gateway.broadcastOrderCreated(order);

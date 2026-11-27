@@ -30,7 +30,6 @@ export function waLink(message?: string) {
 // "Order Now" is the ember CTA button (bookCta), so it is not repeated here.
 export const nav: { label: string; href: string; external?: boolean }[] = [
   { label: "Who are we", href: "/#who" },
-  { label: "My orders", href: "/account" },
   { label: "Contact", href: waLink("Hi Bakar & Roast, I've got a question."), external: true },
 ];
 

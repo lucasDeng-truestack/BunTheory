@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { Magnetic } from "@/components/magnetic";
 import { ThemeToggle } from "@/components/theme";
+import { AccountMenu, AccountMenuRows } from "@/components/account/account-menu";
 
 /** The logo, linking home. */
 export function Wordmark({ className }: { className?: string }) {
@@ -140,6 +141,7 @@ export function Header() {
 
           <div className="flex items-center gap-3">
           <ThemeToggle />
+          <AccountMenu className="hidden lg:block" />
           <Magnetic className="hidden lg:inline-block">
             <Button href={bookCta.href} size="md">
               {bookCta.label}
@@ -212,7 +214,10 @@ export function Header() {
             );
           })}
         </ul>
-        <Button href={bookCta.href} block className="mt-8" onClick={() => setOpen(false)}>
+        <div className="mt-8">
+          <AccountMenuRows onNavigate={() => setOpen(false)} />
+        </div>
+        <Button href={bookCta.href} block className="mt-4" onClick={() => setOpen(false)}>
           {bookCta.label}
         </Button>
       </nav>

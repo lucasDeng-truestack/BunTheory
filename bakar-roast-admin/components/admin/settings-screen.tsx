@@ -12,6 +12,7 @@ import { AdminPage, LoadError } from "@/components/admin/admin-page";
 import { BunTheorySettingsForm, type BunTheorySettingsSection } from "@/components/admin/bun-theory/settings-screen";
 import { ShopSettingsForm, type ShopSettingsSection, type ShopSettingsStatus } from "@/components/admin/shop-payment";
 import { TeamPanel } from "@/components/admin/team-screen";
+import { BUN_THEORY_URL, SITE_URL } from "@/components/admin/nav";
 import { useAdminQuery } from "@/components/admin/use-admin-query";
 
 type Brand = "bakar-roast" | "bun-theory";
@@ -29,6 +30,7 @@ const BRANDS: Record<
     elsewhere: [
       { label: "Schedule", href: "/admin/shop-schedule" },
       { label: "Packages", href: "/admin/shop-packages" },
+      { label: "Website", href: SITE_URL },
     ],
   },
   "bun-theory": {
@@ -41,6 +43,7 @@ const BRANDS: Record<
     elsewhere: [
       { label: "Batches", href: "/admin/bun-theory/batches" },
       { label: "Menu", href: "/admin/bun-theory/menu" },
+      { label: "Website", href: BUN_THEORY_URL },
     ],
   },
 };
@@ -130,7 +133,12 @@ export function SettingsScreen() {
           </SectionLink>
           <p className={cn(GROUP_LABEL, "mt-3 border-t border-ink-line pt-3.5")}>Managed elsewhere</p>
           {BRANDS[brand].elsewhere.map((e) => (
-            <Link key={e.href} href={e.href} className={cn(ROW, "justify-between text-cream-muted hover:text-cream")}>
+            <Link
+              key={e.href}
+              href={e.href}
+              {...(/^https?:/.test(e.href) ? { target: "_blank", rel: "noreferrer" } : {})}
+              className={cn(ROW, "justify-between text-cream-muted hover:text-cream")}
+            >
               {e.label}
               <ArrowUpRight aria-hidden size={16} strokeWidth={1.6} className="flex-none text-cream-faint" />
             </Link>

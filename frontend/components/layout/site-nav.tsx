@@ -8,6 +8,7 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
 import { BRAND_TITLE_LINE, BRAND_PARENT_NAME, BRAND_SITE_URL } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { AccountMenu, AccountMenuRows } from "@/components/account/account-menu";
 
 export type SiteNavLink = { href: string; label: string };
 
@@ -24,7 +25,6 @@ const DEFAULT_LINKS: SiteNavLink[] = [
   { href: "/menu", label: "Menu" },
   { href: "/story", label: "Our Story" },
   { href: "/track", label: "Track" },
-  { href: "/account", label: "Account" },
 ];
 
 const pillLink =
@@ -82,6 +82,7 @@ export function SiteNav({
 
         <div className="flex items-center gap-2">
           {right}
+          <AccountMenu className="hidden lg:block" />
           <Button asChild variant="hero" size="sm" className="hidden sm:inline-flex">
             <Link href={cta.href}>{cta.label}</Link>
           </Button>
@@ -121,6 +122,7 @@ export function SiteNav({
                   {l.label}
                 </Link>
               ))}
+              <AccountMenuRows onNavigate={() => setOpen(false)} />
               <Button asChild variant="hero" size="lg" className="mt-2">
                 <Link href={cta.href} onClick={() => setOpen(false)}>
                   {cta.label}

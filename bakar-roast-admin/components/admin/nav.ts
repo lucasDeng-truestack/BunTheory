@@ -1,6 +1,7 @@
 import {
   CalendarClock,
   ChefHat,
+  Globe,
   LayoutDashboard,
   MessageSquareQuote,
   Package,
@@ -29,6 +30,10 @@ export type AdminNavItem = {
 /** The Weekend Grill POS is its own app. Set NEXT_PUBLIC_POS_URL in production. */
 const POS_URL = (process.env.NEXT_PUBLIC_POS_URL || "http://localhost:3011").replace(/\/+$/, "");
 
+/** The two public websites, opened in a new tab. Set NEXT_PUBLIC_SITE_URL and NEXT_PUBLIC_BUN_THEORY_URL in production. */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3200").replace(/\/+$/, "");
+export const BUN_THEORY_URL = (process.env.NEXT_PUBLIC_BUN_THEORY_URL || "http://localhost:3000").replace(/\/+$/, "");
+
 /** The admin sections, in groups. Every staff login sees the same menu (roles come later). */
 export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
   {
@@ -37,6 +42,7 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Orders", href: "/admin/shop-orders", icon: ShoppingBag, title: "Shop orders" },
       { label: "Schedule", href: "/admin/shop-schedule", icon: CalendarClock, title: "Shop schedule" },
       { label: "Packages", href: "/admin/shop-packages", icon: Package, title: "Shop packages" },
+      { label: "Open website", href: SITE_URL, icon: Globe, external: true },
     ],
   },
   {
@@ -49,6 +55,7 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Batches", href: "/admin/bun-theory/batches", icon: CalendarClock },
       { label: "Menu", href: "/admin/bun-theory/menu", icon: UtensilsCrossed },
       { label: "Feedback", href: "/admin/bun-theory/feedback", icon: MessageSquareQuote },
+      { label: "Open website", href: BUN_THEORY_URL, icon: Globe, external: true },
     ],
   },
   {

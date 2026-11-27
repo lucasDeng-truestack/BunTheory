@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { randomBytes, randomInt } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { nameCustomerFromOrder } from '../../common/customer-name';
 import { addDays, fromDateOnly, klToday, toDateOnly } from '../catering/catering.dates';
 import {
   SHOP_MAX_RECEIPTS,
@@ -350,6 +351,7 @@ export class ShopService {
             items: { create: itemRows },
           },
         });
+        if (userId) await nameCustomerFromOrder(this.prisma, userId, created.customerName);
         return { reference: created.reference, accessToken: created.accessToken };
       } catch (e) {
         // Reference / accessToken collision: retry with fresh identifiers.
