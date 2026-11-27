@@ -243,15 +243,15 @@ function SideNav({
 }) {
   const { admin } = session;
   return (
-    <nav aria-label="Admin" className="flex min-h-full flex-1 flex-col gap-0.5 px-3 pb-4 pt-[22px]">
+    <nav aria-label="Admin" className="flex min-h-full flex-1 flex-col gap-0.5 px-3 pb-4 pt-3">
       <Link
         href="/admin"
         aria-label="Bakar & Roast admin, home"
-        className="block w-fit px-3 py-1 no-underline"
+        className="flex w-fit px-3 no-underline"
       >
-        <Logo priority className="h-24" />
+        <Logo priority className="h-[84px]" />
       </Link>
-      <p className="m-0 px-3 pb-3 text-xs text-cream-faint">Admin</p>
+      <p className="m-0 px-3 pb-1 text-xs text-cream-faint">Admin</p>
       {ADMIN_NAV.map((g) => (
         <div key={g.group} className="grid gap-0.5">
           <p className="type-admin-meta m-0 px-3 pb-1.5 pt-3.5 text-cream-faint">{g.group}</p>
