@@ -39,6 +39,7 @@ import {
   ShopAvailabilityDay,
   ShopAvailabilityPublic,
   ShopConfigPublic,
+  ShopMe,
   ShopOrderAdmin,
   ShopOrderCreated,
   ShopOrderPublic,
@@ -226,7 +227,8 @@ export class ShopService {
     return { ...head, days };
   }
 
-  async createOrder(dto: CreateShopOrderDto): Promise<ShopOrderCreated> {
+  /** `userId` is the signed-in customer, or null for a guest. */
+  async createOrder(dto: CreateShopOrderDto, userId: string | null = null): Promise<ShopOrderCreated> {
     if (typeof dto.website === 'string' && dto.website.trim() !== '') {
       throw new BadRequestException('Invalid request.');
     }
@@ -330,6 +332,7 @@ export class ShopService {
             customerName: dto.customerName.trim(),
             customerPhone: normalisePhone(dto.customerPhone),
             customerEmail: dto.customerEmail?.trim().toLowerCase() || null,
+            userId,
             subtotal,
             total,
             paymentChoice,
@@ -580,6 +583,64 @@ export class ShopService {
         message: 'Serving must end late enough to fit at least one time slot.',
       });
     }
+  }
+
+  // ─── Customer account ───────────────────────────────────────────────────────
+
+  /**
+   * A signed-in customer's orders and the details to prefill their next checkout. Only orders
+   * placed while signed in count. A guest order is never matched by its email: that email is
+   * typed by the customer and unchecked, so a typo would hand a stranger the order's link, and
+   * with it the name, phone and address on it.
+   */
+  async mine(user: { id: string; email: string }): Promise<ShopMe> {
+    const email = user.email.trim().toLowerCase();
+    const [rows, lastOwn, lastDelivery] = await Promise.all([
+      this.prisma.shopOrder.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { items: true, _count: { select: { receipts: true } } },
+      }),
+      this.prisma.shopOrder.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.shopOrder.findFirst({
+        where: { userId: user.id, type: 'DELIVERY' },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+    return {
+      email,
+      details: lastOwn
+        ? {
+            name: lastOwn.customerName,
+            phone: lastOwn.customerPhone,
+            address: lastDelivery
+              ? {
+                  line1: lastDelivery.addressLine1 ?? '',
+                  line2: lastDelivery.addressLine2 ?? '',
+                  city: lastDelivery.city ?? '',
+                  state: lastDelivery.state ?? '',
+                  postcode: lastDelivery.postcode ?? '',
+                }
+              : null,
+          }
+        : null,
+      orders: rows.map((o) => ({
+        reference: o.reference,
+        accessToken: o.accessToken,
+        status: o.status,
+        type: o.type,
+        fulfilmentDate: fromDateOnly(o.fulfilmentDate),
+        timeSlot: o.timeSlot,
+        total: o.total.toFixed(2),
+        summary: o.items.map((i) => `${i.quantity} × ${i.packageName}`).join(', '),
+        receiptUploaded: o._count.receipts > 0,
+        createdAt: o.createdAt.toISOString(),
+      })),
+    };
   }
 
   // ─── Packages (the /order menu) ─────────────────────────────────────────────

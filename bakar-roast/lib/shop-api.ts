@@ -126,11 +126,44 @@ export const getShopConfig = () =>
 export const getShopAvailability = () =>
   api<ShopAvailability>("/shop/availability", { cache: "no-store" });
 
-export const createShopOrder = (input: CreateShopOrderInput) =>
+/** `customerToken` (optional) saves the order to the signed-in customer's account. */
+export const createShopOrder = (input: CreateShopOrderInput, customerToken?: string) =>
   api<ShopOrderCreated>("/shop/orders", {
     method: "POST",
     body: JSON.stringify(input),
+    ...(customerToken ? { token: customerToken } : {}),
   });
+
+// ─── Customer account ────────────────────────────────────────────────────────
+
+/** One of a signed-in customer's orders. Opens at /order/<accessToken>. */
+export interface ShopOrderMine {
+  reference: string;
+  accessToken: string;
+  status: ShopOrderStatus;
+  type: ShopFulfilmentType;
+  fulfilmentDate: string;
+  timeSlot: string;
+  total: string;
+  /** "2 × Family Feast, 1 × Smoke Box" */
+  summary: string;
+  receiptUploaded: boolean;
+  createdAt: string;
+}
+
+export interface ShopMe {
+  email: string;
+  /** From the customer's own earlier orders. Null until they have placed one while signed in. */
+  details: {
+    name: string;
+    phone: string;
+    address: { line1: string; line2: string; city: string; state: string; postcode: string } | null;
+  } | null;
+  orders: ShopOrderMine[];
+}
+
+export const getShopMe = (customerToken: string) =>
+  api<ShopMe>("/shop/me", { token: customerToken });
 
 export const getShopOrder = (accessToken: string) =>
   api<ShopOrderPublic>(`/shop/orders/${encodeURIComponent(accessToken)}`);

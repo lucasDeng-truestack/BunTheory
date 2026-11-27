@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import Image from "next/image";
-import { Check, Copy, Download, Upload } from "lucide-react";
+import { Check, Copy, Download, MessageCircle, Upload } from "lucide-react";
 import { Container } from "@/components/ui/band";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/headline";
@@ -64,6 +65,27 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
     } catch {
       /* clipboard blocked: the URL is in the address bar to copy by hand */
     }
+  }
+  // A QR of this page, so someone paying at a computer can open the same order on their phone
+  // and upload the receipt from there. Made in the browser: it needs the page's own address.
+  const [pageQr, setPageQr] = useState("");
+  useEffect(() => {
+    let live = true;
+    QRCode.toDataURL(window.location.href, { margin: 1, width: 320 }).then(
+      (url) => live && setPageQr(url),
+      () => {
+        /* No QR: the other two ways to send a receipt still work. */
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  function sendReceiptOnWhatsApp() {
+    const href = waLink(
+      `Hi Bakar & Roast, here is my payment receipt for order ${order.reference} (${formatRm(order.amountDue)}). ${window.location.href}`,
+    );
+    window.open(href, "_blank", "noopener,noreferrer");
   }
   function messageUs() {
     const href = waLink(`Hi Bakar & Roast, about my order ${order.reference}: ${window.location.href}`);
@@ -215,6 +237,11 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
               <CopyRow label="Bank" value={SHOP_PAYMENT.bankName} />
               <CopyRow label="Account name" value={SHOP_PAYMENT.accountName} />
               <CopyRow label="Account number" value={SHOP_PAYMENT.accountNumber} />
+              <CopyRow label="Transfer reference" value={order.reference} />
+              <p className="m-0 pt-2 text-[13px] text-cream-muted">
+                Put the reference in your bank&apos;s reference or recipient note, so we can match the payment to
+                your order.
+              </p>
             </div>
             <div className="grid justify-items-center gap-2">
               <Image
@@ -231,16 +258,19 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
               >
                 <Download size={14} /> Save QR
               </a>
+              <span className="text-[13px] text-cream-muted">Scan to pay</span>
             </div>
           </div>
 
-          {/* Receipt upload */}
-          <div className="grid gap-3 rounded-card-sm border border-cream-faint p-5">
-            <h3 className="type-eyebrow m-0 text-cream-faint">Upload your receipt</h3>
-            <p className="m-0 text-[13px] text-cream-muted">
-              A photo or PDF of your transfer. {toPay ? "Uploading it places your order. " : ""}We confirm once we have
-              checked it.
-            </p>
+          {/* Receipt: three ways to send it */}
+          <div className="grid gap-4 rounded-card-sm border border-cream-faint p-5">
+            <div className="grid gap-1">
+              <h3 className="type-eyebrow m-0 text-cream-faint">Send us your receipt</h3>
+              <p className="m-0 text-[13px] text-cream-muted">
+                A photo or PDF of your transfer. {toPay ? "Sending it places your order. " : ""}We confirm once we have
+                checked it. Pick whichever is easiest.
+              </p>
+            </div>
             <input
               ref={fileRef}
               type="file"
@@ -248,20 +278,64 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
               className="hidden"
               onChange={(e) => onFile(e.target.files?.[0])}
             />
-            <Button
-              variant="cream"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              loading={uploading}
-              loadingLabel="Uploading"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Upload aria-hidden size={16} />
-                {receiptIn ? "Upload another" : "Upload receipt"}
-              </span>
-            </Button>
+            <ol className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3">
+              <li className="grid content-start gap-3 rounded-card-sm border border-ink-line p-4">
+                <div className="grid gap-1">
+                  <b className="text-cream">Upload it here</b>
+                  <span className="text-[13px] text-cream-muted">From this phone or computer.</span>
+                </div>
+                <Button
+                  variant="cream"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  loading={uploading}
+                  loadingLabel="Uploading"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Upload aria-hidden size={16} />
+                    {receiptIn ? "Upload another" : "Upload receipt"}
+                  </span>
+                </Button>
+              </li>
+              <li className="grid content-start gap-3 rounded-card-sm border border-ink-line p-4">
+                <div className="grid gap-1">
+                  <b className="text-cream">Send it on WhatsApp</b>
+                  <span className="text-[13px] text-cream-muted">
+                    We open a chat with your order number filled in. Attach the receipt and send.
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={sendReceiptOnWhatsApp}>
+                  <span className="inline-flex items-center gap-2">
+                    <MessageCircle aria-hidden size={16} />
+                    Open WhatsApp
+                  </span>
+                </Button>
+              </li>
+              {/* Scanning your own screen is no use on a phone, so this one is for wider screens. */}
+              <li className="hidden content-start gap-3 rounded-card-sm border border-ink-line p-4 sm:grid">
+                <div className="grid gap-1">
+                  <b className="text-cream">Receipt is on your phone?</b>
+                  <span className="text-[13px] text-cream-muted">
+                    Scan this to open your order on the phone, then upload from there.
+                  </span>
+                </div>
+                {pageQr ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a data URL made in the browser
+                  <img
+                    src={pageQr}
+                    alt={`QR code that opens order ${order.reference} on your phone`}
+                    width={120}
+                    height={120}
+                    className="rounded-card-sm bg-cream p-1.5"
+                  />
+                ) : (
+                  <div aria-hidden className="h-[120px] w-[120px] rounded-card-sm bg-ink-line" />
+                )}
+              </li>
+            </ol>
             {uploadError && <Banner tone="error" title={uploadError} />}
-            {order.receipts.length > 0 && (
+            {receiptIn && (
               <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
                 {order.receipts.map((r) => (
                   <li key={r.id} className="flex items-center gap-2 text-cream-muted">
@@ -273,11 +347,11 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
                 ))}
               </ul>
             )}
-            {order.receipts.length > 0 && (
-              <p className="m-0 text-[13px] text-cream-muted">
-                Got it. Your order is placed. We will confirm your payment and be in touch on WhatsApp.
-              </p>
-            )}
+            <p className="m-0 text-[13px] text-cream-muted">
+              {receiptIn
+                ? "Got it. Your order is placed. We will confirm your payment and be in touch on WhatsApp."
+                : "Sent it on WhatsApp? This page changes to paid once we have confirmed it."}
+            </p>
           </div>
         </section>
       )}

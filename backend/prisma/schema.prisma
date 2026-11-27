@@ -194,6 +194,7 @@ model User {
   posOrdersPaidBy  PosOrder[]        @relation("PaidByAdmin")
   posPurchases     PosPurchase[]
   cateringBookings CateringBooking[]
+  shopOrders       ShopOrder[]
 }
 
 model Session {
@@ -767,6 +768,9 @@ model ShopOrder {
   customerName   String
   customerPhone  String
   customerEmail  String?
+  /// The signed-in customer who placed it. Null for a guest order.
+  userId         String?
+  user           User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   /// Money snapshot. No delivery fee line for now (arranged over WhatsApp), so total == subtotal.
   subtotal       Decimal            @db.Decimal(10, 2)
   total          Decimal            @db.Decimal(10, 2)
@@ -785,6 +789,7 @@ model ShopOrder {
   @@index([status, createdAt])
   @@index([fulfilmentDate])
   @@index([customerPhone])
+  @@index([userId])
 }
 
 model ShopOrderItem {

@@ -19,7 +19,6 @@ const nextConfig = {
       // home page instead of a 404 (not permanent: the booking status page may come back).
       { source: "/catering/book", destination: "/", permanent: false },
       { source: "/booking/:token", destination: "/", permanent: false },
-      { source: "/account", destination: "/", permanent: false },
       { source: "/admin", destination: `${adminBase}/admin`, permanent: false },
       { source: "/admin/:path*", destination: `${adminBase}/admin/:path*`, permanent: false },
     ];

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ApiError, type CateringBookingMine } from "@/lib/api";
 import { authClient, clearAuthToken, getAuthToken } from "@/lib/auth-client";
-import { getMyBookings } from "@/lib/catering-api";
 import { accountCopy, RESEND_SECONDS } from "@/lib/content";
 import { formatLong } from "@/lib/dates";
 import { isEmail, LIMITS, plural } from "@/lib/booking";
@@ -19,6 +18,7 @@ import { Eyebrow } from "@/components/ui/headline";
 import { StatusChip } from "@/components/ui/status-chip";
 import { accent } from "@/components/sections/accent";
 import { useCustomer } from "@/components/account/use-customer";
+import { MyOrders } from "@/components/account/my-orders";
 
 const a = accountCopy;
 const FORM = "grid max-w-[440px] gap-5";
@@ -293,57 +293,8 @@ export function AccountLoading() {
 
 // ─── The stateful screen ─────────────────────────────────────────────────────
 
-/** Signed-in list: fetches once per mount; a 401 means the stored token is dead. */
-function MyBookings({
-  email,
-  token,
-  onExpired,
-  onSignOut,
-  headingRef,
-}: {
-  email: string;
-  token: string;
-  onExpired: () => void;
-  onSignOut: () => Promise<void>;
-  headingRef: Ref<HTMLHeadingElement>;
-}) {
-  const [bookings, setBookings] = useState<CateringBookingMine[] | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  const load = useCallback(async () => {
-    setFailed(false);
-    setBookings(null);
-    try {
-      setBookings(await getMyBookings(token));
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) return onExpired();
-      setFailed(true);
-    }
-  }, [token, onExpired]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return (
-    <BookingsView
-      email={email}
-      bookings={bookings}
-      failed={failed}
-      onRetry={() => void load()}
-      signingOut={signingOut}
-      onSignOut={() => {
-        setSigningOut(true);
-        void onSignOut();
-      }}
-      headingRef={headingRef}
-    />
-  );
-}
-
 /**
- * /account: sign in with an emailed 6-digit code, then "Your bookings". Optional everywhere.
+ * /account: sign in with an emailed 6-digit code, then "Your orders". Optional everywhere.
  * Never says whether an email has an account: every send moves on to the code step.
  * `next` is already checked by safeNext() on the server page.
  */
@@ -498,7 +449,7 @@ export function AccountScreen({ next }: { next?: string | null }) {
       >
         {view === "loading" && <AccountLoading />}
         {view === "list" && (
-          <MyBookings
+          <MyOrders
             email={customer.email}
             token={customer.token}
             onExpired={onExpired}

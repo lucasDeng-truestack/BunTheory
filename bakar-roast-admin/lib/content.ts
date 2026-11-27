@@ -562,6 +562,12 @@ export const accountCopy = {
     waiting: "Waiting on us:",
   },
   back: { label: "All my bookings", href: "/account" },
+  checkout: {
+    signedIn: (email: string) => `Signed in as ${email}. This order is saved to your account.`,
+    guestAsk: "Ordered with us before, or want to save your details?",
+    guestLink: "Sign in or create an account",
+    seeAll: "My orders",
+  },
 };
 
 // ─── Owner admin ─────────────────────────────────────────────────────────────

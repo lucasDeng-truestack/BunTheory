@@ -139,3 +139,36 @@ export type ShopOrderAdmin = ShopOrderPublic & {
   adminNotes: string | null;
   updatedAt: string;
 };
+
+/** One of a signed-in customer's orders, for their account page. Opens at /order/<accessToken>. */
+export type ShopOrderMine = {
+  reference: string;
+  accessToken: string;
+  status: ShopOrderStatus;
+  type: ShopFulfilmentType;
+  fulfilmentDate: string;
+  timeSlot: string;
+  total: string;
+  /** "2 × Family Feast, 1 × Smoke Box" */
+  summary: string;
+  /** True once the customer has uploaded at least one receipt. */
+  receiptUploaded: boolean;
+  createdAt: string;
+};
+
+/**
+ * Contact and delivery details to prefill checkout, taken only from orders this customer placed
+ * while signed in (never from guest orders that merely carry the same email).
+ */
+export type ShopCustomerDetails = {
+  name: string;
+  phone: string;
+  address: { line1: string; line2: string; city: string; state: string; postcode: string } | null;
+};
+
+/** GET /shop/me */
+export type ShopMe = {
+  email: string;
+  details: ShopCustomerDetails | null;
+  orders: ShopOrderMine[];
+};

@@ -11,6 +11,9 @@ import { Banner } from "@/components/ui/banner";
 import { Container } from "@/components/ui/band";
 import { PhotoSlot } from "@/components/ui/photo-slot";
 import { Modal } from "@/components/shop/modal";
+import Link from "next/link";
+import { accountCopy } from "@/lib/content";
+import { useCustomer } from "@/components/account/use-customer";
 import { OrderSteps } from "@/components/shop/order-steps";
 import { WhenPicker } from "@/components/shop/when-picker";
 import { cn } from "@/lib/utils";
@@ -19,6 +22,7 @@ import { ApiError } from "@/lib/api";
 import {
   createShopOrder,
   getShopAvailability,
+  getShopMe,
   type ShopAvailability,
   type ShopConfigPublic,
   type ShopFulfilmentType,
@@ -178,6 +182,36 @@ export function OrderFlow({
   /** Shown above the menu after a package was dropped from the order. */
   const [menuNotice, setMenuNotice] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  // Optional sign-in: a signed-in customer's order is saved to their account, and details from
+  // their earlier orders fill whatever is still empty (typed values and the draft always win).
+  const customer = useCustomer();
+  useEffect(() => {
+    if (!hydrated || customer.status !== "signed-in") return;
+    let live = true;
+    getShopMe(customer.token).then(
+      (me) => {
+        if (!live) return;
+        setContact((c) => ({
+          name: c.name.trim() ? c.name : (me.details?.name ?? c.name),
+          phone: c.phone.trim() ? c.phone : (me.details?.phone ?? c.phone),
+          email: c.email.trim() ? c.email : me.email,
+        }));
+        const saved = me.details?.address;
+        // Field by field, and only into an address not started yet, so typing is never replaced.
+        if (saved) {
+          setAddr((a) =>
+            a.line1.trim() || a.line2.trim() || a.city.trim() || a.postcode.trim() ? a : { ...a, ...saved },
+          );
+        }
+      },
+      () => {
+        /* Prefill is a convenience: checkout works the same without it. */
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [hydrated, customer.status, customer.token]);
 
   /** Editing a field clears its error at once, so a fixed field never stays flagged red. */
   const clearError = (key: string) =>
@@ -403,7 +437,7 @@ export function OrderFlow({
         customerEmail: contact.email || undefined,
         expectedTotal: total,
         idempotencyKey: cartIdempotencyKey(),
-      });
+      }, customer.status === "signed-in" ? customer.token : undefined);
       if (remember) saveCustomer({ contact, addr: type === "DELIVERY" ? addr : (loadSavedCustomer()?.addr ?? addr) });
       else forgetCustomer();
       clearDraftAfterOrder(created.accessToken);
@@ -649,6 +683,21 @@ export function OrderFlow({
 
                 <section className="grid gap-4 border-t border-ink-line pt-8">
                   <h3 className="m-0 text-lg font-semibold text-cream">Your details</h3>
+                  {customer.status === "signed-in" ? (
+                    <p className="m-0 text-[15px] text-cream-muted [overflow-wrap:anywhere]">
+                      {accountCopy.checkout.signedIn(customer.email)}{" "}
+                      <Link href="/account" className={cn(linkButton, "text-[15px]")}>
+                        {accountCopy.checkout.seeAll}
+                      </Link>
+                    </p>
+                  ) : customer.status === "guest" ? (
+                    <p className="m-0 text-[15px] text-cream-muted">
+                      {accountCopy.checkout.guestAsk}{" "}
+                      <Link href="/account?next=/order" className={cn(linkButton, "text-[15px]")}>
+                        {accountCopy.checkout.guestLink}
+                      </Link>
+                    </p>
+                  ) : null}
                   <Field
                     label="Name"
                     value={contact.name}

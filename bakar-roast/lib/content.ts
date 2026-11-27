@@ -26,6 +26,7 @@ export function waLink(message?: string) {
 // "Order Now" is the ember CTA button (bookCta), so it is not repeated here.
 export const nav: { label: string; href: string; external?: boolean }[] = [
   { label: "Who are we", href: "/#who" },
+  { label: "My orders", href: "/account" },
   { label: "Contact", href: waLink("Hi Bakar & Roast, I've got a question."), external: true },
 ];
 
@@ -502,17 +503,17 @@ export const CODE_MINUTES = 5;
 export const RESEND_SECONDS = 60;
 
 export const accountCopy = {
-  title: "My bookings | Bakar & Roast",
-  eyebrow: "My bookings",
+  title: "My orders | Bakar & Roast",
+  eyebrow: "My orders",
   loading: "Checking your sign-in",
   email: {
-    headline: "Find your *table.*",
-    lead: "Sign in with the email you booked with. No password. We email you a 6-digit code.",
+    headline: "Your *orders.*",
+    lead: "Sign in with your email to see your orders and save your details for next time. No password. We email you a 6-digit code.",
     label: "Email",
     placeholder: "you@example.com",
     send: "Send me a code",
     sending: "Sending",
-    linkNote: "Have a booking link from our email? It still works without signing in.",
+    linkNote: "New here? The same steps create your account. An order link you saved still works without signing in.",
     ended: "Your session ended. Sign in again.",
   },
   code: {
@@ -562,6 +563,26 @@ export const accountCopy = {
     waiting: "Waiting on us:",
   },
   back: { label: "All my bookings", href: "/account" },
+  orders: {
+    eyebrow: "Signed in as",
+    headline: "Your *orders.*",
+    empty: "No orders under this email yet.",
+    emptyHelp: "Orders you place while signed in show up here, on any device. Earlier orders still open from their own link.",
+    loadFailed: "We could not load your orders.",
+    loadFailedHelp: "Check the connection and try again.",
+    retry: "Try again",
+    open: "Open",
+    pay: "Pay now",
+    order: "Order now",
+    signOut: "Sign out",
+    signingOut: "Signing out",
+  },
+  checkout: {
+    signedIn: (email: string) => `Signed in as ${email}. This order is saved to your account.`,
+    guestAsk: "Ordered with us before, or want to save your details?",
+    guestLink: "Sign in or create an account",
+    seeAll: "My orders",
+  },
 };
 
 // ─── Owner admin ─────────────────────────────────────────────────────────────
