@@ -216,7 +216,7 @@ export default function ComponentsPage() {
                 Your package and details are still here.
               </Banner>
               <Banner tone="error" title="Something went wrong on our side.">
-                Nothing was sent. Try again, or <a className="font-semibold text-cream underline decoration-ember underline-offset-4" href="https://wa.me/60146856433">message us</a>.
+                Nothing was sent. Try again, or <a className="font-semibold text-cream underline decoration-ember underline-offset-4" href="https://wa.me/601175126433">message us</a>.
               </Banner>
               <Banner tone="ok" title="Saved.">
                 Your changes are live.

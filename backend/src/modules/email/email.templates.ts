@@ -165,7 +165,7 @@ function hi(b: CateringBooking): Part {
  * /order). Customer emails point to WhatsApp, quoting the reference, and to /order; owner emails
  * point to the admin home.
  */
-const WHATSAPP = 'https://wa.me/60146856433';
+const WHATSAPP = 'https://wa.me/601175126433';
 const whatsappLink = (b: CateringBooking) =>
   `${WHATSAPP}?text=${encodeURIComponent(`Hi Bakar & Roast, about my catering booking ${b.reference}.`)}`;
 const orderLink = (site: string) => `${site}/order`;
