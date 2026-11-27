@@ -10,6 +10,7 @@ import { adminCopy } from "@/lib/content";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Logo } from "@/components/ui/logo";
 import { ADMIN_TITLE } from "@/components/admin/admin-page";
 
 const copy = adminCopy.login;
@@ -57,9 +58,10 @@ export function LoginForm() {
       <form noValidate onSubmit={submit} className="mx-auto grid max-w-[400px] animate-fade-in gap-5 py-24">
         <Link
           href="/"
-          className="block w-fit py-2.5 font-display text-2xl font-extrabold uppercase leading-none text-cream no-underline [font-stretch:80%]"
+          aria-label="Bakar & Roast, back to the site"
+          className="block w-fit no-underline"
         >
-          Bakar <span className="text-ember">&amp;</span> Roast
+          <Logo priority className="h-28" />
         </Link>
         <div>
           <h1 className={ADMIN_TITLE}>{copy.title}</h1>

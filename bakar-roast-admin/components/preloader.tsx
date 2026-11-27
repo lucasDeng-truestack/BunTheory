@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { animate } from "motion/react";
 import { expo } from "@/lib/motion";
+import { Logo } from "@/components/ui/logo";
 
 /**
  * First-visit intro (motion.md "Preloader"): the wordmark and a counter running 00 to 100 over
@@ -112,11 +113,8 @@ export function Preloader() {
           ))}
         </div>
         <div ref={type} className="absolute inset-0">
-          <p
-            ref={word}
-            className="display-xl absolute bottom-[clamp(24px,4vw,56px)] left-gutter m-0 opacity-0"
-          >
-            Bakar <span className="text-ember">&amp;</span> Roast
+          <p ref={word} className="absolute bottom-[clamp(24px,4vw,56px)] left-gutter m-0 opacity-0">
+            <Logo priority className="h-[clamp(120px,22vw,260px)]" />
           </p>
           <span
             ref={count}

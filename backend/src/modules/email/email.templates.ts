@@ -109,17 +109,28 @@ function tableText(rows: Row[]): string {
     .join('\n');
 }
 
+/**
+ * The header of every email: the logo, served by the public site. Mail apps cannot load an image
+ * from localhost, so without a real https site URL it stays as text. The alt text is the name,
+ * styled by the cell around it, so it still reads right when a mail app blocks images.
+ */
+function brandMark(): string {
+  const site = (process.env.PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
+  if (!/^https:\/\//i.test(site)) return 'BAKAR &amp; ROAST';
+  return `<img src="${escapeHtml(site)}/images/logo-email.png" width="150" height="119" alt="BAKAR &amp; ROAST" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:150px;color:${C.cream};">`;
+}
+
 function layout(innerHtml: string): string {
   return `<!doctype html><html><body style="margin:0;padding:0;background:${C.cream};">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${C.cream};"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;font-family:Arial,Helvetica,sans-serif;">
-<tr><td style="background:${C.night};padding:20px 24px;font-size:18px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${C.cream};">BAKAR &amp; ROAST</td></tr>
+<tr><td style="background:${C.night};padding:20px 24px;font-size:18px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${C.cream};">${brandMark()}</td></tr>
 <tr><td style="background:${C.cream};padding:28px 24px 8px;">${innerHtml}</td></tr>
-<tr><td style="padding:16px 24px 24px;border-top:1px solid ${C.line};font-size:12px;line-height:1.6;color:${C.muted};">Fire. Feast. Family.<br>Petaling Jaya, Kuala Lumpur</td></tr>
+<tr><td style="padding:16px 24px 24px;border-top:1px solid ${C.line};font-size:12px;line-height:1.6;color:${C.muted};">Real Smoke, Bold Flavours.<br>Petaling Jaya, Kuala Lumpur</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-const FOOTER_TEXT = '\n\nFire. Feast. Family.\nPetaling Jaya, Kuala Lumpur';
+const FOOTER_TEXT = '\n\nReal Smoke, Bold Flavours.\nPetaling Jaya, Kuala Lumpur';
 
 interface Part {
   html: string;

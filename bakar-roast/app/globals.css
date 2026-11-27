@@ -371,3 +371,21 @@ html[data-preload="cover"] main * {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Logo: the dark-ground file by default, the light-ground file on the light theme. A region
+   pinned dark inside a light page (data-theme="dark") gets the dark-ground file back. */
+.brand-logo-light {
+  display: none;
+}
+html[data-theme="light"] .brand-logo-light {
+  display: block;
+}
+html[data-theme="light"] .brand-logo-dark {
+  display: none;
+}
+html[data-theme="light"] [data-theme="dark"] .brand-logo-light {
+  display: none;
+}
+html[data-theme="light"] [data-theme="dark"] .brand-logo-dark {
+  display: block;
+}

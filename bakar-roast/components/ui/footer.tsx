@@ -8,28 +8,7 @@ import { brand, footerColumns } from "@/lib/content";
 import { expo, duration } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { Container } from "@/components/ui/band";
-
-const NAME = ["Bakar", "&", "Roast"];
-
-/**
- * Size the name so it spans the content width exactly. The face has an optical-size axis,
- * so letter widths shift with size: measure, scale, and repeat a few times.
- */
-function fitName(el: HTMLElement) {
-  const range = document.createRange();
-  let size = 100;
-  for (let i = 0; i < 4; i++) {
-    el.style.fontSize = `${size}px`;
-    range.selectNodeContents(el);
-    const w = range.getBoundingClientRect().width;
-    if (!(w > 0)) {
-      el.style.fontSize = "";
-      return;
-    }
-    size = ((size * el.clientWidth) / w) * 0.985;
-  }
-  el.style.fontSize = `${size}px`;
-}
+import { Logo } from "@/components/ui/logo";
 
 /**
  * Slide-out (motion.md "Footer"): while the footer scrolls in, its content is held still against
@@ -72,43 +51,21 @@ function SlideOut({ rootRef, children }: { rootRef: RefObject<HTMLElement>; chil
 }
 
 /**
- * Site footer: ink-soft ground, link columns, WhatsApp and tagline, then "BAKAR & ROAST"
- * edge to edge (decorative, shown whole, letters rise one by one when it enters view).
+ * Site footer: ink-soft ground, link columns, WhatsApp and tagline, then the logo, centred
+ * (it rises into place when it enters view).
  * Not rendered on /admin or in the booking flow (/catering/book).
  */
 export function Footer() {
   const pathname = usePathname() ?? "/";
   const reduce = usePrefersReducedMotion();
-  const nameRef = useRef<HTMLParagraphElement>(null);
   const footerRef = useRef<HTMLElement>(null);
-  // The name is pinned to the bottom of the screen, so "in view" is judged on the footer box:
-  // once it has come up far enough to uncover the letters.
+  // The logo is pinned to the bottom of the screen, so "in view" is judged on the footer box:
+  // once it has come up far enough to uncover it.
   const uncovered = useInView(footerRef, { once: true, margin: "0px 0px -80px 0px" });
   const hide = pathname.startsWith("/admin") || pathname.startsWith("/catering/book");
 
-  useEffect(() => {
-    const el = nameRef.current;
-    if (!el) return;
-    let lastWidth = 0;
-    const run = () => {
-      if (el.clientWidth === lastWidth) return;
-      lastWidth = el.clientWidth;
-      fitName(el);
-    };
-    run();
-    const ro = new ResizeObserver(run);
-    ro.observe(el);
-    // Re-measure once the real face has loaded (the fallback has different widths).
-    document.fonts?.ready.then(() => {
-      lastWidth = 0;
-      run();
-    });
-    return () => ro.disconnect();
-  }, [hide]);
-
   if (hide) return null;
 
-  let index = 0;
   return (
     <SlideOut rootRef={footerRef}>
       <Container>
@@ -146,32 +103,17 @@ export function Footer() {
           </div>
         </div>
 
-        <p
-          ref={nameRef}
-          aria-hidden
-          className="m-0 overflow-hidden whitespace-nowrap pb-[clamp(20px,3vw,44px)] text-center font-display text-[15vw] font-extrabold uppercase leading-[0.84] tracking-[-0.03em] [font-stretch:75%]"
-        >
-          {NAME.map((word, w) => (
-            <span key={word} className={word === "&" ? "text-ember" : undefined}>
-              {w > 0 && " "}
-              {word.split("").map((ch) => {
-                const i = index++;
-                // Same tree on server and client; reduced motion just lands instantly.
-                return (
-                  <motion.span
-                    key={i}
-                    className="rm-static inline-block"
-                    initial={{ y: "105%" }}
-                    animate={{ y: uncovered ? 0 : "105%" }}
-                    transition={reduce ? { duration: 0 } : { duration: duration.default, ease: expo.out, delay: i * 0.05 }}
-                  >
-                    {ch}
-                  </motion.span>
-                );
-              })}
-            </span>
-          ))}
-        </p>
+        {/* The logo rises into place once the footer has come up far enough to uncover it. */}
+        <div className="flex justify-center overflow-hidden pb-[clamp(24px,4vw,56px)]">
+          <motion.div
+            className="rm-static"
+            initial={{ y: "30%", opacity: 0 }}
+            animate={uncovered ? { y: 0, opacity: 1 } : { y: "30%", opacity: 0 }}
+            transition={reduce ? { duration: 0 } : { duration: duration.default, ease: expo.out }}
+          >
+            <Logo className="h-[clamp(180px,30vw,380px)]" />
+          </motion.div>
+        </div>
       </Container>
     </SlideOut>
   );

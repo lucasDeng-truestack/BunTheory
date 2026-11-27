@@ -8,20 +8,19 @@ import { bookCta, nav } from "@/lib/content";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import { Magnetic } from "@/components/magnetic";
 import { ThemeToggle } from "@/components/theme";
 
-/** "BAKAR & ROAST" set in the display face with an ember ampersand (no logo file yet). */
+/** The logo, linking home. */
 export function Wordmark({ className }: { className?: string }) {
   return (
     <Link
       href="/"
-      className={cn(
-        "inline-flex min-h-11 items-center font-display text-2xl font-extrabold uppercase leading-none text-cream no-underline [font-stretch:80%]",
-        className,
-      )}
+      aria-label="Bakar & Roast, home"
+      className={cn("inline-flex min-h-11 items-center no-underline", className)}
     >
-      Bakar <span className="text-ember">&amp;</span> Roast
+      <Logo priority className="h-16 lg:h-[76px]" />
     </Link>
   );
 }

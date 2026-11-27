@@ -23,6 +23,7 @@ import { StatusChip } from "@/components/ui/status-chip";
 import { AdminContext, type AdminContextValue, type TopBar } from "@/components/admin/admin-context";
 import { PendingBadge } from "@/components/admin/admin-page";
 import { ThemeToggle } from "@/components/theme";
+import { Logo } from "@/components/ui/logo";
 import { ADMIN_NAV, currentItem, isCurrent, TAB_HREFS, type AdminNavItem } from "@/components/admin/nav";
 
 type Counts = { ordersPending: number | null };
@@ -245,9 +246,10 @@ function SideNav({
     <nav aria-label="Admin" className="flex min-h-full flex-1 flex-col gap-0.5 px-3 pb-4 pt-[22px]">
       <Link
         href="/admin"
-        className="block px-3 py-2.5 font-display text-2xl font-extrabold uppercase leading-none text-cream no-underline [font-stretch:80%]"
+        aria-label="Bakar & Roast admin, home"
+        className="block w-fit px-3 py-1 no-underline"
       >
-        Bakar <span className="text-ember">&amp;</span> Roast
+        <Logo priority className="h-24" />
       </Link>
       <p className="m-0 px-3 pb-3 text-xs text-cream-faint">Admin</p>
       {ADMIN_NAV.map((g) => (
