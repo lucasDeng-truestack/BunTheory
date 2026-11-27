@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useLenis } from "lenis/react";
 import { ArrowLeft, Minus, Plus, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { Field, SelectField, TextareaField } from "@/components/ui/field";
 import { Banner } from "@/components/ui/banner";
 import { Container } from "@/components/ui/band";
 import { PhotoSlot } from "@/components/ui/photo-slot";
 import { Modal } from "@/components/shop/modal";
+import { OrderSteps } from "@/components/shop/order-steps";
 import { WhenPicker } from "@/components/shop/when-picker";
 import { cn } from "@/lib/utils";
 import { MY_STATES } from "@/lib/booking";
@@ -28,15 +30,22 @@ import {
   cartTotal,
   clearDraftAfterOrder,
   depositOf,
+  forgetCustomer,
   formatDateLabel,
   formatRm,
   lineTotal,
   loadDraft,
+  loadSavedCustomer,
   orderPath,
   packageMap,
+  saveCustomer,
   saveDraft,
   type CartItem,
 } from "@/lib/shop";
+
+/** Only the fields that hold something, so an empty draft field never wipes a remembered one. */
+const filled = <T extends Record<string, string>>(o: T) =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === "string" && v.trim() !== "")) as Partial<T>;
 
 const PHONE_RE = /^\+?(?:[\s-]*\d){7,15}[\s-]*$/;
 
@@ -161,6 +170,8 @@ export function OrderFlow({
   const [slot, setSlot] = useState("");
   const [contact, setContact] = useState({ name: "", phone: "", email: "" });
   const [paymentChoice, setPaymentChoice] = useState<ShopPaymentChoice>("DEPOSIT");
+  /** Keep name, phone, email and address on this device for the next order. */
+  const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -183,9 +194,14 @@ export function OrderFlow({
     const d = loadDraft();
     // Packages the owner has since hidden or deleted are dropped from a saved order.
     const kept = Array.isArray(d?.cart) ? d.cart.filter((i) => pm.has(i.packageKey)) : null;
+    // Details remembered from an earlier order fill the form first; the draft in progress wins.
+    const saved = loadSavedCustomer();
+    if (saved?.contact) setContact((c) => ({ ...c, ...saved.contact }));
+    if (saved?.addr) setAddr((a) => ({ ...a, ...saved.addr }));
     if (d) {
       if (d.type) setType(d.type);
-      if (d.addr) setAddr((a) => ({ ...a, ...d.addr }));
+      const draftAddr = d.addr ? filled(d.addr) : null;
+      if (draftAddr) setAddr((a) => ({ ...a, ...draftAddr }));
       if (d.deliveryNotes) setDeliveryNotes(d.deliveryNotes);
       if (kept) setCart(kept);
       const slots = d.date ? (slotsByDate.get(d.date) ?? []) : [];
@@ -193,7 +209,8 @@ export function OrderFlow({
         setDate(d.date);
         if (d.slot && slots.includes(d.slot)) setSlot(d.slot);
       }
-      if (d.contact) setContact((c) => ({ ...c, ...d.contact }));
+      const draftContact = d.contact ? filled(d.contact) : null;
+      if (draftContact) setContact((c) => ({ ...c, ...draftContact }));
       if (d.paymentChoice) setPaymentChoice(d.paymentChoice);
     }
     if (d?.methodChosen) {
@@ -387,6 +404,8 @@ export function OrderFlow({
         expectedTotal: total,
         idempotencyKey: cartIdempotencyKey(),
       });
+      if (remember) saveCustomer({ contact, addr: type === "DELIVERY" ? addr : (loadSavedCustomer()?.addr ?? addr) });
+      else forgetCustomer();
       clearDraftAfterOrder(created.accessToken);
       router.push(orderPath(created.accessToken));
     } catch (err) {
@@ -437,11 +456,11 @@ export function OrderFlow({
     <Button
       onClick={placeOrder}
       loading={submitting}
-      loadingLabel="Placing order"
+      loadingLabel="One moment"
       disabled={submitting || !canPlace}
       block={block}
     >
-      {avail.ordersOpen ? "Place order" : "Opens soon"}
+      {avail.ordersOpen ? "Continue to payment" : "Opens soon"}
     </Button>
   );
 
@@ -516,7 +535,8 @@ export function OrderFlow({
         </Banner>
       ) : null}
 
-      <div ref={top}>
+      <div ref={top} className="grid gap-8">
+        {hydrated && <OrderSteps current={view === "menu" ? 1 : 2} />}
         {!hydrated ? (
           /* The saved draft decides what shows, so hold the space until it has been read. */
           <div aria-hidden className="min-h-[420px]" />
@@ -662,6 +682,17 @@ export function OrderFlow({
                       autoComplete="email"
                     />
                   </div>
+                  <Toggle
+                    label="Remember my details on this device"
+                    onText="On"
+                    offText="Off"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  <p className="-mt-2 m-0 text-[13px] text-cream-muted">
+                    Saves your name, phone, email and address in this browser, so your next order is quicker. Switch
+                    it off on a shared device.
+                  </p>
                 </section>
 
                 <section className="grid gap-4 border-t border-ink-line pt-8">
@@ -689,13 +720,13 @@ export function OrderFlow({
                     ))}
                   </div>
                   <p className="m-0 text-[13px] text-cream-muted">
-                    Pay by bank transfer or QR after you place the order, then upload the receipt.
-                    We confirm once we receive it.
+                    Payment is the next step: bank transfer or QR, then upload your receipt. Your order is
+                    placed once you have paid.
                   </p>
                 </section>
 
                 {submitError && (
-                  <Banner tone="error" title="We could not place the order">
+                  <Banner tone="error" title="We could not continue to payment">
                     {submitError}
                   </Banner>
                 )}

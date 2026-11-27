@@ -11,9 +11,10 @@ import { waLink } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { uploadShopReceipt, type ShopOrderPublic } from "@/lib/shop-api";
 import { formatDateLabel, formatRm, slotLabel, SHOP_PAYMENT } from "@/lib/shop";
+import { OrderSteps } from "@/components/shop/order-steps";
 
 const STATUS: Record<ShopOrderPublic["status"], { label: string; tone: "wait" | "ok" | "done" | "off" }> = {
-  AWAITING_PAYMENT: { label: "Awaiting payment", tone: "wait" },
+  AWAITING_PAYMENT: { label: "Not paid yet", tone: "wait" },
   DEPOSIT_PAID: { label: "Deposit received", tone: "ok" },
   PAID: { label: "Paid in full", tone: "done" },
   CANCELLED: { label: "Cancelled", tone: "off" },
@@ -69,7 +70,12 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
     window.open(href, "_blank", "noopener,noreferrer");
   }
 
-  const status = STATUS[order.status];
+  // Payment is the last step of ordering: until a receipt is in, the order is saved but not placed.
+  const receiptIn = order.receipts.length > 0;
+  const toPay = order.status === "AWAITING_PAYMENT" && !receiptIn;
+  const checking = order.status === "AWAITING_PAYMENT" && receiptIn;
+  const firstName = order.customerName.split(" ")[0];
+  const status = checking ? { label: "Checking payment", tone: "ok" as const } : STATUS[order.status];
   const paid = order.status === "DEPOSIT_PAID" || order.status === "PAID";
   const cancelled = order.status === "CANCELLED";
 
@@ -90,40 +96,7 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
     }
   }
 
-  return (
-    <Container className="grid max-w-[640px] gap-8 pb-24">
-      {/* Header */}
-      <div className="grid gap-2">
-        <Eyebrow>Order {order.reference}</Eyebrow>
-        <div className="flex items-center gap-3">
-          <h1 className="display-sm m-0 text-cream">Thanks, {order.customerName.split(" ")[0]}.</h1>
-          <span
-            className={cn(
-              "rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-wide",
-              status.tone === "wait" && "bg-ember/15 text-ember",
-              status.tone === "ok" && "bg-ember/15 text-ember",
-              status.tone === "done" && "bg-ember text-ink",
-              status.tone === "off" && "bg-ink-line text-cream-muted",
-            )}
-          >
-            {status.label}
-          </span>
-        </div>
-        <p className="m-0 text-cream-muted">
-          Save this page. The link is your order. If this phone reloads or you switch apps to pay,
-          just come back to it.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" size="sm" onClick={copyLink}>
-            {linkCopied ? "Link copied" : "Copy my order link"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={messageUs}>
-            Message us about this order
-          </Button>
-        </div>
-      </div>
-
-      {/* Summary */}
+  const summary = (
       <section className="grid gap-4 rounded-card-sm border border-cream-faint p-5">
         <h2 className="type-eyebrow m-0 text-cream-faint">Your order</h2>
         <ul className="m-0 grid list-none gap-2 p-0">
@@ -166,6 +139,54 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
           </p>
         )}
       </section>
+  );
+
+  return (
+    <Container className="grid max-w-[640px] gap-8 pb-24 [&>*]:min-w-0">
+      {toPay && <OrderSteps current={3} />}
+
+      {/* Header */}
+      <div className="grid gap-2">
+        <Eyebrow>Order {order.reference}</Eyebrow>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="display-sm m-0 text-cream">
+            {toPay ? "Pay to place your order" : checking ? `Order placed, ${firstName}.` : `Thanks, ${firstName}.`}
+          </h1>
+          <span
+            className={cn(
+              "rounded-full px-3 py-1 text-[12px] font-semibold uppercase tracking-wide",
+              status.tone === "wait" && "bg-ember/15 text-ember",
+              status.tone === "ok" && "bg-ember/15 text-ember",
+              status.tone === "done" && "bg-ember text-ink",
+              status.tone === "off" && "bg-ink-line text-cream-muted",
+            )}
+          >
+            {status.label}
+          </span>
+        </div>
+        <p className="m-0 text-cream-muted">
+          {toPay
+            ? `Almost there, ${firstName}. We are holding your order, and it is placed once you pay and upload your receipt below.`
+            : checking
+              ? "We have your receipt. We will check the payment and confirm on WhatsApp."
+              : "Save this page. The link is your order."}
+        </p>
+        {toPay && (
+          <p className="m-0 text-[13px] text-cream-muted">
+            Switching to your banking app is fine. This page is saved to its link, so come back to it any time.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" size="sm" onClick={copyLink}>
+            {linkCopied ? "Link copied" : "Copy my order link"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={messageUs}>
+            Message us about this order
+          </Button>
+        </div>
+      </div>
+
+      {!toPay && summary}
 
       {/* Payment */}
       {cancelled ? (
@@ -180,11 +201,11 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
         <section className="grid gap-4">
           <div className="grid gap-1">
             <h2 className="display-sm m-0 text-cream">
-              Pay {formatRm(order.amountDue)}
+              {checking ? `Payment of ${formatRm(order.amountDue)}` : `Pay ${formatRm(order.amountDue)}`}
             </h2>
             <p className="m-0 text-cream-muted">
               {order.paymentChoice === "FULL" ? "The full total." : "Half now, the rest later."} Transfer
-              by bank or scan the QR, then upload your receipt below.
+              by bank or scan the QR, then upload your receipt below{toPay ? " to place the order" : ""}.
             </p>
           </div>
 
@@ -217,7 +238,8 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
           <div className="grid gap-3 rounded-card-sm border border-cream-faint p-5">
             <h3 className="type-eyebrow m-0 text-cream-faint">Upload your receipt</h3>
             <p className="m-0 text-[13px] text-cream-muted">
-              A photo or PDF of your transfer. We confirm once we have checked it.
+              A photo or PDF of your transfer. {toPay ? "Uploading it places your order. " : ""}We confirm once we have
+              checked it.
             </p>
             <input
               ref={fileRef}
@@ -233,8 +255,10 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
               loading={uploading}
               loadingLabel="Uploading"
             >
-              <Upload size={16} className="mr-2" />
-              {order.receipts.length > 0 ? "Upload another" : "Choose receipt"}
+              <span className="inline-flex items-center gap-2">
+                <Upload aria-hidden size={16} />
+                {receiptIn ? "Upload another" : "Upload receipt"}
+              </span>
             </Button>
             {uploadError && <Banner tone="error" title={uploadError} />}
             {order.receipts.length > 0 && (
@@ -251,12 +275,14 @@ export function OrderStatus({ initialOrder }: { initialOrder: ShopOrderPublic })
             )}
             {order.receipts.length > 0 && (
               <p className="m-0 text-[13px] text-cream-muted">
-                Got it. We will confirm your payment and be in touch on WhatsApp.
+                Got it. Your order is placed. We will confirm your payment and be in touch on WhatsApp.
               </p>
             )}
           </div>
         </section>
       )}
+
+      {toPay && summary}
     </Container>
   );
 }

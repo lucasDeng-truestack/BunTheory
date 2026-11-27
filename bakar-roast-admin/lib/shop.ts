@@ -76,6 +76,7 @@ export type OrderDraft = {
 const DRAFT_KEY = "br-order-draft-v1";
 const IDEMP_KEY = "br-order-idem-v1";
 const LAST_ORDER_KEY = "br-last-order-v1";
+const CUSTOMER_KEY = "br-customer-v1";
 
 function safeGet(key: string): string | null {
   try {
@@ -156,3 +157,30 @@ export const SHOP_PAYMENT = {
 /** Packages keyed for quick lookup by the cart. */
 export const packageMap = (packages: ShopPackagePublic[]) =>
   new Map(packages.map((p) => [p.key, p]));
+
+// ─── Remembered customer details (this device only) ──────────────────────────
+
+/** Name, phone, email and delivery address kept on this device for the next order. */
+export type SavedCustomer = {
+  contact: OrderDraft["contact"];
+  addr: OrderDraft["addr"];
+};
+
+export function loadSavedCustomer(): Partial<SavedCustomer> | null {
+  const raw = safeGet(CUSTOMER_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Partial<SavedCustomer>) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCustomer(customer: SavedCustomer) {
+  safeSet(CUSTOMER_KEY, JSON.stringify(customer));
+}
+
+export function forgetCustomer() {
+  safeRemove(CUSTOMER_KEY);
+}
