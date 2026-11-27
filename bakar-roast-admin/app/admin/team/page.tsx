@@ -1,5 +1,6 @@
-import { TeamScreen } from "@/components/admin/team-screen";
+import { redirect } from "next/navigation";
 
+/** Team moved into Settings. Old links and bookmarks land there. */
 export default function AdminTeamPage() {
-  return <TeamScreen />;
+  redirect("/admin/settings?section=team");
 }

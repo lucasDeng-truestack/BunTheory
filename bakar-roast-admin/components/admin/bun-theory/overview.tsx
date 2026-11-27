@@ -50,7 +50,7 @@ export function OverviewScreen() {
           <Button size="sm" variant="cream" href={ordersFor(range)}>
             All orders
           </Button>
-          <Button size="sm" variant="ghost" href="/admin/bun-theory/settings">
+          <Button size="sm" variant="ghost" href="/admin/settings?brand=bun-theory&section=ordering">
             Settings
           </Button>
         </>

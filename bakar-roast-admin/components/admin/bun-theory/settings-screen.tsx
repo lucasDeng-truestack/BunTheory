@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ApiError } from "@/lib/api";
 import { adminUploadImage, imageSrc } from "@/lib/catering-api";
 import {
-  getBunTheorySettings,
   setOrderingEnabled,
   updateMaxOrders,
   updateMinimumDelivery,
@@ -26,44 +25,55 @@ import {
   type SettingBody,
   type SettingKey,
 } from "@/lib/bun-theory";
-import { Banner, Skeleton } from "@/components/ui/banner";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, TextareaField } from "@/components/ui/field";
 import { Toggle } from "@/components/ui/toggle";
 import { useAdmin } from "@/components/admin/admin-context";
-import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
-import { useAdminQuery } from "@/components/admin/use-admin-query";
+import { describeError } from "@/components/admin/admin-page";
+import { railRow, SettingsRail } from "@/components/admin/settings-rail";
+import { cn } from "@/lib/utils";
 import { Block, type Notice } from "@/components/admin/bun-theory/order-parts";
 
 /** A save's outcome: true, or the error. */
 type Saved = true | unknown;
 type Save = (call: (token: string) => Promise<BunTheorySettings>) => Promise<Saved>;
 
-export function BunTheorySettingsScreen() {
-  const q = useAdminQuery(getBunTheorySettings, []);
-  return (
-    <AdminPage title="Bun Theory settings" lead="Ordering, capacity, payment and the outlet. Each field saves when you leave it.">
-      {q.data === undefined ? q.error ? <LoadError onRetry={q.reload} /> : <SettingsSkeleton /> : <SettingsForm initial={q.data} />}
-    </AdminPage>
-  );
-}
+export type BunTheorySettingsSection = "ordering" | "payment" | "outlet";
 
 /**
+ * The Bun Theory side of Settings, one section showing at a time (all stay mounted, so a save
+ * still in flight lands after a switch).
+ *
  * Every change saves on its own and the saves run one at a time, so an older response never
  * lands after a newer one. `confirmed` is the settings row from the last save the server
  * accepted. Each field remembers what it last sent (a newer value for the same field decides);
  * a failed save puts the field back to what the server has.
  */
-function SettingsForm({ initial }: { initial: BunTheorySettings }) {
+export function BunTheorySettingsForm({
+  initial,
+  section,
+  onOrdering,
+}: {
+  initial: BunTheorySettings;
+  section: BunTheorySettingsSection;
+  /** Told whether orders are on, as the server last confirmed it (the tab's Paused chip). */
+  onOrdering: (on: boolean) => void;
+}) {
   const { run } = useAdmin();
   const confirmed = useRef<BunTheorySettings>(initial);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  // The confirmed row as state, for the summary beside the form.
+  const [live, setLive] = useState(initial);
+
+  useEffect(() => onOrdering(live.orderingEnabled), [live.orderingEnabled, onOrdering]);
 
   const save: Save = (call) => {
     const next = queue.current.then(async () => {
       try {
         confirmed.current = await run(call);
+        setLive(confirmed.current);
         return true as const;
       } catch (err) {
         return err;
@@ -78,7 +88,9 @@ function SettingsForm({ initial }: { initial: BunTheorySettings }) {
   );
 
   return (
-    <div className="grid max-w-[760px] gap-4">
+    <>
+    <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
+    <div className={cn("grid min-w-0 content-start gap-4", section !== "ordering" && "hidden")}>
       <Block title="Ordering">
         <OrderingToggle initial={initial.orderingEnabled} confirmed={confirmed} save={save} />
         <p className="m-0 text-[13px] text-cream-muted">
@@ -114,9 +126,13 @@ function SettingsForm({ initial }: { initial: BunTheorySettings }) {
           className: "max-w-[260px]",
         })}
       </Block>
+    </div>
 
+    <div className={cn("grid min-w-0 content-start gap-4", section !== "payment" && "hidden")}>
       <PaymentQr initial={initial.paymentQrUrl ?? ""} save={save} />
+    </div>
 
+    <div className={cn("grid min-w-0 content-start gap-4", section !== "outlet" && "hidden")}>
       <Block title="Outlet, fees and tax">
         <p className="m-0 text-[13px] text-cream-muted">
           Shown in the storefront header and used for checkout totals. Tax is included in the total shown (SST).
@@ -150,8 +166,29 @@ function SettingsForm({ initial }: { initial: BunTheorySettings }) {
         })}
       </Block>
     </div>
+
+    <SettingsRail
+      title="On the storefront"
+      rows={[
+        live.orderingEnabled ? { label: "Ordering", value: "On" } : { label: "Ordering", value: "Paused", unset: true },
+        railRow("Outlet", live.outletName, "Not set"),
+        railRow("Delivery fee", feeText("deliveryFee", live), "None"),
+        railRow("Processing fee", feeText("processingFee", live), "None"),
+        { label: "Tax", value: `${settingText("taxRatePercent", live)}%` },
+        railRow("QR", live.paymentQrUrl?.trim() ? "Uploaded" : "", "Default"),
+      ]}
+      note="What customers see now. Each change is live once it saves."
+    />
+    </div>
+    <p className="type-small m-0 text-cream-muted">Each field saves when you leave it.</p>
+    </>
   );
 }
+
+const feeText = (key: "deliveryFee" | "processingFee", s: BunTheorySettings) => {
+  const v = settingText(key, s);
+  return v ? `RM ${v}` : "";
+};
 
 /** Flip, save, and flip back if the save fails (the Toggle's own rule). */
 function OrderingToggle({
@@ -453,15 +490,4 @@ function PaymentQr({ initial, save }: { initial: string; save: Save }) {
 /** A cream square so a dark QR scans and reads on the ink admin. */
 function QrFrame({ children }: { children: ReactNode }) {
   return <div className="relative grid aspect-square w-[200px] flex-none place-items-center overflow-hidden rounded-card-sm bg-cream">{children}</div>;
-}
-
-function SettingsSkeleton() {
-  return (
-    <div aria-busy="true" className="grid max-w-[760px] gap-4">
-      <Skeleton className="h-[220px]" />
-      <Skeleton className="h-28" />
-      <Skeleton className="h-[260px]" />
-      <Skeleton className="h-[360px]" />
-    </div>
-  );
 }

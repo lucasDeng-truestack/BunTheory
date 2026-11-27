@@ -1,5 +1,6 @@
-import { BunTheorySettingsScreen } from "@/components/admin/bun-theory/settings-screen";
+import { redirect } from "next/navigation";
 
+/** The Bun Theory settings moved into Settings. Old links and bookmarks land there. */
 export default function BunTheorySettingsPage() {
-  return <BunTheorySettingsScreen />;
+  redirect("/admin/settings?brand=bun-theory&section=ordering");
 }

@@ -16,7 +16,7 @@ import { Banner, Skeleton } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { useAdmin } from "@/components/admin/admin-context";
-import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
+import { describeError, LoadError } from "@/components/admin/admin-page";
 import { useAdminQuery } from "@/components/admin/use-admin-query";
 import { Block, type Notice } from "@/components/admin/bun-theory/order-parts";
 
@@ -39,11 +39,11 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 type Editing = { id: string; kind: "name" | "password" } | null;
 
 /**
- * Staff accounts for the whole admin: list, add, rename, set a password. Roles are shown, not
+ * Staff accounts for the whole admin (Settings, Team): list, add, rename, set a password. Roles are shown, not
  * edited (they come later). Anyone signed in sees every action, as before; the server decides
  * who may change whom and its refusal shows as a Banner.
  */
-export function TeamScreen() {
+export function TeamPanel() {
   const { admin } = useAdmin();
   const q = useAdminQuery(listTeam, []);
   const [editing, setEditing] = useState<Editing>(null);
@@ -52,7 +52,8 @@ export function TeamScreen() {
   const replace = (m: TeamMemberSaved) => q.setData((list) => list?.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
 
   return (
-    <AdminPage title="Team" lead="Everyone who can sign in to this admin.">
+    <>
+      <p className="m-0 text-cream-muted">Everyone who can sign in to this admin. One sign-in covers every brand.</p>
       {q.data === undefined ? (
         q.error ? (
           <LoadError onRetry={q.reload} />
@@ -104,7 +105,7 @@ export function TeamScreen() {
           />
         </div>
       )}
-    </AdminPage>
+    </>
   );
 }
 

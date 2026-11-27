@@ -1,7 +1,6 @@
 import {
   CalendarClock,
   ChefHat,
-  Landmark,
   LayoutDashboard,
   MessageSquareQuote,
   Package,
@@ -9,7 +8,6 @@ import {
   Settings,
   ShoppingBag,
   Store,
-  Users,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +20,7 @@ export type AdminNavItem = {
   href: string;
   icon: LucideIcon;
   badge?: AdminNavBadge;
-  /** Phone top bar title when the menu label alone is unclear (two groups have Settings). */
+  /** Phone top bar title when the menu label alone is unclear (two groups have Orders). */
   title?: string;
   /** A link to another app (the POS). Opens in a new tab and is never the current page. */
   external?: boolean;
@@ -39,7 +37,6 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Orders", href: "/admin/shop-orders", icon: ShoppingBag, title: "Shop orders" },
       { label: "Schedule", href: "/admin/shop-schedule", icon: CalendarClock, title: "Shop schedule" },
       { label: "Packages", href: "/admin/shop-packages", icon: Package, title: "Shop packages" },
-      { label: "Payment", href: "/admin/shop-payment", icon: Landmark, title: "Payment and contact" },
     ],
   },
   {
@@ -52,7 +49,6 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
       { label: "Batches", href: "/admin/bun-theory/batches", icon: CalendarClock },
       { label: "Menu", href: "/admin/bun-theory/menu", icon: UtensilsCrossed },
       { label: "Feedback", href: "/admin/bun-theory/feedback", icon: MessageSquareQuote },
-      { label: "Settings", href: "/admin/bun-theory/settings", icon: Settings, title: "Bun Theory settings" },
     ],
   },
   {
@@ -60,8 +56,9 @@ export const ADMIN_NAV: { group: string; items: AdminNavItem[] }[] = [
     items: [{ label: "Open POS", href: POS_URL, icon: Store, external: true }],
   },
   {
-    group: "Staff",
-    items: [{ label: "Team", href: "/admin/team", icon: Users }],
+    // Payment, each brand's settings and Team: one page, a tab per brand.
+    group: "All brands",
+    items: [{ label: "Settings", href: "/admin/settings", icon: Settings }],
   },
 ];
 

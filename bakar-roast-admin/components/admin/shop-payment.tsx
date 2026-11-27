@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import {
   shopAdminGetContactSettings,
@@ -11,13 +11,14 @@ import { imageSrc } from "@/lib/catering-api";
 import { localUploadPath } from "@/lib/bun-theory";
 import { brand } from "@/lib/content";
 import { isSessionGone } from "@/lib/admin-session";
-import { Banner, ErrorMark, Skeleton } from "@/components/ui/banner";
+import { cn } from "@/lib/utils";
+import { Banner, ErrorMark } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { useAdmin } from "@/components/admin/admin-context";
-import { AdminPage, describeError, LoadError } from "@/components/admin/admin-page";
+import { describeError } from "@/components/admin/admin-page";
 import { PhotoPicker, useUpload } from "@/components/admin/list-tools";
-import { useAdminQuery } from "@/components/admin/use-admin-query";
+import { railRow, SettingsRail } from "@/components/admin/settings-rail";
 import { Block, type Notice } from "@/components/admin/bun-theory/order-parts";
 
 /** The form as typed. */
@@ -47,36 +48,29 @@ const toDraft = (s: ShopContactSettings): Draft => ({
 const same = (a: Draft, b: Draft) =>
   (Object.keys(a) as (keyof Draft)[]).every((k) => a[k].trim() === b[k].trim());
 
+export type ShopSettingsSection = "payment" | "contact";
+
+/** What the Settings tabs show for this brand: edits waiting, and no saved way to pay. */
+export type ShopSettingsStatus = { dirty: boolean; noPay: boolean };
+
 /**
  * Where Bakar & Roast customers pay and how they reach the business: bank details and the
- * payment QR shown on every unpaid order, and the WhatsApp number behind every "message us"
- * link. Nothing saves until Save is pressed.
+ * payment QR shown on every unpaid order (Payment), and the WhatsApp number behind every
+ * "message us" link (Contact). One draft covers both sections and both stay mounted, so
+ * switching between them keeps what was typed. Nothing saves until Save is pressed.
  */
-export function ShopPaymentScreen() {
-  const q = useAdminQuery((t) => shopAdminGetContactSettings(t), []);
-  return (
-    <AdminPage
-      eyebrow="Bakar & Roast"
-      title="Payment"
-      lead="The bank details and QR customers pay with, and the WhatsApp number they reach you on. Nothing changes on the site until you save."
-    >
-      {q.data === undefined ? (
-        q.error ? (
-          <LoadError onRetry={q.reload} />
-        ) : (
-          <div aria-busy="true" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <Skeleton className="h-80" />
-            <Skeleton className="h-80" />
-          </div>
-        )
-      ) : (
-        <Form initial={q.data} />
-      )}
-    </AdminPage>
-  );
-}
-
-function Form({ initial }: { initial: ShopContactSettings }) {
+export function ShopSettingsForm({
+  initial,
+  section,
+  onSection,
+  onStatus,
+}: {
+  initial: ShopContactSettings;
+  section: ShopSettingsSection;
+  /** Asked for when a field in the other section needs the owner (a WhatsApp number that will not save). */
+  onSection: (section: ShopSettingsSection) => void;
+  onStatus: (status: ShopSettingsStatus) => void;
+}) {
   const { run } = useAdmin();
   const { upload, uploading } = useUpload();
   const [base, setBase] = useState(() => toDraft(initial));
@@ -86,6 +80,9 @@ function Form({ initial }: { initial: ShopContactSettings }) {
   const [uploadError, setUploadError] = useState("");
   const [saving, setSaving] = useState(false);
   const dirty = !same(d, base);
+  const savedNoPay = !base.accountNumber.trim() && !base.qrUrl.trim();
+
+  useEffect(() => onStatus({ dirty, noPay: savedNoPay }), [dirty, savedNoPay, onStatus]);
 
   const set = (patch: Partial<Draft>) => {
     setD((cur) => ({ ...cur, ...patch }));
@@ -108,7 +105,9 @@ function Form({ initial }: { initial: ShopContactSettings }) {
     const digits = d.whatsapp.replace(/\D/g, "");
     if (d.whatsapp.trim() && (digits.length < 9 || digits.length > 15)) {
       setPhoneError("Enter the number in full, like 011-7512 6433.");
-      document.getElementById("pay-whatsapp")?.focus();
+      onSection("contact");
+      // The field is in the Contact section: focus it once that section shows.
+      requestAnimationFrame(() => document.getElementById("pay-whatsapp")?.focus());
       return;
     }
     setSaving(true);
@@ -145,14 +144,14 @@ function Form({ initial }: { initial: ShopContactSettings }) {
           {notice.help}
         </Banner>
       )}
-      {nothingToPayWith && (
+      {section === "payment" && nothingToPayWith && (
         <Banner tone="error" title="Customers have nowhere to pay yet.">
           Add an account number or a QR. Until then, the order page asks them to message you for payment details.
         </Banner>
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="grid min-w-0 content-start gap-4">
+      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className={cn("grid min-w-0 content-start gap-4", section !== "payment" && "hidden")}>
           <Block title="Bank transfer">
             <Field
               size="sm"
@@ -188,27 +187,6 @@ function Form({ initial }: { initial: ShopContactSettings }) {
             />
           </Block>
 
-          <Block title="WhatsApp">
-            <Field
-              id="pay-whatsapp"
-              size="sm"
-              label="Business WhatsApp number"
-              optional
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              maxLength={30}
-              placeholder={brand.whatsappDisplay}
-              help={`Every "message us" link on the site opens a chat with this number. Leave it empty to use ${brand.whatsappDisplay}.`}
-              value={d.whatsapp}
-              error={phoneError}
-              onChange={(e) => set({ whatsapp: e.target.value })}
-              className="max-w-[320px]"
-            />
-          </Block>
-        </div>
-
-        <div className="grid min-w-0 content-start gap-4">
           <Block title="Payment QR">
             {qr ? (
               <div className="grid justify-items-start gap-2">
@@ -250,6 +228,39 @@ function Form({ initial }: { initial: ShopContactSettings }) {
             )}
           </Block>
         </div>
+
+        <div className={cn("grid min-w-0 content-start gap-4", section !== "contact" && "hidden")}>
+          <Block title="WhatsApp">
+            <Field
+              id="pay-whatsapp"
+              size="sm"
+              label="Business WhatsApp number"
+              optional
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              maxLength={30}
+              placeholder={brand.whatsappDisplay}
+              help={`Every "message us" link on the site opens a chat with this number. Leave it empty to use ${brand.whatsappDisplay}.`}
+              value={d.whatsapp}
+              error={phoneError}
+              onChange={(e) => set({ whatsapp: e.target.value })}
+              className="max-w-[320px]"
+            />
+          </Block>
+        </div>
+
+        <SettingsRail
+          title="On the order page"
+          rows={[
+            railRow("Bank", base.bankName, "Not set"),
+            railRow("Account name", base.accountName, "Not set"),
+            railRow("Account number", base.accountNumber, "Not set"),
+            railRow("QR", base.qrUrl.trim() ? "Uploaded" : "", "None"),
+            railRow("WhatsApp", base.whatsapp, brand.whatsappDisplay),
+          ]}
+          note="What customers see now. It updates after you save."
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -278,7 +289,9 @@ function Form({ initial }: { initial: ShopContactSettings }) {
         >
           Discard changes
         </Button>
-        {dirty && <span className="type-small text-cream-muted">You have changes that are not saved.</span>}
+        <span className="type-small text-cream-muted">
+          {dirty ? "You have changes that are not saved. They cover Payment and Contact." : "Nothing changes on the site until you save."}
+        </span>
       </div>
     </>
   );
